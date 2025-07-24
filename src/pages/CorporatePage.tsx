@@ -13,7 +13,7 @@ const CorporatePage = () => {
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
         ></div>
-        <div className="absolute inset-0 bg-white/80"></div>
+        <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 mb-8">
             <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">

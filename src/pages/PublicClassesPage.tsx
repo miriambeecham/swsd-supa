@@ -36,12 +36,12 @@ const PublicClassesPage = () => {
       {/* Header */}
       <section className="relative py-16">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
           style={{
-            backgroundImage: 'url(https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=1600)'
+            backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
         ></div>
-        <div className="absolute inset-0 bg-white/80"></div>
+        <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 mb-8">
             <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
