@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Users, Shield, HandHeart, CheckCircle, Star, Calendar, ArrowRight, DollarSign } from 'lucide-react';
+import { Heart, Users, Shield, HandHeart, CheckCircle, Star, Calendar, ArrowRight, DollarSign, ArrowLeft } from 'lucide-react';
 
 const CboPage = () => {
   const programs = [
@@ -88,34 +88,27 @@ const CboPage = () => {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-32">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=1600)'
-          }}
-        ></div>
-        <div className="absolute inset-0 bg-black/60"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl lg:text-6xl font-bold text-white mb-6">
-              Community <span className="text-yellow">Partnership</span> Programs
-            </h1>
-            <p className="text-xl lg:text-2xl text-gray-200 mb-8 max-w-3xl mx-auto">
+      {/* Header */}
+      <section className="bg-gray-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4 mb-8">
+            <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Link>
+          </div>
+
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Community Partnership Programs</h1>
+            <p className="text-xl text-gray-600 mb-8">
               Empowering communities through specialized self-defense training for women's organizations, 
-              youth groups, shelters, and community centers.
+              youth groups, shelters, and community centers. We offer grant funding assistance and 
+              sliding scale pricing to make safety training accessible to all.
             </p>
-            <div className="bg-yellow/20 border border-yellow rounded-lg p-4 max-w-2xl mx-auto mb-8">
-              <p className="text-yellow font-semibold">
-                ✨ Grant funding assistance available • Sliding scale pricing • Community-focused approach
-              </p>
-            </div>
             <Link
               to="/contact"
-              className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center justify-center"
+              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors inline-block"
             >
-              <Calendar className="mr-2 h-5 w-5" />
               Partner With Us
             </Link>
           </div>
