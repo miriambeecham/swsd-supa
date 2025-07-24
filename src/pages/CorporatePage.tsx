@@ -10,7 +10,7 @@ const CorporatePage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: '/swsd-logo-bug.png'
+            backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
         ></div>
         <div className="absolute inset-0 bg-white/80"></div>
