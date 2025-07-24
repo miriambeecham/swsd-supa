@@ -44,7 +44,7 @@ const PublicClassesPage = () => {
           </div>
 
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Class Signup</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
             <p className="text-xl text-gray-600 mb-8">
               Join our empowering self-defense classes in a supportive, women-only environment. Choose from our
               specialized programs designed for different age groups and relationships.
@@ -60,7 +60,7 @@ const PublicClassesPage = () => {
             <div className="flex items-start gap-8 mb-8">
               <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
                 <img
-                  src="https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=400"
+                  src="/mothers-daughters.jpg"
                   alt="Mother-Daughter Classes"
                   className="w-full h-full object-cover"
                 />
@@ -118,7 +118,7 @@ const PublicClassesPage = () => {
             <div className="flex items-start gap-8 mb-8">
               <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
                 <img
-                  src="https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400"
+                  src="/adult-teen.jpg"
                   alt="Adult & Teen Classes"
                   className="w-full h-full object-cover"
                 />

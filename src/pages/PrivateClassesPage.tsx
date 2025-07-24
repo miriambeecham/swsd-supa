@@ -92,7 +92,7 @@ const PrivateClassesPage = () => {
             </div>
             <div className="relative h-96">
               <img
-                src="https://images.pexels.com/photos/8613270/pexels-photo-8613270.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src="/private-classes.png"
                 alt="Private training session"
                 className="w-full h-full object-cover rounded-lg"
               />

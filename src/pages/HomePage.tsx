@@ -120,7 +120,7 @@ const HomePage = () => {
             <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
               <div className="relative h-48">
                 <img 
-                  src="https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400" 
+                  src="/public-classes.png"
                   alt="Public Classes" 
                   className="w-full h-full object-cover" 
                 />
@@ -144,7 +144,7 @@ const HomePage = () => {
             <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
               <div className="relative h-48">
                 <img
-                  src="https://images.pexels.com/photos/8613270/pexels-photo-8613270.jpeg?auto=compress&cs=tinysrgb&w=400"
+                  src="private-classes.png"
                   alt="Private Classes"
                   className="w-full h-full object-cover"
                 />
@@ -168,7 +168,7 @@ const HomePage = () => {
             <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
               <div className="relative h-48">
                 <img
-                  src="https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400"
+                  src="corporate.png"
                   alt="Corporate Training"
                   className="w-full h-full object-cover"
                 />
@@ -191,7 +191,7 @@ const HomePage = () => {
             <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
               <div className="relative h-48">
                 <img
-                  src="https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=400"
+                  src="/community.jpeg"
                   alt="Community Organizations"
                   className="w-full h-full object-cover"
                 />
@@ -339,7 +339,7 @@ const HomePage = () => {
             </div>
             <div className="relative h-96">
               <img
-                src="https://images.pexels.com/photos/7991225/pexels-photo-7991225.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src="/fearless.png"
                 alt="Success story"
                 className="w-full h-full object-cover rounded-lg"
               />

@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Logo */}
             <Link to="/" className="flex items-center">
               <img
-                src="/SWSD_Logo_1430_x_285px copy 2.png"
+                src="/swsd-logo-official.png"
                 alt="Streetwise Self Defense"
                 className="h-12 w-auto"
               />
@@ -88,10 +88,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               >
                 Testimonials
               </Link>
+              <Link 
+                to="/contact" 
+                className="text-gray-600 hover:text-navy font-medium"
+              >
+                Contact
+              </Link>
             </nav>
 
             <Link
-              to="/contact"
+              to="/public-classes"
               className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               Book a Class
@@ -139,7 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-2">
               <img
-                src="/SWSD_Logo_1430_x_285px copy 2.png"
+                src="/swsd-logo2-official.png"
                 alt="Streetwise Self Defense"
                 className="h-12 w-auto mb-4 brightness-0 invert"
               />

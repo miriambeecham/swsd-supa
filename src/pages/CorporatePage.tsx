@@ -69,7 +69,7 @@ const CorporatePage = () => {
             </div>
             <div className="relative h-96">
               <img
-                src="https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src="/corporate.png"
                 alt="Corporate training session"
                 className="w-full h-full object-cover rounded-lg"
               />
