@@ -8,7 +8,7 @@ const CorporatePage = () => {
       {/* Header */}
       <section className="relative py-16">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
