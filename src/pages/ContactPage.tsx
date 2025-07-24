@@ -101,21 +101,19 @@ const ContactPage = () => {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-32">
+      {/* Header */}
+      <section className="relative py-16">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(https://images.pexels.com/photos/7991464/pexels-photo-7991464.jpeg?auto=compress&cs=tinysrgb&w=1600)'
           }}
         ></div>
-        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="absolute inset-0 bg-white/80"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl lg:text-6xl font-bold text-white mb-6">
-              Get in <span className="text-yellow">Touch</span>
-            </h1>
-            <p className="text-xl lg:text-2xl text-gray-200 mb-8 max-w-3xl mx-auto">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Get in Touch</h1>
+            <p className="text-xl text-gray-600 mb-8">
               Ready to start your self-defense journey? Have questions about our programs? 
               We're here to help you find the perfect training solution.
             </p>

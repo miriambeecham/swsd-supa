@@ -39,8 +39,15 @@ const PrivateClassesPage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-16">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(https://images.pexels.com/photos/7991464/pexels-photo-7991464.jpeg?auto=compress&cs=tinysrgb&w=1600)'
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-white/80"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 mb-8">
             <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
               <ArrowLeft className="w-4 h-4" />

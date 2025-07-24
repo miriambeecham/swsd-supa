@@ -37,15 +37,19 @@ const MotherDaughterPage = () => {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-pink-600 via-purple-600 to-navy py-20 lg:py-32">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
+      {/* Header */}
+      <section className="relative py-16">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(https://images.pexels.com/photos/8613270/pexels-photo-8613270.jpeg?auto=compress&cs=tinysrgb&w=1600)'
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-white/80"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl lg:text-6xl font-bold text-white mb-6">
-              Mother & Daughter <span className="text-yellow">Self Defense</span>
-            </h1>
-            <p className="text-xl lg:text-2xl text-gray-200 mb-8 max-w-3xl mx-auto">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Mother & Daughter Self Defense</h1>
+            <p className="text-xl text-gray-600 mb-8">
               Build confidence, communication, and safety skills together. A unique bonding experience 
               that empowers both mother and daughter with practical self-defense techniques.
             </p>
@@ -59,7 +63,7 @@ const MotherDaughterPage = () => {
               </Link>
               <Link
                 to="/contact"
-                className="bg-transparent border-2 border-yellow text-yellow hover:bg-yellow hover:text-navy px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+                className="bg-transparent border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
               >
                 Ask Questions
               </Link>
