@@ -1,8 +1,149 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Shield, Users, Award, Phone, Mail, MapPin } from 'lucide-react';
 
+interface Testimonial {
+  id: string;
+  name: string;
+  content: string;
+  rating: number;
+  class_type: string;
+  platform?: string;
+  profile_image_url?: string;
+  review_url?: string;
+  homepage_position?: string;
+  is_published: boolean;
+}
+
 const HomePage = () => {
+  const [testimonials, setTestimonials] = useState<Record<string, Testimonial>>({});
+  const [loading, setLoading] = useState(true);
+
+  // Platform configurations (same as testimonials page)
+  const platformConfig = {
+    google: { name: 'Google', logo: '🌟', color: 'text-blue-600' },
+    yelp: { name: 'Yelp', logo: '⭐', color: 'text-red-600' },
+    facebook: { name: 'Facebook', logo: '👍', color: 'text-blue-700' },
+    trustpilot: { name: 'Trustpilot', logo: '🌟', color: 'text-green-600' },
+    linkedin: { name: 'LinkedIn', logo: '💼', color: 'text-blue-800' },
+    nextdoor: { name: 'Nextdoor', logo: '🏠', color: 'text-green-700' },
+    website: { name: 'Website', logo: '💬', color: 'text-gray-600' },
+    survey: { name: 'Post-Class Survey', logo: '📝', color: 'text-gray-600' },
+    default: { name: 'Review', logo: '💬', color: 'text-gray-600' }
+  };
+
+  const getPlatformInfo = (platform?: string) => {
+    return platformConfig[platform as keyof typeof platformConfig] || platformConfig.default;
+  };
+
+  const fetchHomepageTestimonials = async () => {
+    try {
+      setLoading(true);
+
+      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
+
+      console.log('Fetching homepage testimonials...');
+      console.log('Base ID:', baseId);
+      console.log('API Key exists:', !!apiKey);
+
+      if (!baseId || !apiKey) {
+        console.error('Missing Airtable configuration');
+        throw new Error('Missing Airtable configuration');
+      }
+
+      const response = await fetch(
+        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is Published}=1,{Homepage position}!="None",{Homepage position}!="")`,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch testimonials: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Raw Airtable data:', data);
+
+      // Group testimonials by homepage position
+      const groupedTestimonials = data.records.reduce((acc: Record<string, Testimonial>, record: any) => {
+        const testimonial = {
+          id: record.id,
+          name: record.fields.Name || '',
+          content: record.fields.Content || '',
+          rating: parseInt(record.fields.Rating) || 5,
+          class_type: record.fields['Class type'] || '',
+          platform: record.fields.Platform?.toLowerCase(),
+          profile_image_url: record.fields['Profile image URL'],
+          review_url: record.fields['Original review URL'],
+          homepage_position: record.fields['Homepage position'],
+          is_published: record.fields['Is published'] || false,
+        };
+
+        console.log('Processing testimonial:', testimonial.name, 'Position:', testimonial.homepage_position);
+
+        if (testimonial.homepage_position) {
+          acc[testimonial.homepage_position] = testimonial;
+        }
+
+        return acc;
+      }, {});
+
+      console.log('Grouped testimonials:', groupedTestimonials);
+      setTestimonials(groupedTestimonials);
+
+    } catch (err) {
+      console.error('Error fetching homepage testimonials:', err);
+      // Continue with empty testimonials object - page will show fallback content
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Set page title
+    document.title = 'Streetwise Self Defense - Building Confidence, Staying Safe';
+
+    fetchHomepageTestimonials();
+  }, []);
+
+  const renderTestimonial = (position: string, fallbackContent: { quote: string; name: string; program: string }) => {
+    const testimonial = testimonials[position];
+
+    if (testimonial) {
+      return {
+        quote: testimonial.content,
+        name: testimonial.name,
+        program: testimonial.class_type,
+        platform: testimonial.platform,
+        platformInfo: getPlatformInfo(testimonial.platform),
+        profileImage: testimonial.profile_image_url,
+        reviewUrl: testimonial.review_url,
+        rating: testimonial.rating
+      };
+    }
+
+    // Fallback to hardcoded content if no testimonial assigned
+    return fallbackContent;
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`w-5 h-5 ${
+          i < rating ? 'text-yellow fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section - Left-aligned card with new image */}
@@ -97,11 +238,51 @@ const HomePage = () => {
       {/* Quick Testimonial */}
       <section className="py-12 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <blockquote className="text-2xl md:text-3xl font-light text-gray-700 italic">
-            "This training didn't just teach me techniques – it transformed how I carry myself in the world. I feel
-            confident, prepared, and empowered."
-          </blockquote>
-          <p className="mt-4 text-gray-600 font-medium">— Sarah M., Public Classes Graduate</p>
+          {(() => {
+            const testimonialData = renderTestimonial('Quote 1', {
+              quote: "This training didn't just teach me techniques – it transformed how I carry myself in the world. I feel confident, prepared, and empowered.",
+              name: "Sarah M.",
+              program: "Public Classes Graduate"
+            });
+
+            return (
+              <div>
+                <blockquote className="text-2xl md:text-3xl font-light text-gray-700 italic">
+                  "{testimonialData.quote}"
+                </blockquote>
+                <div className="mt-4 flex items-center justify-center space-x-4">
+                  {testimonialData.profileImage ? (
+                    <img
+                      src={testimonialData.profileImage}
+                      alt={testimonialData.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                    style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                  >
+                    {testimonialData.name.charAt(0)}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-gray-600 font-medium">— {testimonialData.name}, {testimonialData.program}</p>
+                    {testimonialData.platform && (
+                      <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                        <span>{testimonialData.platformInfo.logo}</span>
+                        <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
@@ -133,9 +314,11 @@ const HomePage = () => {
                 </p>
                 <Link 
                   to="/public-classes"
-                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto"
+                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto flex items-center justify-center"
                 >
-                  Learn More
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
             </div>
@@ -157,9 +340,11 @@ const HomePage = () => {
                 </p>
                 <Link 
                   to="/private-classes"
-                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto"
+                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto flex items-center justify-center"
                 >
-                  Learn More
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
             </div>
@@ -180,9 +365,11 @@ const HomePage = () => {
                 </p>
                 <Link 
                   to="/corporate"
-                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto"
+                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto flex items-center justify-center"
                 >
-                  Learn More
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
             </div>
@@ -203,9 +390,11 @@ const HomePage = () => {
                 </p>
                 <Link 
                   to="/cbo"
-                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto"
+                  className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto flex items-center justify-center"
                 >
-                  Learn More
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
             </div>
@@ -216,10 +405,51 @@ const HomePage = () => {
       {/* Testimonial Break #1 */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <blockquote className="text-2xl md:text-3xl font-light text-gray-700 italic">
-            "The corporate training session was eye-opening. Our entire team feels more confident and prepared."
-          </blockquote>
-          <p className="mt-4 text-gray-600 font-medium">— Jennifer L., Corporate Training Participant</p>
+          {(() => {
+            const testimonialData = renderTestimonial('Quote 2', {
+              quote: "The corporate training session was eye-opening. Our entire team feels more confident and prepared.",
+              name: "Jennifer L.",
+              program: "Corporate Training Participant"
+            });
+
+            return (
+              <div>
+                <blockquote className="text-2xl md:text-3xl font-light text-gray-700 italic">
+                  "{testimonialData.quote}"
+                </blockquote>
+                <div className="mt-4 flex items-center justify-center space-x-4">
+                  {testimonialData.profileImage ? (
+                    <img
+                      src={testimonialData.profileImage}
+                      alt={testimonialData.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                    style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                  >
+                    {testimonialData.name.charAt(0)}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-gray-600 font-medium">— {testimonialData.name}, {testimonialData.program}</p>
+                    {testimonialData.platform && (
+                      <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                        <span>{testimonialData.platformInfo.logo}</span>
+                        <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
@@ -278,47 +508,70 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "My daughter and I took the Mother-Daughter class together. It was an incredible bonding experience and
-                we both learned so much about confidence and safety."
-              </blockquote>
-              <p className="font-medium text-navy">— Maria S.</p>
-              <p className="text-sm text-gray-600">Mother-Daughter Program</p>
-            </div>
+            {/* Grid testimonials - try to get from Airtable, fallback to hardcoded */}
+            {['Quote 3', 'Quote 4', 'Quote 5'].map((position, index) => {
+              const fallbacks = [
+                {
+                  quote: "My daughter and I took the Mother-Daughter class together. It was an incredible bonding experience and we both learned so much about confidence and safety.",
+                  name: "Maria S.",
+                  program: "Mother-Daughter Program"
+                },
+                {
+                  quote: "The techniques I learned have already helped me feel safer walking to my car at night. This training is invaluable for every woman.",
+                  name: "Amanda R.",
+                  program: "Adult Public Classes"
+                },
+                {
+                  quote: "Our Girl Scout troop loved the community program. The girls learned important skills while having fun and building confidence.",
+                  name: "Lisa T.",
+                  program: "Community Organization"
+                }
+              ];
 
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "The techniques I learned have already helped me feel safer walking to my car at night. This training is
-                invaluable for every woman."
-              </blockquote>
-              <p className="font-medium text-navy">— Amanda R.</p>
-              <p className="text-sm text-gray-600">Adult Public Classes</p>
-            </div>
+              const testimonialData = renderTestimonial(position, fallbacks[index]);
 
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "Our Girl Scout troop loved the community program. The girls learned important skills while having fun
-                and building confidence."
-              </blockquote>
-              <p className="font-medium text-navy">— Lisa T.</p>
-              <p className="text-sm text-gray-600">Community Organization</p>
-            </div>
+              return (
+                <div key={position} className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
+                  <div className="flex mb-4">
+                    {renderStars(testimonialData.rating || 5)}
+                  </div>
+                  <blockquote className="text-gray-700 mb-4">
+                    "{testimonialData.quote}"
+                  </blockquote>
+                  <div className="flex items-center space-x-3">
+                    {testimonialData.profileImage ? (
+                      <img
+                        src={testimonialData.profileImage}
+                        alt={testimonialData.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                    >
+                      {testimonialData.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-navy">{testimonialData.name}</p>
+                      <p className="text-sm text-gray-600">{testimonialData.program}</p>
+                      {testimonialData.platform && (
+                        <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                          <span>{testimonialData.platformInfo.logo}</span>
+                          <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -328,14 +581,53 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="bg-yellow-light text-yellow px-3 py-1 rounded-full text-sm font-semibold mb-4 inline-block">Success Story</span>
+              <span className="bg-navy text-white px-3 py-1 rounded-full text-sm font-semibold mb-4 inline-block">Success Story</span>
               <h2 className="text-4xl font-bold text-navy mb-6">From Fear to Fearless</h2>
-              <blockquote className="text-xl text-gray-700 italic mb-6">
-                "Six months ago, I was afraid to walk alone after dark. Today, I feel confident and prepared. The
-                transformation isn't just physical – it's mental and emotional. I carry myself differently, speak up
-                more, and trust my instincts. This training gave me my power back."
-              </blockquote>
-              <p className="font-medium text-navy">— Rachel K., 6-month program graduate</p>
+              {(() => {
+                const testimonialData = renderTestimonial('Quote 6', {
+                  quote: "Six months ago, I was afraid to walk alone after dark. Today, I feel confident and prepared. The transformation isn't just physical – it's mental and emotional. I carry myself differently, speak up more, and trust my instincts. This training gave me my power back.",
+                  name: "Rachel K.",
+                  program: "6-month program graduate"
+                });
+
+                return (
+                  <div>
+                    <blockquote className="text-xl text-gray-700 italic mb-6">
+                      "{testimonialData.quote}"
+                    </blockquote>
+                    <div className="flex items-center space-x-4">
+                      {testimonialData.profileImage ? (
+                        <img
+                          src={testimonialData.profileImage}
+                          alt={testimonialData.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                        style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                      >
+                        {testimonialData.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-navy">— {testimonialData.name}, {testimonialData.program}</p>
+                        {testimonialData.platform && (
+                          <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                            <span>{testimonialData.platformInfo.logo}</span>
+                            <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             <div className="relative h-96">
               <img

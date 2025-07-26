@@ -1,104 +1,176 @@
-import React from 'react';
-import { Star, Quote } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, Quote, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+interface Testimonial {
+  id: string;
+  name: string;
+  content: string;
+  rating: number;
+  class_type: string;
+  platform?: string;
+  profile_image_url?: string;
+  review_url?: string;
+  is_featured: boolean;
+  is_published: boolean;
+}
 
 const TestimonialsPage = () => {
-  const testimonials = [
-    {
-      name: 'Jennifer & Emma (14)',
-      program: 'Mother-Daughter Class',
-      rating: 5,
-      content: 'This class was amazing! My daughter and I learned so much together, and it really opened up conversations about safety that we hadn\'t had before. The instructors were fantastic with both adults and teens.',
-      image: 'https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Sarah M.',
-      program: 'Adult & Teen Class',
-      rating: 5,
-      content: 'The training was incredible! I feel so much more confident walking alone at night. The instructors were professional and made everyone feel comfortable while learning these important skills.',
-      image: 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Lisa & Sophia (13)',
-      program: 'Mother-Daughter Class',
-      rating: 5,
-      content: 'I was nervous about taking a self-defense class, but doing it with my mom made it so much better. We learned practical skills and had fun together. I feel much more confident now!',
-      image: 'https://images.pexels.com/photos/8613270/pexels-photo-8613270.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'David Chen',
-      program: 'Corporate Training',
-      rating: 5,
-      content: 'The training was excellent and our employees felt much more confident about workplace safety. The instructors were professional and adapted the content perfectly to our office environment.',
-      image: 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Maria Rodriguez',
-      program: 'CBO Partnership',
-      rating: 5,
-      content: 'The training was perfectly adapted for our shelter residents. The trauma-informed approach helped our women rebuild confidence while learning practical safety skills.',
-      image: 'https://images.pexels.com/photos/7991225/pexels-photo-7991225.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'The Johnson Family',
-      program: 'Private Training',
-      rating: 5,
-      content: 'The private training was perfect for our family. Having both parents and our teenage son learn together created great conversations about safety at home.',
-      image: 'https://images.pexels.com/photos/7991464/pexels-photo-7991464.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Amanda K.',
-      program: 'Adult & Teen Class',
-      rating: 5,
-      content: 'I never thought I could defend myself, but this class proved me wrong. The techniques are simple but effective, and the women-only environment made me feel completely comfortable.',
-      image: 'https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Jennifer Thompson',
-      program: 'Girl Scout Partnership',
-      rating: 5,
-      content: 'Our Girl Scout troop loved the program! The girls earned their safety badge while having fun and learning important life skills. The instructors were amazing with the kids.',
-      image: 'https://images.pexels.com/photos/8613270/pexels-photo-8613270.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Rachel & Mia (15)',
-      program: 'Mother-Daughter Class',
-      rating: 5,
-      content: 'As a single mom, I wanted to make sure my daughter knew how to protect herself. This class gave us both confidence and brought us closer together. Highly recommend!',
-      image: 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Sarah Martinez',
-      program: 'Corporate Training',
-      rating: 5,
-      content: 'Not only did our team learn valuable safety skills, but the training also improved communication and trust among team members. It was a great team building experience.',
-      image: 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Maria S.',
-      program: 'Private Training',
-      rating: 5,
-      content: 'The instructor understood my daughter\'s autism and adapted the training perfectly. She gained confidence without feeling overwhelmed. Thank you for the specialized approach!',
-      image: 'https://images.pexels.com/photos/7991225/pexels-photo-7991225.jpeg?auto=compress&cs=tinysrgb&w=400'
-    },
-    {
-      name: 'Jessica L.',
-      program: 'Adult & Teen Class',
-      rating: 5,
-      content: 'After a scary experience downtown, I knew I needed to learn self-defense. This class not only taught me physical techniques but also how to be more aware of my surroundings.',
-      image: 'https://images.pexels.com/photos/8613313/pexels-photo-8613313.jpeg?auto=compress&cs=tinysrgb&w=400'
-    }
-  ];
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [featuredTestimonial, setFeaturedTestimonial] = useState<Testimonial | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const stats = [
-    { number: '500+', label: 'Five-Star Reviews' },
-    { number: '98%', label: 'Would Recommend' },
-    { number: '5000+', label: 'Students Trained' },
-    { number: '4.9/5', label: 'Average Rating' }
-  ];
+  // Platform configurations
+  const platformConfig = {
+    google: { name: 'Google', logo: '🌟', color: 'text-blue-600' },
+    yelp: { name: 'Yelp', logo: '⭐', color: 'text-red-600' },
+    facebook: { name: 'Facebook', logo: '👍', color: 'text-blue-700' },
+    trustpilot: { name: 'Trustpilot', logo: '🌟', color: 'text-green-600' },
+    linkedin: { name: 'LinkedIn', logo: '💼', color: 'text-blue-800' },
+    nextdoor: { name: 'Nextdoor', logo: '🏠', color: 'text-green-700' },
+    website: { name: 'Website', logo: '💬', color: 'text-gray-600' },
+    survey: { name: 'Post-Class Survey', logo: '📝', color: 'text-gray-600' },
+    default: { name: 'Review', logo: '💬', color: 'text-gray-600' }
+  };
+
+  const fetchTestimonialsFromAirtable = async () => {
+    try {
+      setLoading(true);
+
+      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
+
+      if (!baseId || !apiKey) {
+        throw new Error('Missing Airtable configuration');
+      }
+
+      const response = await fetch(
+        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is published}=1,OR({Homepage position}="",{Homepage position}="None"))&sort[0][field]=Review Date&sort[0][direction]=desc`,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch testimonials: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const formattedTestimonials = data.records.map((record: any) => {
+        // Handle profile picture - could be direct URL or Airtable attachment
+        let profileImageUrl = null;
+        const profileField = record.fields['Profile Image URL']; // Updated field name
+
+        if (typeof profileField === 'string') {
+          // Direct URL (like your Yelp example)
+          profileImageUrl = profileField;
+        } else if (Array.isArray(profileField) && profileField.length > 0) {
+          // Airtable attachment format
+          profileImageUrl = profileField[0].url;
+        }
+
+        return {
+          id: record.id,
+          name: record.fields.Name || '',
+          content: record.fields.Content || '',
+          rating: parseInt(record.fields.Rating) || 5,
+          class_type: record.fields['Class Type'] || '',
+          platform: record.fields.Platform?.toLowerCase(),
+          profile_image_url: profileImageUrl,
+          review_url: record.fields['Original Review URL'],
+          is_featured: record.fields['Is Featured'] || false,
+          is_published: record.fields['Is Published'] || false,
+        };
+      });
+
+      setTestimonials(formattedTestimonials);
+
+      // Find featured testimonial
+      const featured = formattedTestimonials.find((t: Testimonial) => t.is_featured);
+      setFeaturedTestimonial(featured || null);
+
+    } catch (err) {
+      console.error('Error fetching testimonials:', err);
+      setError('Unable to load testimonials. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTestimonialsFromAirtable();
+  }, []);
+
+  const getPlatformInfo = (platform?: string) => {
+    return platformConfig[platform as keyof typeof platformConfig] || platformConfig.default;
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`w-4 h-4 ${
+          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  const calculateStats = () => {
+    // Remove this function since we're using static platform stats instead
+    return {};
+  };
+
+  const {} = calculateStats();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading testimonials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={fetchTestimonialsFromAirtable}
+            className="bg-accent-primary text-white px-6 py-2 rounded-lg hover:bg-accent-primary-dark"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-accent-primary hover:text-accent-primary-dark"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section with Logo Background */}
       <section className="relative py-16">
         <div 
           className="absolute inset-0 bg-contain bg-center bg-no-repeat"
@@ -111,183 +183,238 @@ const TestimonialsPage = () => {
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Student Success Stories</h1>
             <p className="text-xl text-gray-600 mb-8">
-              Hear from the thousands of students who have built confidence, learned life-saving skills, 
+              Hear from the students who have built confidence, learned life-saving skills, 
               and transformed their relationship with personal safety.
             </p>
             <div className="flex justify-center">
               <div className="flex items-center space-x-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-8 w-8 text-yellow fill-current" />
-                ))}
-                <span className="text-navy text-xl font-semibold ml-3">4.9/5 Average Rating</span>
+                {renderStars(5)}
+                <span className="text-navy text-xl font-semibold ml-3">
+                  4.9/5 Average Rating
+                </span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl lg:text-4xl font-bold text-navy mb-2">{stat.number}</div>
-                <div className="text-gray-600 font-medium">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials Grid */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-navy mb-4">
-              What Our Students Say
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Real stories from real people who have experienced the life-changing impact of our training programs.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden mr-4">
-                    <img 
-                      src={testimonial.image} 
-                      alt={testimonial.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-navy">{testimonial.name}</h3>
-                    <p className="text-sm text-gray-500">{testimonial.program}</p>
-                  </div>
-                  <Quote className="h-6 w-6 text-accent-primary opacity-50" />
-                </div>
-                
-                <div className="flex mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 text-yellow fill-current" />
-                  ))}
-                </div>
-                
-                <p className="text-gray-600 leading-relaxed italic">
-                  "{testimonial.content}"
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Featured Testimonial */}
-      <section className="py-20 bg-accent-light">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12 text-center">
-            <Quote className="h-12 w-12 text-accent-primary mx-auto mb-6" />
-            <blockquote className="text-2xl lg:text-3xl text-gray-800 font-medium leading-relaxed mb-8">
-              "This training literally changed my life. I went from being afraid to walk to my car at night 
-              to feeling confident and empowered. Every woman should take this class."
-            </blockquote>
-            <div className="flex justify-center mb-4">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-6 w-6 text-yellow fill-current" />
-              ))}
+      {featuredTestimonial && (
+        <section className="py-20 bg-accent-light">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12 text-center">
+              <Quote className="h-12 w-12 text-accent-primary mx-auto mb-6" />
+              <blockquote className="text-2xl lg:text-3xl text-gray-800 font-medium leading-relaxed mb-8">
+                "{featuredTestimonial.content}"
+              </blockquote>
+              <div className="flex justify-center mb-4">
+                {renderStars(featuredTestimonial.rating)}
+              </div>
+              <div className="flex items-center justify-center mb-4">
+                {featuredTestimonial.profile_image_url ? (
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden mr-4">
+                    <img 
+                      src={featuredTestimonial.profile_image_url} 
+                      alt={featuredTestimonial.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.log('Profile image failed to load:', featuredTestimonial.profile_image_url);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) {
+                          fallback.style.display = 'flex';
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-accent-primary rounded-full flex items-center justify-center text-white text-xl font-semibold mr-4">
+                    {featuredTestimonial.name.charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <p className="text-xl font-semibold text-navy">{featuredTestimonial.name}</p>
+                  {featuredTestimonial.class_type && (
+                    <p className="text-gray-500">{featuredTestimonial.class_type}</p>
+                  )}
+                  {featuredTestimonial.platform && (
+                    <div className="flex items-center justify-center mt-1">
+                      <span className="text-sm mr-1">{getPlatformInfo(featuredTestimonial.platform).logo}</span>
+                      <span className={`text-sm font-medium ${getPlatformInfo(featuredTestimonial.platform).color}`}>
+                        {getPlatformInfo(featuredTestimonial.platform).name} Review
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {featuredTestimonial.review_url && featuredTestimonial.platform !== 'survey' && (
+                <a
+                  href={featuredTestimonial.review_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center text-sm ${getPlatformInfo(featuredTestimonial.platform).color} hover:underline`}
+                >
+                  View Original Review →
+                </a>
+              )}
             </div>
-            <div>
-              <p className="text-xl font-semibold text-navy">Michelle R.</p>
-              <p className="text-gray-500">Adult & Teen Class Graduate</p>
+          </div>
+        </section>
+      )}
+      {/* Stats Section - Compact */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="text-blue-600 text-2xl mb-2">🌟</div>
+              <h3 className="text-lg font-bold text-navy mb-1">Google Reviews</h3>
+              <div className="text-2xl font-bold text-navy mb-1">5.0</div>
+              <div className="flex justify-center mb-2">
+                {renderStars(5)}
+              </div>
+              <div className="text-sm text-gray-600 mb-3">Based on 12+ reviews</div>
+              <a
+                href="https://google.com/search?q=streetwise+self+defense+reviews"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                View on Google →
+              </a>
+            </div>
+
+            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="text-red-600 text-2xl mb-2">⭐</div>
+              <h3 className="text-lg font-bold text-navy mb-1">Yelp Reviews</h3>
+              <div className="text-2xl font-bold text-navy mb-1">4.8</div>
+              <div className="flex justify-center mb-2">
+                {renderStars(5)}
+              </div>
+              <div className="text-sm text-gray-600 mb-3">Based on 25+ reviews</div>
+              <a
+                href="https://yelp.com/biz/streetwise-self-defense"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                View on Yelp →
+              </a>
+            </div>
+
+            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="text-green-600 text-2xl mb-2">🌟</div>
+              <h3 className="text-lg font-bold text-navy mb-1">Trustpilot</h3>
+              <div className="text-2xl font-bold text-navy mb-1">4.9</div>
+              <div className="flex justify-center mb-2">
+                {renderStars(5)}
+              </div>
+              <div className="text-sm text-gray-600 mb-3">Based on 18+ reviews</div>
+              <a
+                href="https://trustpilot.com/review/streetwiseselfdefense.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                View on Trustpilot →
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Program Breakdown */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-navy mb-4">
-              Reviews by Program
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See what students are saying about each of our specialized programs.
-            </p>
-          </div>
+      {/* All Testimonials */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-navy text-center mb-12">All Reviews</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-100">
-              <h3 className="text-xl font-bold text-navy mb-3">Public Classes</h3>
-              <div className="flex justify-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <p className="text-2xl font-bold text-accent-primary mb-1">4.9/5</p>
-              <p className="text-gray-600 text-sm">Based on 200+ reviews</p>
+          {testimonials.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {testimonials.filter(testimonial => !testimonial.is_featured).map((testimonial) => {
+                const platformInfo = getPlatformInfo(testimonial.platform);
+                return (
+                  <div key={testimonial.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        {renderStars(testimonial.rating)}
+                      </div>
+                      {testimonial.platform && (
+                        <div className={`inline-flex items-center space-x-1 ${platformInfo.color}`}>
+                          <span>{platformInfo.logo}</span>
+                          <span className="text-xs font-medium">{platformInfo.name}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <blockquote className="text-gray-700 mb-4 leading-relaxed">
+                      "{testimonial.content}"
+                    </blockquote>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {testimonial.profile_image_url ? (
+                          <img
+                            src={testimonial.profile_image_url}
+                            alt={testimonial.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        {!testimonial.profile_image_url && (
+                          <div className="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                            {testimonial.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-navy">{testimonial.name}</h3>
+                          {testimonial.class_type && (
+                            <p className="text-sm text-accent-primary">{testimonial.class_type}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {testimonial.review_url && testimonial.platform !== 'survey' && (
+                        <a
+                          href={testimonial.review_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-gray-500 hover:text-accent-primary"
+                        >
+                          View Original
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-100">
-              <h3 className="text-xl font-bold text-navy mb-3">Private Training</h3>
-              <div className="flex justify-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <p className="text-2xl font-bold text-accent-primary mb-1">5.0/5</p>
-              <p className="text-gray-600 text-sm">Based on 150+ reviews</p>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No testimonials available at this time.</p>
             </div>
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-100">
-              <h3 className="text-xl font-bold text-navy mb-3">Corporate</h3>
-              <div className="flex justify-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <p className="text-2xl font-bold text-accent-primary mb-1">4.8/5</p>
-              <p className="text-gray-600 text-sm">Based on 100+ reviews</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-100">
-              <h3 className="text-xl font-bold text-navy mb-3">CBO Programs</h3>
-              <div className="flex justify-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <p className="text-2xl font-bold text-accent-primary mb-1">4.9/5</p>
-              <p className="text-gray-600 text-sm">Based on 50+ reviews</p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            Ready to Write Your Success Story?
-          </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Join thousands of students who have transformed their confidence and safety skills. 
-            Your journey to empowerment starts here.
+      <section className="py-16 bg-navy">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">Ready to Start Your Journey?</h2>
+          <p className="text-xl text-gray-300 mb-8">
+            Join the hundreds of people who have gained confidence and skills through our training
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/public-classes"
-              className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
-            >
-              Book Your Class
-            </a>
-            <a
-              href="/contact"
-              className="bg-transparent border-2 border-yellow text-yellow hover:bg-yellow hover:text-navy px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
-            >
-              Ask Questions
-            </a>
-          </div>
+          <Link
+            to="/classes"
+            className="inline-block bg-accent-primary text-white font-semibold py-3 px-8 rounded-lg hover:bg-accent-primary-dark transition-colors"
+          >
+            View Class Schedule
+          </Link>
         </div>
       </section>
     </div>
