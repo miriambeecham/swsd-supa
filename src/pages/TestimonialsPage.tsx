@@ -275,7 +275,7 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 12+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 2+ reviews</div>
               <a
                 href="https://google.com/search?q=streetwise+self+defense+reviews"
                 target="_blank"
@@ -289,11 +289,11 @@ const TestimonialsPage = () => {
             <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
               <div className="text-red-600 text-2xl mb-2">⭐</div>
               <h3 className="text-lg font-bold text-navy mb-1">Yelp Reviews</h3>
-              <div className="text-2xl font-bold text-navy mb-1">4.8</div>
+              <div className="text-2xl font-bold text-navy mb-1">5.0</div>
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 25+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
               <a
                 href="https://yelp.com/biz/streetwise-self-defense"
                 target="_blank"
@@ -306,19 +306,19 @@ const TestimonialsPage = () => {
 
             <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
               <div className="text-green-600 text-2xl mb-2">🌟</div>
-              <h3 className="text-lg font-bold text-navy mb-1">Trustpilot</h3>
-              <div className="text-2xl font-bold text-navy mb-1">4.9</div>
+              <h3 className="text-lg font-bold text-navy mb-1">Facebook</h3>
+              <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 18+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
               <a
-                href="https://trustpilot.com/review/streetwiseselfdefense.com"
+                href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Trustpilot →
+                View on Facebook →
               </a>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from 'lucide-react';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ const ContactPage = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -22,8 +24,18 @@ const ContactPage = () => {
     });
   };
 
+  const handleRecaptchaChange = (value: string | null) => {
+    setRecaptchaValue(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!recaptchaValue) {
+      alert('Please complete the reCAPTCHA verification');
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Simulate form submission
@@ -31,6 +43,7 @@ const ContactPage = () => {
 
     setIsSubmitting(false);
     setIsSubmitted(true);
+    setRecaptchaValue(null); // Reset reCAPTCHA
   };
 
   const contactInfo = [
@@ -79,6 +92,7 @@ const ContactPage = () => {
           <button
             onClick={() => {
               setIsSubmitted(false);
+              setRecaptchaValue(null);
               setFormData({
                 firstName: '',
                 lastName: '',
@@ -263,10 +277,17 @@ const ContactPage = () => {
                     ></textarea>
                   </div>
 
+                  <div className="flex justify-center mb-6">
+                    <ReCAPTCHA
+                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
+                      onChange={handleRecaptchaChange}
+                    />
+                  </div>
+
                   <div className="text-center">
                     <button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !recaptchaValue}
                       className="bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center justify-center"
                     >
                       {isSubmitting ? (
