@@ -667,7 +667,7 @@ const HomePage = () => {
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="flex items-center justify-center gap-3">
               <Phone className="w-5 h-5" />
-              <span>(555) 123-4567</span>
+              <span>(925) 532-9953</span>
             </div>
             <div className="flex items-center justify-center gap-3">
               <Mail className="w-5 h-5" />
@@ -675,7 +675,7 @@ const HomePage = () => {
             </div>
             <div className="flex items-center justify-center gap-3">
               <MapPin className="w-5 h-5" />
-              <span>Downtown Training Center</span>
+              <span>Walnut Creek, CA</span>
             </div>
           </div>
         </div>

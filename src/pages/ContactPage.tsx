@@ -25,10 +25,10 @@ const ContactPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     setIsSubmitting(false);
     setIsSubmitted(true);
   };
@@ -37,7 +37,7 @@ const ContactPage = () => {
     {
       icon: Phone,
       title: 'Phone',
-      details: '(555) 123-4567',
+      details: '(925) 532-9953',
       description: 'Call us for immediate assistance'
     },
     {
@@ -49,7 +49,7 @@ const ContactPage = () => {
     {
       icon: MapPin,
       title: 'Service Area',
-      details: 'Greater Metro Area',
+      details: 'SF Bay Area & Beyond',
       description: 'We come to your location'
     },
     {
@@ -121,27 +121,9 @@ const ContactPage = () => {
         </div>
       </section>
 
-      {/* Contact Info */}
-      <section className="py-16 bg-gray-50">
+      {/* Contact Form and Info - 2 Column Layout */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {contactInfo.map((info, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div className="bg-accent-light text-accent-primary inline-flex p-4 rounded-lg mb-4">
-                  <info.icon className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold text-navy mb-2">{info.title}</h3>
-                <p className="text-lg font-semibold text-gray-800 mb-1">{info.details}</p>
-                <p className="text-gray-600 text-sm">{info.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Form */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-navy mb-4">
               Send Us a Message
@@ -151,159 +133,198 @@ const ContactPage = () => {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    required
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    required
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* Contact Form - 2/3 width */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        required
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        required
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="inquiryType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Type of Inquiry *
+                    </label>
+                    <select
+                      id="inquiryType"
+                      name="inquiryType"
+                      required
+                      value={formData.inquiryType}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    >
+                      {inquiryTypes.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                      Message
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      rows={6}
+                      value={formData.message}
+                      onChange={handleChange}
+                      placeholder="Tell us about your needs, questions, or how we can help you..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    ></textarea>
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center justify-center"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-5 w-5" />
+                          Send Message
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Contact Info - 1/3 width */}
+            <div className="space-y-6">
+              {contactInfo.map((info, index) => (
+                <div key={index} className="bg-white rounded-xl shadow-lg p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-accent-light text-accent-primary p-3 rounded-lg flex-shrink-0">
+                      <info.icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-navy mb-2">{info.title}</h3>
+                      {info.title === 'Email' ? (
+                        <a 
+                          href={`mailto:${info.details}`}
+                          className="text-base font-semibold text-gray-800 hover:text-accent-primary transition-colors break-words block"
+                        >
+                          {info.details}
+                        </a>
+                      ) : info.title === 'Phone' ? (
+                        <a 
+                          href={`tel:${info.details}`}
+                          className="text-base font-semibold text-gray-800 hover:text-accent-primary transition-colors block"
+                        >
+                          {info.details}
+                        </a>
+                      ) : (
+                        <p className="text-base font-semibold text-gray-800">{info.details}</p>
+                      )}
+                      <p className="text-gray-600 text-sm mt-1">{info.description}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="inquiryType" className="block text-sm font-medium text-gray-700 mb-2">
-                  Type of Inquiry *
-                </label>
-                <select
-                  id="inquiryType"
-                  name="inquiryType"
-                  required
-                  value={formData.inquiryType}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                >
-                  {inquiryTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  rows={6}
-                  value={formData.message}
-                  onChange={handleChange}
-                  placeholder="Tell us about your needs, questions, or how we can help you..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                ></textarea>
-              </div>
-
-              <div className="text-center">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center justify-center"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="mr-2 h-5 w-5" />
-                      Send Message
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-navy mb-4">
@@ -315,28 +336,28 @@ const ContactPage = () => {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
+            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
               <h3 className="text-xl font-bold text-navy mb-3">Do I need any prior experience?</h3>
               <p className="text-gray-600">
                 No prior experience is necessary! Our programs are designed for complete beginners. 
                 We start with the basics and build skills progressively.
               </p>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-lg">
+            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
               <h3 className="text-xl font-bold text-navy mb-3">What should I wear to class?</h3>
               <p className="text-gray-600">
                 Comfortable, loose-fitting clothes that allow for movement (like workout clothes). 
                 Sneakers or other closed-toe shoes are required. No jewelry or accessories.
               </p>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-lg">
+            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
               <h3 className="text-xl font-bold text-navy mb-3">Are your instructors certified?</h3>
               <p className="text-gray-600">
                 Yes! All our instructors are professionally certified with extensive real-world experience. 
                 We're also fully insured for all programs and venues.
               </p>
             </div>
-            <div className="bg-white rounded-lg p-6 shadow-lg">
+            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
               <h3 className="text-xl font-bold text-navy mb-3">Can you come to our location?</h3>
               <p className="text-gray-600">
                 Absolutely! We offer mobile training and can come to your workplace, community center, 
