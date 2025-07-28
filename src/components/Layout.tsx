@@ -8,15 +8,15 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const location = useLocation();
 
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Public Classes', href: '/public-classes' },
-    { name: 'Private Classes', href: '/private-classes' },
-    { name: 'Corporate Services', href: '/corporate' },
-    { name: 'CBO Programs', href: '/cbo' },
+    { name: 'About', href: '/about' },
     { name: 'Testimonials', href: '/testimonials' },
+    { name: 'FAQ', href: '/faq' },
     { name: 'Contact', href: '/contact' },
   ];
 
@@ -26,6 +26,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
     return location.pathname.startsWith(href);
   };
+
+  const isProgramActive = () => {
+    // Only highlight "All Programs" for non-public-classes program pages
+    return ['/private-classes', '/corporate', '/cbo'].some(path =>
+      location.pathname.startsWith(path)
+    );
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => setIsDropdownOpen(false);
+    if (isDropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -43,65 +59,111 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8">
+            <nav className="hidden md:flex items-center space-x-1">
               <Link 
                 to="/public-classes" 
-                className="text-gray-600 hover:text-navy font-medium"
+                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                  isActive('/public-classes') 
+                    ? 'text-accent-primary' 
+                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                }`}
               >
                 Public Classes
               </Link>
-              <div className="relative group">
-                <button className="flex items-center gap-1 text-gray-600 hover:text-navy font-medium">
+
+              <div className="relative">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsDropdownOpen(!isDropdownOpen);
+                  }}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium transition-colors ${
+                    isProgramActive() 
+                      ? 'text-accent-primary' 
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
                   All Programs
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <Link
-                    to="/public-classes"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Public Classes
-                  </Link>
-                  <Link
-                    to="/private-classes"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Private Classes
-                  </Link>
-                  <Link
-                    to="/corporate"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Corporate Safety
-                  </Link>
-                  <Link
-                    to="/cbo"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Community Groups
-                  </Link>
-                </div>
+                {isDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-50">
+                    <Link
+                      to="/public-classes"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
+                    >
+                      Public Classes
+                    </Link>
+                    <Link
+                      to="/private-classes"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
+                    >
+                      Private Classes
+                    </Link>
+                    <Link
+                      to="/corporate"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
+                    >
+                      Corporate Safety
+                    </Link>
+                    <Link
+                      to="/cbo"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
+                    >
+                      Community Groups
+                    </Link>
+                  </div>
+                )}
               </div>
+
+              <Link 
+                to="/about" 
+                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                  isActive('/about') 
+                    ? 'text-accent-primary' 
+                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                }`}
+              >
+                About
+              </Link>
+
               <Link 
                 to="/testimonials" 
-                className="text-gray-600 hover:text-navy font-medium"
+                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                  isActive('/testimonials') 
+                    ? 'text-accent-primary' 
+                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                }`}
               >
                 Testimonials
               </Link>
+
+              <Link 
+                to="/faq" 
+                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                  isActive('/faq') 
+                    ? 'text-accent-primary' 
+                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                }`}
+              >
+                FAQ
+              </Link>
+
               <Link 
                 to="/contact" 
-                className="text-gray-600 hover:text-navy font-medium"
+                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                  isActive('/contact') 
+                    ? 'text-accent-primary' 
+                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                }`}
               >
                 Contact
               </Link>
             </nav>
-
-            <Link
-              to="/public-classes"
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Book a Class
-            </Link>
 
             {/* Mobile menu button */}
             <button
@@ -123,13 +185,50 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     onClick={() => setIsMenuOpen(false)}
                     className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                       isActive(item.href)
-                        ? 'bg-accent-primary text-white'
+                        ? 'text-accent-primary bg-accent-light'
                         : 'text-gray-600 hover:text-navy hover:bg-gray-100'
                     }`}
                   >
                     {item.name}
                   </Link>
                 ))}
+
+                {/* Mobile Programs Submenu */}
+                <div className="pl-4 space-y-1 border-l-2 border-gray-200 ml-3">
+                  <Link
+                    to="/private-classes"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive('/private-classes')
+                        ? 'text-accent-primary bg-accent-light'
+                        : 'text-gray-500 hover:text-navy hover:bg-gray-100'
+                    }`}
+                  >
+                    Private Classes
+                  </Link>
+                  <Link
+                    to="/corporate"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive('/corporate')
+                        ? 'text-accent-primary bg-accent-light'
+                        : 'text-gray-500 hover:text-navy hover:bg-gray-100'
+                    }`}
+                  >
+                    Corporate Safety
+                  </Link>
+                  <Link
+                    to="/cbo"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive('/cbo')
+                        ? 'text-accent-primary bg-accent-light'
+                        : 'text-gray-500 hover:text-navy hover:bg-gray-100'
+                    }`}
+                  >
+                    Community Groups
+                  </Link>
+                </div>
               </div>
             </div>
           )}
@@ -158,22 +257,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <h4 className="font-bold mb-4">Programs</h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
-                  <Link to="/public-classes" className="hover:text-white">
+                  <Link to="/public-classes" className="hover:text-white transition-colors">
                     Public Classes
                   </Link>
                 </li>
                 <li>
-                  <Link to="/private-classes" className="hover:text-white">
+                  <Link to="/private-classes" className="hover:text-white transition-colors">
                     Private Training
                   </Link>
                 </li>
                 <li>
-                  <Link to="/corporate" className="hover:text-white">
+                  <Link to="/corporate" className="hover:text-white transition-colors">
                     Corporate Programs
                   </Link>
                 </li>
                 <li>
-                  <Link to="/cbo" className="hover:text-white">
+                  <Link to="/cbo" className="hover:text-white transition-colors">
                     Community Outreach
                   </Link>
                 </li>
@@ -183,22 +282,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <h4 className="font-bold mb-4">Company</h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
-                  <Link to="/about" className="hover:text-white">
+                  <Link to="/about" className="hover:text-white transition-colors">
                     About Us
                   </Link>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white">
-                    Instructors
-                  </a>
+                  <Link to="/faq" className="hover:text-white transition-colors">
+                    FAQ
+                  </Link>
                 </li>
                 <li>
-                  <Link to="/testimonials" className="hover:text-white">
+                  <Link to="/testimonials" className="hover:text-white transition-colors">
                     Testimonials
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="hover:text-white">
+                  <Link to="/contact" className="hover:text-white transition-colors">
                     Contact
                   </Link>
                 </li>

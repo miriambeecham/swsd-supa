@@ -13,6 +13,8 @@ interface ClassSchedule {
   location: string;
   instructor: string;
   price: number;
+  pricing_unit: string;
+  partner_organization?: string;
   booking_method: 'external' | 'contact';
   registration_instructions: string;
   date: string;
@@ -80,6 +82,8 @@ const PublicClassesPage = () => {
             location: classRecord.fields['Location'] || '',
             instructor: classRecord.fields['Instructor'] || '',
             price: classRecord.fields['Price'] || 0,
+            pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
+            partner_organization: classRecord.fields['Partner Organization'],
             booking_method: classRecord.fields['Booking Method']?.toLowerCase() || 'contact',
             registration_instructions: classRecord.fields['Registration Instructions'] || '',
             date: scheduleRecord.fields['Date'] || '',
@@ -135,41 +139,61 @@ const PublicClassesPage = () => {
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h4 className="text-lg font-semibold text-navy mb-2">{classData.class_name}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>{new Date(classData.date).toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric' 
-              })}</span>
+          {/* Class Title - Less emphasized */}
+          <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
+
+          {/* Partner Organization - If present */}
+          {classData.partner_organization && (
+            <p className="text-sm text-gray-500 mb-3">
+              Hosted by {classData.partner_organization}
+            </p>
+          )}
+
+          {/* Date & Time - Most prominent in teal */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="w-5 h-5 text-accent-primary" />
+              <span className="text-lg font-semibold text-accent-primary">
+                {new Date(classData.date).toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              <span>{classData.start_time} - {classData.end_time}</span>
+              <Clock className="w-5 h-5 text-accent-primary" />
+              <span className="text-lg font-semibold text-accent-primary">
+                {classData.start_time} - {classData.end_time}
+              </span>
             </div>
+          </div>
+
+          {/* Secondary Details */}
+          <div className="space-y-2 text-sm text-gray-600 mb-3">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
               <span>{classData.location}</span>
             </div>
+
+            {classData.instructor && (
+              <p><strong>Instructor:</strong> {classData.instructor}</p>
+            )}
+
+            {classData.price > 0 && (
+              <p><strong>Price:</strong> ${classData.price} {classData.pricing_unit}</p>
+            )}
           </div>
-          {classData.instructor && (
-            <p className="text-sm text-gray-600 mb-2">
-              <strong>Instructor:</strong> {classData.instructor}
-            </p>
-          )}
-          {classData.price > 0 && (
-            <p className="text-sm text-gray-600 mb-2">
-              <strong>Price:</strong> ${classData.price}
-            </p>
-          )}
+
+          {/* Special Notes */}
           {classData.special_notes && (
             <p className="text-sm text-accent-primary font-medium">
               Note: {classData.special_notes}
             </p>
           )}
         </div>
+
+        {/* Booking Button */}
         <button
           onClick={() => handleBooking(classData)}
           className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2 ml-4"
@@ -238,7 +262,7 @@ const PublicClassesPage = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
             <p className="text-xl text-gray-600 mb-8">
               Join our empowering self-defense classes in a supportive, women-only environment. Choose from our
-              specialized programs designed for different age groups and relationships.
+              specialized programs designed for different age groups and relationships. 
             </p>
           </div>
         </div>

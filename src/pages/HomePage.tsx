@@ -216,22 +216,18 @@ const HomePage = () => {
       {/* Impact Stats Row */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">500+</div>
-              <p className="text-gray-600 font-medium">Women Trained</p>
+              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">1100+</div>
+              <p className="text-gray-600 font-medium">Students Trained</p>
             </div>
             <div className="text-center">
               <div className="text-4xl md:text-5xl font-bold text-navy mb-2">15+</div>
               <p className="text-gray-600 font-medium">Years Experience</p>
             </div>
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">98%</div>
-              <p className="text-gray-600 font-medium">Confidence Increase</p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">50+</div>
-              <p className="text-gray-600 font-medium">Corporate Partners</p>
+              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">5.0</div>
+              <p className="text-gray-600 font-medium">Yelp & Google Ratings</p>
             </div>
           </div>
         </div>
@@ -390,7 +386,7 @@ const HomePage = () => {
               <div className="p-6 flex flex-col flex-1">
                 <h3 className="text-xl font-bold text-navy mb-3">Community Groups</h3>
                 <p className="text-gray-600 mb-4 flex-1">
-                  Specialized programs for women's shelters, Girl Scout troops, and community groups.
+                  Specialized programs for groups of all types, including Girl Scouts, neighborhood associations, women's shelters, and more.
                 </p>
                 <Link 
                   to="/cbo"
