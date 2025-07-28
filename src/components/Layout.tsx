@@ -145,7 +145,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-2">
               <img
-                src="/swsd-logo2-official.png"
+                src="/swsd-logo-official.png"
                 alt="Streetwise Self Defense"
                 className="h-12 w-auto mb-4 brightness-0 invert"
               />

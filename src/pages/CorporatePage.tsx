@@ -1,8 +1,135 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, ChevronDown } from 'lucide-react';
+import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Building } from 'lucide-react';
+import { FaGoogle, FaFacebook, FaLinkedin, FaComment, FaClipboardList } from 'react-icons/fa';
+import { SiTrustpilot, SiYelp } from 'react-icons/si';
+
+interface Testimonial {
+  id: string;
+  name: string;
+  content: string;
+  rating: number;
+  class_type: string;
+  platform?: string;
+  profile_image_url?: string;
+  review_url?: string;
+  homepage_position?: string;
+  is_published: boolean;
+}
 
 const CorporatePage = () => {
+  const [testimonials, setTestimonials] = useState<Record<string, Testimonial>>({});
+  const [loading, setLoading] = useState(true);
+
+  // Platform configurations - matching other pages
+  const platformConfig = {
+    google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
+    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' },
+    facebook: { name: 'Facebook', icon: FaFacebook, color: 'text-blue-700' },
+    trustpilot: { name: 'Trustpilot', icon: SiTrustpilot, color: 'text-green-600' },
+    linkedin: { name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-800' },
+    website: { name: 'Website', icon: FaComment, color: 'text-gray-600' },
+    survey: { name: 'Post-Class Survey', icon: FaClipboardList, color: 'text-gray-600' },
+    default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
+  };
+
+  const getPlatformInfo = (platform?: string) => {
+    return platformConfig[platform as keyof typeof platformConfig] || platformConfig.default;
+  };
+
+  const fetchCorporateTestimonials = async () => {
+    try {
+      setLoading(true);
+
+      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
+
+      if (!baseId || !apiKey) {
+        throw new Error('Missing Airtable configuration');
+      }
+
+      const response = await fetch(
+        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is published}=1,OR({Homepage position}="corporate1",{Homepage position}="corporate2"))`,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch testimonials: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Group testimonials by position
+      const groupedTestimonials = data.records.reduce((acc: Record<string, Testimonial>, record: any) => {
+        const testimonial = {
+          id: record.id,
+          name: record.fields.Name || '',
+          content: record.fields.Content || '',
+          rating: parseInt(record.fields.Rating) || 5,
+          class_type: record.fields['Class type'] || '',
+          platform: record.fields.Platform?.toLowerCase(),
+          profile_image_url: record.fields['Profile image URL'],
+          review_url: record.fields['Original review URL'],
+          homepage_position: record.fields['Homepage position'],
+          is_published: record.fields['Is published'] || false,
+        };
+
+        if (testimonial.homepage_position) {
+          acc[testimonial.homepage_position] = testimonial;
+        }
+
+        return acc;
+      }, {});
+
+      setTestimonials(groupedTestimonials);
+
+    } catch (err) {
+      console.error('Error fetching corporate testimonials:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    document.title = 'Corporate Self-Defense Training - Streetwise Self Defense';
+    fetchCorporateTestimonials();
+  }, []);
+
+  const renderTestimonial = (position: string, fallbackContent: { quote: string; name: string; program: string }) => {
+    const testimonial = testimonials[position];
+
+    if (testimonial) {
+      return {
+        quote: testimonial.content,
+        name: testimonial.name,
+        program: testimonial.class_type,
+        platform: testimonial.platform,
+        platformInfo: getPlatformInfo(testimonial.platform),
+        profileImage: testimonial.profile_image_url,
+        reviewUrl: testimonial.review_url,
+        rating: testimonial.rating
+      };
+    }
+
+    return fallbackContent;
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`w-5 h-5 ${
+          i < rating ? 'text-yellow fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -94,18 +221,27 @@ const CorporatePage = () => {
               We've partnered with companies across industries to enhance workplace safety
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center justify-items-center max-w-4xl mx-auto">
             <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <span className="text-gray-400 font-semibold">TechCorp Solutions</span>
+              <img 
+                src="/corporate1.png" 
+                alt="Corporate client logo" 
+                className="max-w-full max-h-full object-contain"
+              />
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <span className="text-gray-400 font-semibold">Metro Healthcare</span>
+              <img 
+                src="/corporate2.png" 
+                alt="Corporate client logo" 
+                className="max-w-full max-h-full object-contain"
+              />
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <span className="text-gray-400 font-semibold">Financial Partners</span>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <span className="text-gray-400 font-semibold">City Government</span>
+              <img 
+                src="/corporate3.png" 
+                alt="Corporate client logo" 
+                className="max-w-full max-h-full object-contain"
+              />
             </div>
           </div>
         </div>
@@ -115,40 +251,111 @@ const CorporatePage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-lg text-gray-700 mb-6">
-                "The corporate training session was transformative for our team. Not only did our employees learn
-                valuable safety skills, but the collaborative nature of the training brought our departments closer
-                together. The instructor was professional, knowledgeable, and created an environment where everyone felt
-                comfortable participating."
-              </blockquote>
-              <div>
-                <p className="font-semibold text-navy">Sarah Mitchell</p>
-                <p className="text-sm text-gray-600">HR Director, TechCorp Solutions</p>
-              </div>
-            </div>
+            {/* First Testimonial */}
+            {(() => {
+              const testimonialData = renderTestimonial('corporate1', {
+                quote: "The corporate training session was transformative for our team. Not only did our employees learn valuable safety skills, but the collaborative nature of the training brought our departments closer together. The instructor was professional, knowledgeable, and created an environment where everyone felt comfortable participating.",
+                name: "Sarah Mitchell",
+                program: "HR Director, TechCorp Solutions"
+              });
 
-            <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-lg text-gray-700 mb-6">
-                "As a company with a predominantly female workforce, this training was exactly what we needed. The
-                practical techniques and confidence-building exercises have made a noticeable difference in how our team
-                carries themselves both in and out of the workplace. Highly recommend for any organization."
-              </blockquote>
-              <div>
-                <p className="font-semibold text-navy">Michael Rodriguez</p>
-                <p className="text-sm text-gray-600">CEO, Creative Marketing Agency</p>
-              </div>
-            </div>
+              return (
+                <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-100">
+                  <div className="flex mb-4">
+                    {renderStars(testimonialData.rating || 5)}
+                  </div>
+                  <blockquote className="text-lg text-gray-700 mb-6">
+                    "{testimonialData.quote}"
+                  </blockquote>
+                  <div className="flex items-center space-x-3">
+                    {testimonialData.profileImage ? (
+                      <img
+                        src={testimonialData.profileImage}
+                        alt={testimonialData.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                    >
+                      {testimonialData.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-navy">{testimonialData.name}</p>
+                      <p className="text-sm text-gray-600">{testimonialData.program}</p>
+                      {testimonialData.platform && (
+                        <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                          {React.createElement(testimonialData.platformInfo.icon, {
+                            className: 'w-3 h-3'
+                          })}
+                          <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Second Testimonial */}
+            {(() => {
+              const testimonialData = renderTestimonial('corporate2', {
+                quote: "As a company with a predominantly female workforce, this training was exactly what we needed. The practical techniques and confidence-building exercises have made a noticeable difference in how our team carries themselves both in and out of the workplace. Highly recommend for any organization.",
+                name: "Michael Rodriguez",
+                program: "CEO, Creative Marketing Agency"
+              });
+
+              return (
+                <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-100">
+                  <div className="flex mb-4">
+                    {renderStars(testimonialData.rating || 5)}
+                  </div>
+                  <blockquote className="text-lg text-gray-700 mb-6">
+                    "{testimonialData.quote}"
+                  </blockquote>
+                  <div className="flex items-center space-x-3">
+                    {testimonialData.profileImage ? (
+                      <img
+                        src={testimonialData.profileImage}
+                        alt={testimonialData.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                    >
+                      {testimonialData.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-navy">{testimonialData.name}</p>
+                      <p className="text-sm text-gray-600">{testimonialData.program}</p>
+                      {testimonialData.platform && (
+                        <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                          {React.createElement(testimonialData.platformInfo.icon, {
+                            className: 'w-3 h-3'
+                          })}
+                          <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>
@@ -171,7 +378,7 @@ const CorporatePage = () => {
             </div>
             <div className="text-center">
               <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-accent-primary" />
+                <Building className="w-8 h-8 text-accent-primary" />
               </div>
               <h3 className="font-bold text-navy mb-2">Professional Equipment</h3>
               <p className="text-gray-600 text-sm">We provide all necessary training equipment and materials</p>

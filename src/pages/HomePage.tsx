@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Shield, Users, Award, Phone, Mail, MapPin } from 'lucide-react';
+import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } from 'react-icons/fa';
+import { SiTrustpilot, SiYelp } from 'react-icons/si';
 
 interface Testimonial {
   id: string;
@@ -19,17 +21,17 @@ const HomePage = () => {
   const [testimonials, setTestimonials] = useState<Record<string, Testimonial>>({});
   const [loading, setLoading] = useState(true);
 
-  // Platform configurations (same as testimonials page)
+  // Platform configurations with React Icons - matching testimonials page
   const platformConfig = {
-    google: { name: 'Google', logo: '🌟', color: 'text-blue-600' },
-    yelp: { name: 'Yelp', logo: '⭐', color: 'text-red-600' },
-    facebook: { name: 'Facebook', logo: '👍', color: 'text-blue-700' },
-    trustpilot: { name: 'Trustpilot', logo: '🌟', color: 'text-green-600' },
-    linkedin: { name: 'LinkedIn', logo: '💼', color: 'text-blue-800' },
-    nextdoor: { name: 'Nextdoor', logo: '🏠', color: 'text-green-700' },
-    website: { name: 'Website', logo: '💬', color: 'text-gray-600' },
-    survey: { name: 'Post-Class Survey', logo: '📝', color: 'text-gray-600' },
-    default: { name: 'Review', logo: '💬', color: 'text-gray-600' }
+    google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
+    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' },
+    facebook: { name: 'Facebook', icon: FaFacebook, color: 'text-blue-700' },
+    trustpilot: { name: 'Trustpilot', icon: SiTrustpilot, color: 'text-green-600' },
+    linkedin: { name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-800' },
+    nextdoor: { name: 'Nextdoor', icon: FaHome, color: 'text-green-700' },
+    website: { name: 'Website', icon: FaComment, color: 'text-gray-600' },
+    survey: { name: 'Post-Class Survey', icon: FaClipboardList, color: 'text-gray-600' },
+    default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
   };
 
   const getPlatformInfo = (platform?: string) => {
@@ -274,7 +276,9 @@ const HomePage = () => {
                     <p className="text-gray-600 font-medium">— {testimonialData.name}, {testimonialData.program}</p>
                     {testimonialData.platform && (
                       <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
-                        <span>{testimonialData.platformInfo.logo}</span>
+                        {React.createElement(testimonialData.platformInfo.icon, {
+                          className: 'w-3 h-3'
+                        })}
                         <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
                       </div>
                     )}
@@ -441,7 +445,9 @@ const HomePage = () => {
                     <p className="text-gray-600 font-medium">— {testimonialData.name}, {testimonialData.program}</p>
                     {testimonialData.platform && (
                       <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
-                        <span>{testimonialData.platformInfo.logo}</span>
+                        {React.createElement(testimonialData.platformInfo.icon, {
+                          className: 'w-3 h-3'
+                        })}
                         <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
                       </div>
                     )}
@@ -563,7 +569,9 @@ const HomePage = () => {
                       <p className="text-sm text-gray-600">{testimonialData.program}</p>
                       {testimonialData.platform && (
                         <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
-                          <span>{testimonialData.platformInfo.logo}</span>
+                          {React.createElement(testimonialData.platformInfo.icon, {
+                            className: 'w-3 h-3'
+                          })}
                           <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
                         </div>
                       )}
@@ -619,7 +627,9 @@ const HomePage = () => {
                         <p className="font-medium text-navy">— {testimonialData.name}, {testimonialData.program}</p>
                         {testimonialData.platform && (
                           <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
-                            <span>{testimonialData.platformInfo.logo}</span>
+                            {React.createElement(testimonialData.platformInfo.icon, {
+                              className: 'w-3 h-3'
+                            })}
                             <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
                           </div>
                         )}

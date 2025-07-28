@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Quote, ArrowLeft } from 'lucide-react';
+import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } from 'react-icons/fa';
+import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import { Link } from 'react-router-dom';
 
 interface Testimonial {
@@ -21,17 +23,17 @@ const TestimonialsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Platform configurations
+  // Platform configurations with React Icons - brand colors for icon+name, teal for CTAs
   const platformConfig = {
-    google: { name: 'Google', logo: '🌟', color: 'text-blue-600' },
-    yelp: { name: 'Yelp', logo: '⭐', color: 'text-red-600' },
-    facebook: { name: 'Facebook', logo: '👍', color: 'text-blue-700' },
-    trustpilot: { name: 'Trustpilot', logo: '🌟', color: 'text-green-600' },
-    linkedin: { name: 'LinkedIn', logo: '💼', color: 'text-blue-800' },
-    nextdoor: { name: 'Nextdoor', logo: '🏠', color: 'text-green-700' },
-    website: { name: 'Website', logo: '💬', color: 'text-gray-600' },
-    survey: { name: 'Post-Class Survey', logo: '📝', color: 'text-gray-600' },
-    default: { name: 'Review', logo: '💬', color: 'text-gray-600' }
+    google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
+    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' }, // Yelp brand red
+    facebook: { name: 'Facebook', icon: FaFacebook, color: 'text-blue-700' },
+    trustpilot: { name: 'Trustpilot', icon: SiTrustpilot, color: 'text-green-600' },
+    linkedin: { name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-800' },
+    nextdoor: { name: 'Nextdoor', icon: FaHome, color: 'text-green-700' },
+    website: { name: 'Website', icon: FaComment, color: 'text-gray-600' },
+    survey: { name: 'Post-Class Survey', icon: FaClipboardList, color: 'text-gray-600' },
+    default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
   };
 
   const fetchTestimonialsFromAirtable = async () => {
@@ -64,7 +66,7 @@ const TestimonialsPage = () => {
       const formattedTestimonials = data.records.map((record: any) => {
         // Handle profile picture - could be direct URL or Airtable attachment
         let profileImageUrl = null;
-        const profileField = record.fields['Profile Image URL']; // Updated field name
+        const profileField = record.fields['Profile Image URL'];
 
         if (typeof profileField === 'string') {
           // Direct URL (like your Yelp example)
@@ -120,13 +122,6 @@ const TestimonialsPage = () => {
       />
     ));
   };
-
-  const calculateStats = () => {
-    // Remove this function since we're using static platform stats instead
-    return {};
-  };
-
-  const {} = calculateStats();
 
   if (loading) {
     return (
@@ -198,8 +193,6 @@ const TestimonialsPage = () => {
         </div>
       </section>
 
-
-
       {/* Featured Testimonial */}
       {featuredTestimonial && (
         <section className="py-20 bg-accent-light">
@@ -229,6 +222,9 @@ const TestimonialsPage = () => {
                         }
                       }}
                     />
+                    <div className="w-16 h-16 bg-accent-primary rounded-full flex items-center justify-center text-white text-xl font-semibold absolute inset-0" style={{ display: 'none' }}>
+                      {featuredTestimonial.name.charAt(0)}
+                    </div>
                   </div>
                 ) : (
                   <div className="w-16 h-16 bg-accent-primary rounded-full flex items-center justify-center text-white text-xl font-semibold mr-4">
@@ -242,7 +238,9 @@ const TestimonialsPage = () => {
                   )}
                   {featuredTestimonial.platform && (
                     <div className="flex items-center justify-center mt-1">
-                      <span className="text-sm mr-1">{getPlatformInfo(featuredTestimonial.platform).logo}</span>
+                      {React.createElement(getPlatformInfo(featuredTestimonial.platform).icon, {
+                        className: `w-4 h-4 mr-1 ${getPlatformInfo(featuredTestimonial.platform).color}`
+                      })}
                       <span className={`text-sm font-medium ${getPlatformInfo(featuredTestimonial.platform).color}`}>
                         {getPlatformInfo(featuredTestimonial.platform).name} Review
                       </span>
@@ -255,7 +253,7 @@ const TestimonialsPage = () => {
                   href={featuredTestimonial.review_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center text-sm ${getPlatformInfo(featuredTestimonial.platform).color} hover:underline`}
+                  className="inline-flex items-center text-sm text-accent-primary hover:underline"
                 >
                   View Original Review →
                 </a>
@@ -264,12 +262,15 @@ const TestimonialsPage = () => {
           </div>
         </section>
       )}
+
       {/* Stats Section - Compact */}
       <section className="py-12 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <div className="text-blue-600 text-2xl mb-2">🌟</div>
+              <div className="text-blue-600 text-2xl mb-2 flex justify-center">
+                <FaGoogle />
+              </div>
               <h3 className="text-lg font-bold text-navy mb-1">Google Reviews</h3>
               <div className="text-2xl font-bold text-navy mb-1">5.0</div>
               <div className="flex justify-center mb-2">
@@ -287,13 +288,18 @@ const TestimonialsPage = () => {
             </div>
 
             <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <div className="text-red-600 text-2xl mb-2">⭐</div>
-              <h3 className="text-lg font-bold text-navy mb-1">Yelp Reviews</h3>
+              {/* Yelp icon in brand red */}
+              <div className="text-red-600 text-2xl mb-2 flex justify-center">
+                <SiYelp />
+              </div>
+              {/* Yelp text in brand red when next to icon */}
+              <h3 className="text-lg font-bold text-red-600 mb-1">Yelp Reviews</h3>
               <div className="text-2xl font-bold text-navy mb-1">5.0</div>
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
               <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
+              {/* CTA link in site teal color */}
               <a
                 href="https://yelp.com/biz/streetwise-self-defense"
                 target="_blank"
@@ -305,7 +311,9 @@ const TestimonialsPage = () => {
             </div>
 
             <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <div className="text-green-600 text-2xl mb-2">🌟</div>
+              <div className="text-blue-700 text-2xl mb-2 flex justify-center">
+                <FaFacebook />
+              </div>
               <h3 className="text-lg font-bold text-navy mb-1">Facebook</h3>
               <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
               <div className="flex justify-center mb-2">
@@ -342,7 +350,9 @@ const TestimonialsPage = () => {
                       </div>
                       {testimonial.platform && (
                         <div className={`inline-flex items-center space-x-1 ${platformInfo.color}`}>
-                          <span>{platformInfo.logo}</span>
+                          {React.createElement(platformInfo.icon, {
+                            className: 'w-3 h-3'
+                          })}
                           <span className="text-xs font-medium">{platformInfo.name}</span>
                         </div>
                       )}
@@ -362,15 +372,16 @@ const TestimonialsPage = () => {
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
-                              target.nextElementSibling?.classList.remove('hidden');
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
                             }}
                           />
                         ) : null}
-                        {!testimonial.profile_image_url && (
-                          <div className="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                            {testimonial.name.charAt(0)}
-                          </div>
-                        )}
+                        <div className="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{ display: testimonial.profile_image_url ? 'none' : 'flex' }}>
+                          {testimonial.name.charAt(0)}
+                        </div>
                         <div className="flex-1">
                           <h3 className="font-semibold text-navy">{testimonial.name}</h3>
                           {testimonial.class_type && (
@@ -384,7 +395,7 @@ const TestimonialsPage = () => {
                           href={testimonial.review_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-gray-500 hover:text-accent-primary"
+                          className="text-xs text-accent-primary hover:text-accent-primary-dark"
                         >
                           View Original
                         </a>
