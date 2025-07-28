@@ -12,6 +12,10 @@ export default defineConfig({
       '074ddec3-d8d8-4c20-b884-9d4dcfc3ef09-00-3djfwnc7suxeg.riker.replit.dev'
     ],
   },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173
+  },
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
