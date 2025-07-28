@@ -24,7 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const programPages = [
     { name: 'Public Classes', href: '/public-classes' },
     { name: 'Private Classes', href: '/private-classes' },
-    { name: 'Corporate Safety', href: '/corporate' },
+    { name: 'Workplace Safety', href: '/corporate' },
     { name: 'Community Groups', href: '/cbo' },
   ];
 
@@ -325,7 +325,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </li>
                 <li>
                   <Link to="/corporate" className="hover:text-white transition-colors">
-                    Corporate Programs
+                    Workplace Safety
                   </Link>
                 </li>
                 <li>

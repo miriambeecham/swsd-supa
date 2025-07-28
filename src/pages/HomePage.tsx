@@ -148,8 +148,56 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+
+      {/* Mobile Hero - Vertical Layout */}
+      <section className="relative min-h-screen flex items-center overflow-hidden md:hidden">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/eeb059d7-ab80-43ab-9c6c-2606bd6b02d2.png"
+            alt="Self defense training session"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/50"></div>
+        </div>
+
+        <div className="relative z-10 max-w-lg mx-auto px-4 text-center">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6">
+            <p className="text-xs text-gray-500 font-medium mb-3 tracking-wide">
+              SERVING THE SF BAY AREA AND BEYOND
+            </p>
+            <h1 className="text-3xl font-bold text-navy mb-3">Building Confidence, Staying Safe</h1>
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">Practical Self-Defense Skills</h2>
+            <div className="text-sm text-gray-600 space-y-2">
+              <div className="flex items-center gap-2 justify-center">
+                <div className="w-4 h-4 bg-accent-primary rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span>Public classes for women and girls</span>
+              </div>
+              <div className="flex items-center gap-2 justify-center">
+                <div className="w-4 h-4 bg-accent-primary rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span>Private classes for all</span>
+              </div>
+              <div className="flex items-center gap-2 justify-center">
+                <div className="w-4 h-4 bg-accent-primary rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span>Corporate safety workshops</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       {/* Hero Section - Left-aligned card with new image */}
-      <section className="relative h-screen flex items-center overflow-hidden">
+        <section className="relative h-screen flex items-center overflow-hidden hidden md:flex">
         <div className="absolute inset-0 z-0">
           <img
             src="/eeb059d7-ab80-43ab-9c6c-2606bd6b02d2.png"
@@ -216,9 +264,9 @@ const HomePage = () => {
       {/* Impact Stats Row */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">1500+</div>
+              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">1100+</div>
               <p className="text-gray-600 font-medium">Students Trained</p>
             </div>
             <div className="text-center">
