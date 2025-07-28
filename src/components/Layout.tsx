@@ -9,6 +9,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = React.useState(false);
   const location = useLocation();
 
   const navigation = [
@@ -20,6 +21,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Contact', href: '/contact' },
   ];
 
+  const programPages = [
+    { name: 'Public Classes', href: '/public-classes' },
+    { name: 'Private Classes', href: '/private-classes' },
+    { name: 'Corporate Safety', href: '/corporate' },
+    { name: 'Community Groups', href: '/cbo' },
+  ];
+
   const isActive = (href: string) => {
     if (href === '/') {
       return location.pathname === '/';
@@ -28,20 +36,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const isProgramActive = () => {
-    // Only highlight "All Programs" for non-public-classes program pages
-    return ['/private-classes', '/corporate', '/cbo'].some(path =>
+    return ['/public-classes', '/private-classes', '/corporate', '/cbo'].some(path =>
       location.pathname.startsWith(path)
     );
   };
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = () => setIsDropdownOpen(false);
-    if (isDropdownOpen) {
+    const handleClickOutside = () => {
+      setIsDropdownOpen(false);
+      setIsMobileDropdownOpen(false);
+    };
+    if (isDropdownOpen || isMobileDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, isMobileDropdownOpen]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -58,8 +68,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               />
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            {/* Centered Navigation - Desktop Only */}
+            <nav className="hidden md:flex items-center space-x-6 flex-1 justify-center">
               <Link 
                 to="/public-classes" 
                 className={`px-3 py-2 rounded-md font-medium transition-colors ${
@@ -78,7 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     setIsDropdownOpen(!isDropdownOpen);
                   }}
                   className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium transition-colors ${
-                    isProgramActive() 
+                    isProgramActive() && !isActive('/public-classes')
                       ? 'text-accent-primary' 
                       : 'text-gray-600 hover:text-navy hover:bg-gray-100'
                   }`}
@@ -88,34 +98,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </button>
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-50">
-                    <Link
-                      to="/public-classes"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
-                    >
-                      Public Classes
-                    </Link>
-                    <Link
-                      to="/private-classes"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
-                    >
-                      Private Classes
-                    </Link>
-                    <Link
-                      to="/corporate"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
-                    >
-                      Corporate Safety
-                    </Link>
-                    <Link
-                      to="/cbo"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
-                    >
-                      Community Groups
-                    </Link>
+                    {programPages.map((item) => (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>
@@ -165,6 +157,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
             </nav>
 
+            {/* Right side spacer to balance logo */}
+            <div className="hidden md:block w-32"></div>
+
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -176,59 +171,121 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="md:hidden pb-4">
+            <div className="md:hidden pb-4 pt-2">
               <div className="space-y-1">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                      isActive(item.href)
+                {/* Regular nav items */}
+                <Link
+                  to="/"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  Home
+                </Link>
+
+                <Link
+                  to="/public-classes"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/public-classes')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  Public Classes
+                </Link>
+
+                {/* All Programs with mobile dropdown */}
+                <div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMobileDropdownOpen(!isMobileDropdownOpen);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isProgramActive()
                         ? 'text-accent-primary bg-accent-light'
                         : 'text-gray-600 hover:text-navy hover:bg-gray-100'
                     }`}
                   >
-                    {item.name}
-                  </Link>
-                ))}
+                    All Programs
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isMobileDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-                {/* Mobile Programs Submenu */}
-                <div className="pl-4 space-y-1 border-l-2 border-gray-200 ml-3">
-                  <Link
-                    to="/private-classes"
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive('/private-classes')
-                        ? 'text-accent-primary bg-accent-light'
-                        : 'text-gray-500 hover:text-navy hover:bg-gray-100'
-                    }`}
-                  >
-                    Private Classes
-                  </Link>
-                  <Link
-                    to="/corporate"
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive('/corporate')
-                        ? 'text-accent-primary bg-accent-light'
-                        : 'text-gray-500 hover:text-navy hover:bg-gray-100'
-                    }`}
-                  >
-                    Corporate Safety
-                  </Link>
-                  <Link
-                    to="/cbo"
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive('/cbo')
-                        ? 'text-accent-primary bg-accent-light'
-                        : 'text-gray-500 hover:text-navy hover:bg-gray-100'
-                    }`}
-                  >
-                    Community Groups
-                  </Link>
+                  {isMobileDropdownOpen && (
+                    <div className="mt-1 ml-4 space-y-1">
+                      {programPages.map((item) => (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            setIsMobileDropdownOpen(false);
+                          }}
+                          className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            isActive(item.href)
+                              ? 'text-accent-primary bg-accent-light'
+                              : 'text-gray-500 hover:text-navy hover:bg-gray-100'
+                          }`}
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Rest of nav items */}
+                <Link
+                  to="/about"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/about')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  About
+                </Link>
+
+                <Link
+                  to="/testimonials"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/testimonials')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  Testimonials
+                </Link>
+
+                <Link
+                  to="/faq"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/faq')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  FAQ
+                </Link>
+
+                <Link
+                  to="/contact"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/contact')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  Contact
+                </Link>
               </div>
             </div>
           )}

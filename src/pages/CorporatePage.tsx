@@ -144,10 +144,9 @@ const CorporatePage = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
          
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Corporate Self-Defense Training</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Corporate Self-Defense</h1>
             <p className="text-xl text-gray-600 mb-8">
-              Empower your workforce with comprehensive safety training that builds confidence, enhances team cohesion,
-              and demonstrates your commitment to employee wellbeing.
+              Empower your workforce with comprehensive safety training that builds confidence and team cohesion.
             </p>
             <Link
               to="/contact"

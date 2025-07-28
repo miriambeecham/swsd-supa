@@ -251,7 +251,7 @@ const PublicClassesPage = () => {
         ></div>
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
 
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
@@ -295,8 +295,8 @@ const PublicClassesPage = () => {
           {/* Tab Content */}
           {activeTab === 'adult-teen' && (
             <div className="mb-12">
-              <div className="flex items-start gap-8 mb-8">
-                <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
+                <div className="relative w-full md:w-64 h-48 rounded-lg overflow-hidden md:flex-shrink-0">
                   <img
                     src="/adult-teen.jpg"
                     alt="Adult & Teen Classes"
@@ -304,14 +304,14 @@ const PublicClassesPage = () => {
                   />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-3xl font-bold text-navy mb-4">Adult & Teen Classes (Ages 15+)</h2>
-                  <p className="text-gray-600 text-lg mb-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Adult & Teen Classes (Ages 15+)</h2>
+                  <p className="text-gray-600 text-base md:text-lg mb-4">
                     Comprehensive self-defense training for teens and adults in a women-only environment. Learn practical
                     techniques, situational awareness, and confidence-building strategies. Our classes combine physical
                     techniques with mental preparedness to help you feel safe and empowered. Classes are led by experienced 
                     instructors and cost $75 per person.
                   </p>
-                  <div className="flex items-center gap-6 text-sm text-gray-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                     <span>• 3-hour sessions</span>
                     <span>• Maximum 20 participants per class</span>
                     <span>• Beginner to advanced levels</span>
@@ -336,8 +336,8 @@ const PublicClassesPage = () => {
 
           {activeTab === 'mother-daughter' && (
             <div className="mb-12">
-              <div className="flex items-start gap-8 mb-8">
-                <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
+                <div className="relative w-full md:w-64 h-48 rounded-lg overflow-hidden md:flex-shrink-0">
                   <img
                     src="/mothers-daughters.jpg"
                     alt="Mother-Daughter Classes"
@@ -345,14 +345,14 @@ const PublicClassesPage = () => {
                   />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-3xl font-bold text-navy mb-4">Mother-Daughter Classes (Ages 12-15)</h2>
-                  <p className="text-gray-600 text-lg mb-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Mother-Daughter Classes (Ages 12-15)</h2>
+                  <p className="text-gray-600 text-base md:text-lg mb-4">
                     A unique bonding experience that empowers both mothers and daughters with essential self-defense
                     skills. These classes focus on building confidence, communication, and practical techniques in a fun,
                     supportive environment. Perfect for strengthening your relationship while learning to protect
                     yourselves. Classes are led by experienced instructors and cost $139 per pair.
                   </p>
-                  <div className="flex items-center gap-6 text-sm text-gray-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                     <span>• 3-hour sessions</span>
                     <span>• Maximum 10 pairs per class</span>
                     <span>• All skill levels welcome</span>

@@ -145,7 +145,7 @@ const CboPage = () => {
         <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Community Self-Defense Training</h1>
             <p className="text-xl text-gray-600 mb-8">
-              Empowering communities with trauma-informed, culturally sensitive self-defense training. From women's shelters to youth groups, we create safe spaces for learning and healing.
+              Empowering communities with trauma-informed, culturally sensitive self-defense training.
             </p>
             <Link
               to="/contact"

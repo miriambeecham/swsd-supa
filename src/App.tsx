@@ -8,7 +8,7 @@ import CorporatePage from './pages/CorporatePage';
 import CboPage from './pages/CboPage';
 import TestimonialsPage from './pages/TestimonialsPage';
 import ContactPage from './pages/ContactPage';
-import MotherDaughterPage from './pages/MotherDaughterPage';
+
 import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 
@@ -25,7 +25,7 @@ function App() {
           <Route path="/cbo" element={<CboPage />} />
           <Route path="/testimonials" element={<TestimonialsPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/mother-daughter" element={<MotherDaughterPage />} />
+         
           <Route path="/about" element={<AboutPage />} />
           <Route path="/faq" element={<FAQPage />} />
         </Routes>
