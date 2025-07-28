@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Filter, Mail } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail } from 'lucide-react';
 
 interface ClassSchedule {
   id: string;
@@ -27,7 +27,7 @@ interface ClassSchedule {
 
 const PublicClassesPage = () => {
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +122,11 @@ const PublicClassesPage = () => {
     }
   };
 
+  const handleLocationClick = (location: string) => {
+    const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(location)}`;
+    window.open(mapUrl, '_blank');
+  };
+
   // Filter classes by type for different sections
   const motherDaughterClasses = classSchedules.filter(c => 
     c.class_name.toLowerCase().includes('mother') || 
@@ -136,23 +141,23 @@ const PublicClassesPage = () => {
   );
 
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4">
+      <div className="flex justify-between items-start">
         <div className="flex-1">
           {/* Class Title - Less emphasized */}
           <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
 
           {/* Partner Organization - If present */}
           {classData.partner_organization && (
-            <p className="text-sm text-gray-500 mb-3">
+            <p className="text-sm text-gray-500 mb-2">
               Hosted by {classData.partner_organization}
             </p>
           )}
 
           {/* Date & Time - Most prominent in teal */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-5 h-5 text-accent-primary" />
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Calendar className="w-4 h-4 text-accent-primary" />
               <span className="text-lg font-semibold text-accent-primary">
                 {new Date(classData.date).toLocaleDateString('en-US', { 
                   weekday: 'long', 
@@ -162,27 +167,22 @@ const PublicClassesPage = () => {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-accent-primary" />
+              <Clock className="w-4 h-4 text-accent-primary" />
               <span className="text-lg font-semibold text-accent-primary">
                 {classData.start_time} - {classData.end_time}
               </span>
             </div>
           </div>
 
-          {/* Secondary Details */}
-          <div className="space-y-2 text-sm text-gray-600 mb-3">
-            <div className="flex items-center gap-2">
+          {/* Location - Clickable in teal */}
+          <div className="mb-3">
+            <button
+              onClick={() => handleLocationClick(classData.location)}
+              className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors cursor-pointer"
+            >
               <MapPin className="w-4 h-4" />
-              <span>{classData.location}</span>
-            </div>
-
-            {classData.instructor && (
-              <p><strong>Instructor:</strong> {classData.instructor}</p>
-            )}
-
-            {classData.price > 0 && (
-              <p><strong>Price:</strong> ${classData.price} {classData.pricing_unit}</p>
-            )}
+              <span className="text-sm font-medium underline">{classData.location}</span>
+            </button>
           </div>
 
           {/* Special Notes */}
@@ -196,9 +196,9 @@ const PublicClassesPage = () => {
         {/* Booking Button */}
         <button
           onClick={() => handleBooking(classData)}
-          className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2 ml-4"
+          className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2 ml-4"
         >
-          {classData.booking_method === 'contact' ? 'Contact Us' : 'Register Now'}
+          {classData.booking_method === 'contact' ? 'Contact Us' : 'Register'}
           {classData.booking_method === 'external' ? 
             <ExternalLink className="w-4 h-4" /> : 
             <Mail className="w-4 h-4" />
@@ -242,125 +242,145 @@ const PublicClassesPage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header with Background */}
-      <section className="relative py-16">
+      <section className="relative h-80 lg:h-96 flex items-center">
         <div 
-          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+          className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
         ></div>
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Link>
-          </div>
+        
 
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
             <p className="text-xl text-gray-600 mb-8">
               Join our empowering self-defense classes in a supportive, women-only environment. Choose from our
-              specialized programs designed for different age groups and relationships. 
+              specialized programs designed for different age groups and relationships.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Mother-Daughter Classes Section */}
+      {/* Tabbed Class Sections */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-12">
-            <div className="flex items-start gap-8 mb-8">
-              <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
-                <img
-                  src="/mothers-daughters.jpg"
-                  alt="Mother-Daughter Classes"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-3xl font-bold text-navy mb-4">Mother-Daughter Classes (Ages 12-15)</h2>
-                <p className="text-gray-600 text-lg mb-4">
-                  A unique bonding experience that empowers both mothers and daughters with essential self-defense
-                  skills. These classes focus on building confidence, communication, and practical techniques in a fun,
-                  supportive environment. Perfect for strengthening your relationship while learning to protect
-                  yourselves.
-                </p>
-                <div className="flex items-center gap-6 text-sm text-gray-500">
-                  <span>• 3-hour sessions</span>
-                  <span>• Maximum 10 pairs per class</span>
-                  <span>• All skill levels welcome</span>
-                  <span>• $139 per pair</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Mother-Daughter Classes</h3>
-              {motherDaughterClasses.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">No upcoming mother-daughter classes scheduled.</p>
-                </div>
-              ) : (
-                motherDaughterClasses.map((classData) => (
-                  <ClassCard key={classData.id} classData={classData} />
-                ))
-              )}
+          {/* Tab Navigation */}
+          <div className="flex justify-center mb-12">
+            <div className="bg-gray-100 rounded-lg p-1 flex">
+              <button
+                onClick={() => setActiveTab('adult-teen')}
+                className={`px-6 py-3 rounded-md font-semibold transition-colors ${
+                  activeTab === 'adult-teen'
+                    ? 'bg-accent-primary text-white'
+                    : 'text-gray-600 hover:text-navy'
+                }`}
+              >
+                Adult & Teen Classes
+              </button>
+              <button
+                onClick={() => setActiveTab('mother-daughter')}
+                className={`px-6 py-3 rounded-md font-semibold transition-colors ${
+                  activeTab === 'mother-daughter'
+                    ? 'bg-accent-primary text-white'
+                    : 'text-gray-600 hover:text-navy'
+                }`}
+              >
+                Mother-Daughter Classes
+              </button>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Adult & Teen Classes Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-12">
-            <div className="flex items-start gap-8 mb-8">
-              <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
-                <img
-                  src="/adult-teen.jpg"
-                  alt="Adult & Teen Classes"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-3xl font-bold text-navy mb-4">Adult & Teen Classes (Ages 15+)</h2>
-                <p className="text-gray-600 text-lg mb-4">
-                  Comprehensive self-defense training for teens and adults in a women-only environment. Learn practical
-                  techniques, situational awareness, and confidence-building strategies. Our classes combine physical
-                  techniques with mental preparedness to help you feel safe and empowered.
-                </p>
-                <div className="flex items-center gap-6 text-sm text-gray-500">
-                  <span>• 3-hour sessions</span>
-                  <span>• Maximum 20 participants per class</span>
-                  <span>• Beginner to advanced levels</span>
-                  <span>• $75 per person</span>
+          {/* Tab Content */}
+          {activeTab === 'adult-teen' && (
+            <div className="mb-12">
+              <div className="flex items-start gap-8 mb-8">
+                <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
+                  <img
+                    src="/adult-teen.jpg"
+                    alt="Adult & Teen Classes"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-3xl font-bold text-navy mb-4">Adult & Teen Classes (Ages 15+)</h2>
+                  <p className="text-gray-600 text-lg mb-4">
+                    Comprehensive self-defense training for teens and adults in a women-only environment. Learn practical
+                    techniques, situational awareness, and confidence-building strategies. Our classes combine physical
+                    techniques with mental preparedness to help you feel safe and empowered. Classes are led by experienced 
+                    instructors and cost $75 per person.
+                  </p>
+                  <div className="flex items-center gap-6 text-sm text-gray-500">
+                    <span>• 3-hour sessions</span>
+                    <span>• Maximum 20 participants per class</span>
+                    <span>• Beginner to advanced levels</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Adult & Teen Classes</h3>
-              {adultTeenClasses.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">No upcoming adult & teen classes scheduled.</p>
-                </div>
-              ) : (
-                adultTeenClasses.map((classData) => (
-                  <ClassCard key={classData.id} classData={classData} />
-                ))
-              )}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Adult & Teen Classes</h3>
+                {adultTeenClasses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No upcoming adult & teen classes scheduled.</p>
+                  </div>
+                ) : (
+                  adultTeenClasses.map((classData) => (
+                    <ClassCard key={classData.id} classData={classData} />
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'mother-daughter' && (
+            <div className="mb-12">
+              <div className="flex items-start gap-8 mb-8">
+                <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0">
+                  <img
+                    src="/mothers-daughters.jpg"
+                    alt="Mother-Daughter Classes"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-3xl font-bold text-navy mb-4">Mother-Daughter Classes (Ages 12-15)</h2>
+                  <p className="text-gray-600 text-lg mb-4">
+                    A unique bonding experience that empowers both mothers and daughters with essential self-defense
+                    skills. These classes focus on building confidence, communication, and practical techniques in a fun,
+                    supportive environment. Perfect for strengthening your relationship while learning to protect
+                    yourselves. Classes are led by experienced instructors and cost $139 per pair.
+                  </p>
+                  <div className="flex items-center gap-6 text-sm text-gray-500">
+                    <span>• 3-hour sessions</span>
+                    <span>• Maximum 10 pairs per class</span>
+                    <span>• All skill levels welcome</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Mother-Daughter Classes</h3>
+                {motherDaughterClasses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No upcoming mother-daughter classes scheduled.</p>
+                  </div>
+                ) : (
+                  motherDaughterClasses.map((classData) => (
+                    <ClassCard key={classData.id} classData={classData} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
       {/* What to Expect Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-accent-light rounded-2xl p-8">
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
             <h3 className="text-2xl font-bold text-navy mb-6 text-center">What to Expect</h3>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center">
@@ -406,7 +426,7 @@ const PublicClassesPage = () => {
               Contact Us
             </Link>
             <Link
-              to="/contact"
+              to="/faq"
               className="border-2 border-white text-white hover:bg-white hover:text-navy px-8 py-4 rounded-lg font-semibold text-lg transition-colors bg-transparent"
             >
               View FAQ

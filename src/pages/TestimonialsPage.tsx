@@ -105,6 +105,7 @@ const TestimonialsPage = () => {
   };
 
   useEffect(() => {
+    document.title = 'Student Success Stories - Streetwise Self Defense';
     fetchTestimonialsFromAirtable();
   }, []);
 
@@ -152,23 +153,10 @@ const TestimonialsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link 
-            to="/" 
-            className="inline-flex items-center text-accent-primary hover:text-accent-primary-dark"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
-          </Link>
-        </div>
-      </header>
-
       {/* Hero Section with Logo Background */}
-      <section className="relative py-16">
+      <section className="relative h-80 lg:h-96 flex items-center">
         <div 
-          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+          className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
@@ -185,9 +173,79 @@ const TestimonialsPage = () => {
               <div className="flex items-center space-x-2">
                 {renderStars(5)}
                 <span className="text-navy text-xl font-semibold ml-3">
-                  4.9/5 Average Rating
+                  5/5 Average Rating
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Platform Stats Section */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="text-blue-600 text-2xl mb-2 flex justify-center">
+                <FaGoogle />
+              </div>
+              <h3 className="text-lg font-bold text-navy mb-1">Google Reviews</h3>
+              <div className="text-2xl font-bold text-navy mb-1">5.0</div>
+              <div className="flex justify-center mb-2">
+                {renderStars(5)}
+              </div>
+              <div className="text-sm text-gray-600 mb-3">Based on 2+ reviews</div>
+              <a
+                href="https://google.com/search?q=streetwise+self+defense+reviews"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                View on Google →
+              </a>
+            </div>
+
+            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              {/* Yelp icon in brand red */}
+              <div className="text-red-600 text-2xl mb-2 flex justify-center">
+                <SiYelp />
+              </div>
+              {/* Yelp text in brand red when next to icon */}
+              <h3 className="text-lg font-bold text-red-600 mb-1">Yelp Reviews</h3>
+              <div className="text-2xl font-bold text-navy mb-1">5.0</div>
+              <div className="flex justify-center mb-2">
+                {renderStars(5)}
+              </div>
+              <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
+              {/* CTA link in site teal color */}
+              <a
+                href="https://yelp.com/biz/streetwise-self-defense"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                View on Yelp →
+              </a>
+            </div>
+
+            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+              <div className="text-blue-700 text-2xl mb-2 flex justify-center">
+                <FaFacebook />
+              </div>
+              <h3 className="text-lg font-bold text-navy mb-1">Facebook</h3>
+              <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
+              <div className="flex justify-center mb-2">
+                {renderStars(5)}
+              </div>
+              <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
+              <a
+                href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                View on Facebook →
+              </a>
             </div>
           </div>
         </div>
@@ -263,77 +321,7 @@ const TestimonialsPage = () => {
         </section>
       )}
 
-      {/* Stats Section - Compact */}
-      <section className="py-12 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <div className="text-blue-600 text-2xl mb-2 flex justify-center">
-                <FaGoogle />
-              </div>
-              <h3 className="text-lg font-bold text-navy mb-1">Google Reviews</h3>
-              <div className="text-2xl font-bold text-navy mb-1">5.0</div>
-              <div className="flex justify-center mb-2">
-                {renderStars(5)}
-              </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 2+ reviews</div>
-              <a
-                href="https://google.com/search?q=streetwise+self+defense+reviews"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
-              >
-                View on Google →
-              </a>
-            </div>
-
-            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              {/* Yelp icon in brand red */}
-              <div className="text-red-600 text-2xl mb-2 flex justify-center">
-                <SiYelp />
-              </div>
-              {/* Yelp text in brand red when next to icon */}
-              <h3 className="text-lg font-bold text-red-600 mb-1">Yelp Reviews</h3>
-              <div className="text-2xl font-bold text-navy mb-1">5.0</div>
-              <div className="flex justify-center mb-2">
-                {renderStars(5)}
-              </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
-              {/* CTA link in site teal color */}
-              <a
-                href="https://yelp.com/biz/streetwise-self-defense"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
-              >
-                View on Yelp →
-              </a>
-            </div>
-
-            <div className="text-center bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-              <div className="text-blue-700 text-2xl mb-2 flex justify-center">
-                <FaFacebook />
-              </div>
-              <h3 className="text-lg font-bold text-navy mb-1">Facebook</h3>
-              <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
-              <div className="flex justify-center mb-2">
-                {renderStars(5)}
-              </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
-              <a
-                href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
-              >
-                View on Facebook →
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* All Testimonials */}
+      {/* All Testimonials Grid (Excluding Featured) */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-navy text-center mb-12">All Reviews</h2>
@@ -421,7 +409,7 @@ const TestimonialsPage = () => {
             Join the hundreds of people who have gained confidence and skills through our training
           </p>
           <Link
-            to="/classes"
+            to="/public-classes"
             className="inline-block bg-accent-primary text-white font-semibold py-3 px-8 rounded-lg hover:bg-accent-primary-dark transition-colors"
           >
             View Class Schedule

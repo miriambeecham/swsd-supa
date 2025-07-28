@@ -116,9 +116,9 @@ const ContactPage = () => {
   return (
     <div>
       {/* Header */}
-      <section className="relative py-16">
+      <section className="relative h-80 lg:h-96 flex items-center">
         <div 
-          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+          className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
@@ -139,9 +139,7 @@ const ContactPage = () => {
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-navy mb-4">
-              Send Us a Message
-            </h2>
+         
             <p className="text-xl text-gray-600">
               Fill out the form below and we'll get back to you within 24 hours.
             </p>
@@ -344,50 +342,7 @@ const ContactPage = () => {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-navy mb-4">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-xl text-gray-600">
-              Quick answers to common questions about our programs.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-navy mb-3">Do I need any prior experience?</h3>
-              <p className="text-gray-600">
-                No prior experience is necessary! Our programs are designed for complete beginners. 
-                We start with the basics and build skills progressively.
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-navy mb-3">What should I wear to class?</h3>
-              <p className="text-gray-600">
-                Comfortable, loose-fitting clothes that allow for movement (like workout clothes). 
-                Sneakers or other closed-toe shoes are required. No jewelry or accessories.
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-navy mb-3">Are your instructors certified?</h3>
-              <p className="text-gray-600">
-                Yes! All our instructors are professionally certified with extensive real-world experience. 
-                We're also fully insured for all programs and venues.
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-navy mb-3">Can you come to our location?</h3>
-              <p className="text-gray-600">
-                Absolutely! We offer mobile training and can come to your workplace, community center, 
-                or other suitable venue. Contact us to discuss location requirements.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+    
     </div>
   );
 };

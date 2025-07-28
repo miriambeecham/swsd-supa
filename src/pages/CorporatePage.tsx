@@ -133,22 +133,16 @@ const CorporatePage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <section className="relative py-16">
+      <section className="relative h-80 lg:h-96 flex items-center">
         <div 
-          className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+          className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
           style={{
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
         ></div>
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Link>
-          </div>
-
+         
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Corporate Self-Defense Training</h1>
             <p className="text-xl text-gray-600 mb-8">
