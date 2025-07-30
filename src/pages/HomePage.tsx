@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Star, Shield, Users, Award, Phone, Mail, MapPin } from 'lucide-react';
 import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
+import { Helmet } from 'react-helmet-async';
 
 interface Testimonial {
   id: string;
@@ -148,7 +149,21 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-
+      {/* SEO Tags */}
+      <Helmet>
+        <title>Streetwise Self Defense - Building Confidence, Staying Safe | SF Bay Area</title>
+        <meta name="description" content="Professional self-defense training in Walnut Creek and mobile service throughout the East Bay, Peninsula, and SF Bay Area. Serving Oakland, San Francisco, Berkeley, Orinda, Lafayette, Pleasant Hill, Pleasanton, and surrounding areas." />
+        <meta name="keywords" content="self defense Walnut Creek, East Bay mobile training, Oakland, San Francisco, Berkeley, Orinda, Moraga, Lafayette, Pleasant Hill, Pleasanton, Dublin, workplace safety" />
+        <meta property="og:title" content="Streetwise Self Defense - Building Confidence, Staying Safe" />
+        <meta property="og:description" content="Professional self-defense training in Walnut Creek and throughout the SF Bay Area" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://streetwiseselfdefense.com" />
+        <meta property="og:image" content="https://streetwiseselfdefense.com/hero-image.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Streetwise Self Defense - Building Confidence, Staying Safe" />
+        <meta name="twitter:description" content="Professional self-defense training in the SF Bay Area" />
+        <link rel="canonical" href="https://streetwiseselfdefense.com/" />
+      </Helmet>
       {/* Mobile Hero - Vertical Layout */}
       <section className="relative min-h-screen flex items-center overflow-hidden md:hidden">
         <div className="absolute inset-0 z-0">

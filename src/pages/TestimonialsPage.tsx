@@ -3,6 +3,7 @@ import { Star, Quote, ArrowLeft } from 'lucide-react';
 import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 
 interface Testimonial {
   id: string;
@@ -153,6 +154,17 @@ const TestimonialsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* SEO Metadata */}
+      <Helmet>
+        <title>Student Success Stories | Reviews | Streetwise Self Defense</title>
+        <meta name="description" content="Read real reviews and success stories from our self defense students throughout the East Bay and SF Bay Area. See why women and organizations in Oakland, Lafayette, Pleasant Hill, Orinda, and Walnut Creek choose Streetwise Self Defense training." />
+        <meta name="keywords" content="self defense reviews, student testimonials, success stories, Yelp reviews, Google reviews, East Bay training reviews, Walnut Creek, Lafayette, Pleasant Hill, Oakland" />
+        <meta property="og:title" content="Student Success Stories | Streetwise Self Defense" />
+        <meta property="og:description" content="Read real reviews and success stories from our students" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://streetwiseselfdefense.com/testimonials" />
+        <link rel="canonical" href="https://streetwiseselfdefense.com/testimonials" />
+      </Helmet>
       {/* Hero Section with Logo Background */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 

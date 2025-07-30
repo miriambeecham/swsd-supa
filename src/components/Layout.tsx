@@ -24,7 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const programPages = [
     { name: 'Public Classes', href: '/public-classes' },
     { name: 'Private Classes', href: '/private-classes' },
-    { name: 'Workplace Safety', href: '/corporate' },
+    { name: 'Workplace Safety', href: '/workplace-safety' },
     { name: 'Community Groups', href: '/cbo' },
   ];
 
@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const isProgramActive = () => {
-    return ['/public-classes', '/private-classes', '/corporate', '/cbo'].some(path =>
+    return ['/public-classes', '/private-classes', '/workplace-safety', '/cbo'].some(path =>
       location.pathname.startsWith(path)
     );
   };
@@ -324,7 +324,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/corporate" className="hover:text-white transition-colors">
+                  <Link to="/workplace-safety" className="hover:text-white transition-colors">
                     Workplace Safety
                   </Link>
                 </li>
@@ -357,6 +357,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Link to="/contact" className="hover:text-white transition-colors">
                     Contact
                   </Link>
+                </li>
+                <li>
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-white">
+                  Privacy Policy
+                </Link>
                 </li>
               </ul>
             </div>

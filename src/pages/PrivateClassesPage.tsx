@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Clock, CheckCircle, ArrowLeft, Star, Shield, ChevronDown } from 'lucide-react';
+import { Users, Clock, CheckCircle, ArrowLeft, Star, Shield, ChevronDown, Calendar, Mail, X } from 'lucide-react';
+import ReCAPTCHA from 'react-google-recaptcha';
+import { Helmet } from 'react-helmet-async';
 
 const PrivateClassesPage = () => {
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -30,14 +36,98 @@ const PrivateClassesPage = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRecaptchaChange = (value: string | null) => {
+    setRecaptchaValue(value);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Handle form submission here
+
+    if (!recaptchaValue) {
+      alert('Please complete the reCAPTCHA verification');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate form submission
+    // Submit to Airtable
+    try {
+      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
+
+      const response = await fetch(`https://api.airtable.com/v0/${baseId}/Form Submissions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: {
+            'First Name': formData.firstName,
+            'Last Name': formData.lastName,
+            'Email': formData.email,
+            'Phone': formData.phone,
+            'Form Type': 'Private Training',
+            'PT_Group Size': formData.groupSize,
+            'PT_Training Type': formData.trainingType,
+            'PT_Training Goals': formData.goals,
+            'PT_Availability': formData.availability,
+            'Newsletter Signup': formData.newsletter,
+            // Try just the date without time for now
+            'Submitted Date': new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+            'Status': 'New'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Airtable error:', errorText);
+        throw new Error(`Failed to submit: ${response.status} - ${errorText}`);
+      }
+
+      setIsSubmitted(true);
+      setRecaptchaValue(null);
+
+    } catch (error) {
+      console.error('Form submission error:', error);
+      alert('There was an error submitting your form. Please try again.');
+    }
+
+    setIsSubmitting(false);
+    setIsSubmitted(true);
+    setRecaptchaValue(null);
+  };
+
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setRecaptchaValue(null);
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      groupSize: '',
+      trainingType: '',
+      goals: '',
+      availability: '',
+      newsletter: false
+    });
   };
 
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>Private Self Defense Training | Mobile Service | East Bay & SF Bay Area</title>
+        <meta name="description" content="Private self defense training at your location in Oakland, San Francisco, Berkeley, Lafayette, Pleasant Hill, Orinda, Pleasanton, Dublin, and throughout the East Bay. Customized for individuals and families. We come to you." />
+        <meta name="keywords" content="private self defense East Bay, mobile training Oakland, San Francisco self defense, Berkeley, Lafayette, Pleasant Hill, Orinda, Moraga, Pleasanton, Dublin, San Ramon, individual training, family self defense" />
+        <meta property="og:title" content="Private Self Defense Training | Mobile Service | Streetwise Self Defense" />
+        <meta property="og:description" content="Private self defense training at your location anywhere in the SF Bay Area" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://streetwiseselfdefense.com/private-classes" />
+        <link rel="canonical" href="https://streetwiseselfdefense.com/private-classes" />
+      </Helmet>
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -48,13 +138,34 @@ const PrivateClassesPage = () => {
         ></div>
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-         
-
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Private Training Inquiry</h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Personalized self-defense training tailored to your specific needs, schedule, and comfort level. Perfect
-              for individuals, families, or small groups seeking customized instruction.
+            <h1 className="text-3xl md:text-5xl font-bold text-navy mb-4 md:mb-6">Private Training</h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-6 md:mb-8">
+              Personalized self-defense training tailored to your specific needs, schedule, and comfort level. 
+            </p>
+
+            {/* Dual CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+              <a
+                href="https://calendly.com/streetwisewomen/question-answer"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-accent-primary hover:bg-accent-dark text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-5 h-5" />
+                Schedule Free Consultation
+              </a>
+              <button
+                onClick={() => setShowContactForm(true)}
+                className="bg-accent-primary hover:bg-accent-dark text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Mail className="w-5 h-5" />
+                Send Us Details
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mt-3 md:mt-4">
+              Prefer to talk first? Schedule a 15-minute consultation • Want to share details first? Fill out our form
             </p>
           </div>
         </div>
@@ -103,181 +214,8 @@ const PrivateClassesPage = () => {
         </div>
       </section>
 
-      {/* Inquiry Form */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy mb-4">Tell Us About Your Needs</h2>
-            <p className="text-gray-600">We'll create a customized training program just for you</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="Your first name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Your last name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="your.email@example.com"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="(555) 123-4567"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="groupSize" className="block text-sm font-medium text-gray-700 mb-2">
-                    Group Size
-                  </label>
-                  <select
-                    id="groupSize"
-                    name="groupSize"
-                    value={formData.groupSize}
-                    onChange={(e) => handleSelectChange('groupSize', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  >
-                    <option value="">Select group size</option>
-                    <option value="1">Just me (1 person)</option>
-                    <option value="2">2 people</option>
-                    <option value="3-5">3-5 people</option>
-                    <option value="6-10">6-10 people</option>
-                    <option value="10+">More than 10 people</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="trainingType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Training Type
-                  </label>
-                  <select
-                    id="trainingType"
-                    name="trainingType"
-                    value={formData.trainingType}
-                    onChange={(e) => handleSelectChange('trainingType', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                  >
-                    <option value="">Select training type</option>
-                    <option value="individual">Individual Training</option>
-                    <option value="family">Family Training</option>
-                    <option value="coed">Co-ed Group</option>
-                    <option value="neurodivergent">Neurodivergent-Friendly</option>
-                    <option value="bullying">Bullying Prevention</option>
-                    <option value="other">Other (please specify)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
-                  Training Goals & Specific Needs
-                </label>
-                <textarea
-                  id="goals"
-                  name="goals"
-                  value={formData.goals}
-                  onChange={handleInputChange}
-                  placeholder="Tell us about your goals, any specific concerns, accessibility needs, or other details that would help us customize your training..."
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-2">
-                  Preferred Schedule
-                </label>
-                <textarea
-                  id="availability"
-                  name="availability"
-                  value={formData.availability}
-                  onChange={handleInputChange}
-                  placeholder="Let us know your preferred days, times, and any scheduling constraints..."
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="newsletter"
-                  name="newsletter"
-                  checked={formData.newsletter}
-                  onChange={handleInputChange}
-                  className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
-                />
-                <label htmlFor="newsletter" className="text-sm text-gray-700">
-                  I'd like to receive updates about classes and safety tips
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-accent-primary hover:bg-accent-dark text-white py-4 px-6 rounded-lg font-semibold text-lg transition-colors"
-              >
-                Submit Inquiry
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-
       {/* Testimonials */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-navy mb-4">What Our Private Training Clients Say</h2>
@@ -335,7 +273,7 @@ const PrivateClassesPage = () => {
       </section>
 
       {/* Quick Info */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-navy mb-4">Why Choose Private Training</h2>
@@ -373,26 +311,273 @@ const PrivateClassesPage = () => {
         </div>
       </section>
 
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-navy">Private Training Details</h2>
+                <button
+                  onClick={() => setShowContactForm(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mt-2">Tell us about your training needs and we'll create a customized program for you.</p>
+            </div>
+
+            <div className="p-6">
+              {!isSubmitted ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        placeholder="Your first name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        placeholder="Your last name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="your.email@example.com"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="(555) 123-4567"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="groupSize" className="block text-sm font-medium text-gray-700 mb-2">
+                        Group Size
+                      </label>
+                      <select
+                        id="groupSize"
+                        name="groupSize"
+                        value={formData.groupSize}
+                        onChange={(e) => handleSelectChange('groupSize', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select group size</option>
+                        <option value="1">Just me (1 person)</option>
+                        <option value="2">2 people</option>
+                        <option value="3-5">3-5 people</option>
+                        <option value="6-10">6-10 people</option>
+                        <option value="10+">More than 10 people</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="trainingType" className="block text-sm font-medium text-gray-700 mb-2">
+                        Training Type
+                      </label>
+                      <select
+                        id="trainingType"
+                        name="trainingType"
+                        value={formData.trainingType}
+                        onChange={(e) => handleSelectChange('trainingType', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select training type</option>
+                        <option value="individual">Individual Training</option>
+                        <option value="family">Family Training</option>
+                        <option value="coed">Co-ed Group</option>
+                        <option value="neurodivergent">Neurodivergent-Friendly</option>
+                        <option value="bullying">Bullying Prevention</option>
+                        <option value="other">Other (please specify)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
+                      Training Goals & Specific Needs
+                    </label>
+                    <textarea
+                      id="goals"
+                      name="goals"
+                      value={formData.goals}
+                      onChange={handleInputChange}
+                      placeholder="Tell us about your goals, any specific concerns, accessibility needs, or other details that would help us customize your training..."
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Schedule
+                    </label>
+                    <textarea
+                      id="availability"
+                      name="availability"
+                      value={formData.availability}
+                      onChange={handleInputChange}
+                      placeholder="Let us know your preferred days, times, and any scheduling constraints..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="newsletter"
+                      name="newsletter"
+                      checked={formData.newsletter}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                    />
+                    <label htmlFor="newsletter" className="text-sm text-gray-700">
+                      I'd like to receive updates about classes and safety tips
+                    </label>
+                  </div>
+
+                  <div className="flex justify-center mb-6">
+                    <ReCAPTCHA
+                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
+                      onChange={handleRecaptchaChange}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    By submitting this form, you agree to our{' '}
+                    <a 
+                      href="/privacy-policy" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-accent-primary hover:underline"
+                    > 
+                      Privacy Policy
+                    </a>.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !recaptchaValue}
+                    className="w-full bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-5 h-5" />
+                        Send Details
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
+                  <p className="text-gray-600 mb-6">
+                    We've received your training details and will contact you within 24 hours to discuss your customized program.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a
+                      href="https://calendly.com/streetwisewomen/question-answer"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Schedule Call Now
+                    </a>
+                    <button
+                      onClick={() => {
+                        setShowContactForm(false);
+                        resetForm();
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CTA Section */}
       <section className="py-16 bg-navy text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Start Your Personal Training Journey?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Contact us today to discuss your needs and schedule your first session.
+            Get personalized training that fits your needs, schedule, and goals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="tel:555-123-4567"
-              className="bg-accent-primary hover:bg-accent-dark text-white py-4 px-8 rounded-lg font-semibold text-lg transition-colors"
+              href="https://calendly.com/streetwisewomen/question-answer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
-              Call (555) 123-4567
+              <Calendar className="w-5 h-5" />
+              Schedule Free Consultation
             </a>
-            <Link
-              to="/contact"
-              className="border-2 border-white text-white hover:bg-white hover:text-navy py-4 px-8 rounded-lg font-semibold text-lg transition-colors bg-transparent"
+            <button
+              onClick={() => setShowContactForm(true)}
+              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent flex items-center justify-center gap-2"
             >
-              Email Us
-            </Link>
+              <Mail className="w-5 h-5" />
+              Send Details First
+            </button>
           </div>
         </div>
       </section>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Award, Globe, Target } from 'lucide-react';
 import { FaGoogle, FaFacebook, FaLinkedin, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
+import { Helmet } from 'react-helmet-async';
 
 interface Testimonial {
   id: string;

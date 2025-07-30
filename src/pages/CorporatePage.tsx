@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Building } from 'lucide-react';
+import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Building, Calendar, Mail, X } from 'lucide-react';
 import { FaGoogle, FaFacebook, FaLinkedin, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
+import ReCAPTCHA from 'react-google-recaptcha';
+import { Helmet } from 'react-helmet-async';
 
 interface Testimonial {
   id: string;
@@ -20,6 +22,23 @@ interface Testimonial {
 const CorporatePage = () => {
   const [testimonials, setTestimonials] = useState<Record<string, Testimonial>>({});
   const [loading, setLoading] = useState(true);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    companyName: '',
+    role: '',
+    employeeCount: '',
+    trainingFormat: '',
+    needs: '',
+    timeline: '',
+    newsletter: false
+  });
 
   // Platform configurations - matching other pages
   const platformConfig = {
@@ -35,6 +54,95 @@ const CorporatePage = () => {
 
   const getPlatformInfo = (platform?: string) => {
     return platformConfig[platform as keyof typeof platformConfig] || platformConfig.default;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleRecaptchaChange = (value: string | null) => {
+    setRecaptchaValue(value);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!recaptchaValue) {
+      alert('Please complete the reCAPTCHA verification');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate form submission
+    // Submit to Airtable
+    const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+    const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
+
+    const response = await fetch(`https://api.airtable.com/v0/${baseId}/Form Submissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: {
+          'First Name': formData.firstName,
+          'Last Name': formData.lastName,
+          'Email': formData.email,
+          'Phone': formData.phone,
+          'Form Type': 'Workplace Safety',
+          'WS_Organization Name': formData.companyName,
+          'WS_Role Title': formData.role,
+          'WS_Employee Count': formData.employeeCount,
+          'WS_Training Format': formData.trainingFormat,
+          'WS_Training Needs': formData.needs,
+          'WS_Timeline': formData.timeline,
+          'Newsletter Signup': formData.newsletter,
+          'Submitted Date': new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          'Status': 'New'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Airtable error:', errorText);
+      throw new Error(`Failed to submit: ${response.status} - ${errorText}`);
+    }
+
+    setIsSubmitting(false);
+    setIsSubmitted(true);
+    setRecaptchaValue(null);
+  };
+
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setRecaptchaValue(null);
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      companyName: '',
+      role: '',
+      employeeCount: '',
+      trainingFormat: '',
+      needs: '',
+      timeline: '',
+      newsletter: false
+    });
   };
 
   const fetchCorporateTestimonials = async () => {
@@ -132,6 +240,17 @@ const CorporatePage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* SEO Meta Tags */}
+      <Helmet>
+        <title>Workplace Safety Training | On-Site Service | East Bay & Peninsula Businesses</title>
+        <meta name="description" content="Professional workplace safety training and violence prevention at your location throughout the East Bay and Peninsula. Serving Oakland, San Francisco, Lafayette, Pleasant Hill, Concord, Pleasanton, and all business types including medical practices and restaurants." />
+        <meta name="keywords" content="workplace safety training East Bay, workplace violence prevention, on-site employee training, Oakland business training, San Francisco workplace safety, Lafayette, Pleasant Hill, Concord, Alamo, Orinda corporate training, medical practice safety" />
+        <meta property="og:title" content="Workplace Safety Training | On-Site Service | Streetwise Self Defense" />
+        <meta property="og:description" content="Professional workplace safety training at your location throughout the East Bay and Peninsula" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://streetwiseselfdefense.com/workplace-safety" />
+        <link rel="canonical" href="https://streetwiseselfdefense.com/workplace-safety" />
+      </Helmet>
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -142,18 +261,35 @@ const CorporatePage = () => {
         ></div>
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-         
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Workplace Safety</h1>
-            <p className="text-xl text-gray-600 mb-8">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-navy mb-4 lg:mb-6">Workplace Safety</h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-6 lg:mb-8">
               Empower your workforce with comprehensive safety training that builds confidence and team cohesion.
             </p>
-            <Link
-              to="/contact"
-              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors inline-block"
-            >
-              Schedule Consultation
-            </Link>
+
+            {/* Dual CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+              <a
+                href="https://calendly.com/streetwisewomen/question-answer"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-accent-primary hover:bg-accent-dark text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-4 h-4 md:w-5 md:h-5" />
+                Schedule Free Consultation
+              </a>
+              <button
+                onClick={() => setShowContactForm(true)}
+                className="bg-white border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Mail className="w-4 h-4 md:w-5 md:h-5" />
+                Send Workplace Details
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mt-3 md:mt-4">
+              Prefer to talk first? Schedule a 15-minute consultation • Want to share workplace details first? Fill out our form
+            </p>
           </div>
         </div>
       </section>
@@ -357,7 +493,7 @@ const CorporatePage = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy mb-4">Why Choose Our Corporate Training</h2>
+            <h2 className="text-3xl font-bold text-navy mb-4">Why Choose Our Workplace Safety Training</h2>
           </div>
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
@@ -394,26 +530,304 @@ const CorporatePage = () => {
         </div>
       </section>
 
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-navy">Workplace Safety Details</h2>
+                <button
+                  onClick={() => setShowContactForm(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mt-2">Tell us about your organization and training needs so we can create a customized safety program.</p>
+            </div>
+
+            <div className="p-6">
+              {!isSubmitted ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        placeholder="Your first name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        placeholder="Your last name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="your.email@organization.com"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="(555) 123-4567"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+                        Organization Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="companyName"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleInputChange}
+                        placeholder="Your organization name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                        Your Role/Title
+                      </label>
+                      <input
+                        type="text"
+                        id="role"
+                        name="role"
+                        value={formData.role}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Manager, Director, Owner"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="employeeCount" className="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Employees
+                      </label>
+                      <select
+                        id="employeeCount"
+                        name="employeeCount"
+                        value={formData.employeeCount}
+                        onChange={(e) => handleSelectChange('employeeCount', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select employee count</option>
+                        <option value="1-10">1-10 employees</option>
+                        <option value="11-50">11-50 employees</option>
+                        <option value="51-100">51-100 employees</option>
+                        <option value="101-500">101-500 employees</option>
+                        <option value="500+">500+ employees</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="trainingFormat" className="block text-sm font-medium text-gray-700 mb-2">
+                        Preferred Training Format
+                      </label>
+                      <select
+                        id="trainingFormat"
+                        name="trainingFormat"
+                        value={formData.trainingFormat}
+                        onChange={(e) => handleSelectChange('trainingFormat', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select format</option>
+                        <option value="onsite">On-site at our location</option>
+                        <option value="offsite">Off-site venue</option>
+                        <option value="flexible">Flexible - discuss options</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="needs" className="block text-sm font-medium text-gray-700 mb-2">
+                      Training Needs & Goals
+                    </label>
+                    <textarea
+                      id="needs"
+                      name="needs"
+                      value={formData.needs}
+                      onChange={handleInputChange}
+                      placeholder="Tell us about your workplace safety goals, specific concerns, industry requirements, or other details that would help us customize your training..."
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="timeline" className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Timeline
+                    </label>
+                    <textarea
+                      id="timeline"
+                      name="timeline"
+                      value={formData.timeline}
+                      onChange={handleInputChange}
+                      placeholder="When would you like to schedule training? Any scheduling constraints or preferences..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="newsletter"
+                      name="newsletter"
+                      checked={formData.newsletter}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                    />
+                    <label htmlFor="newsletter" className="text-sm text-gray-700">
+                      I'd like to receive updates about workplace safety tips and training programs
+                    </label>
+                  </div>
+
+                  <div className="flex justify-center mb-6">
+                    <ReCAPTCHA
+                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
+                      onChange={handleRecaptchaChange}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    By submitting this form, you agree to our{' '}
+                    <a 
+                      href="/privacy-policy" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-accent-primary hover:underline"
+                    > 
+                      Privacy Policy
+                    </a>.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !recaptchaValue}
+                    className="w-full bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-5 h-5" />
+                        Send Details
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
+                  <p className="text-gray-600 mb-6">
+                    We've received your workplace details and will contact you within 24 hours to discuss your customized safety training program.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a
+                      href="https://calendly.com/your-calendly-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Schedule Call Now
+                    </a>
+                    <button 
+                      onClick={() => { 
+                        setShowContactForm(false); 
+                        resetForm(); 
+                        window.open('https://calendly.com/streetwisewomen/question-answer', '_blank', 'noopener,noreferrer'); 
+                      }} 
+                      className="bg-white border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center justify-center"
+                    >
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Schedule Free Consultation
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CTA Section */}
       <section className="py-16 bg-navy text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Empower Your Team?</h2>
+          <h2 className="text-3xl font-bold mb-4">Ready to Enhance Your Workplace Safety?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Contact us today to discuss how our corporate training can benefit your organization.
+            Contact us today to discuss how our safety training can benefit your organization.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/contact"
-              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors"
+            <a
+              href="https://calendly.com/streetwisewomen/question-answer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
-              Get Free Consultation
-            </Link>
-            <Link
-              to="/contact"
-              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent"
+              <Calendar className="w-5 h-5" />
+              Schedule Free Consultation
+            </a>
+            <button
+              onClick={() => setShowContactForm(true)}
+              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent flex items-center justify-center gap-2"
             >
-              Download Brochure
-            </Link>
+              <Mail className="w-5 h-5" />
+              Send Workplace Details
+            </button>
           </div>
         </div>
       </section>

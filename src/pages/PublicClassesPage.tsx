@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail } from 'lucide-react';
 
 interface ClassSchedule {
@@ -240,7 +241,19 @@ const PublicClassesPage = () => {
   }
 
   return (
+    
     <div className="min-h-screen bg-white">
+       {/*SEO Tags*/}
+        <Helmet>
+          <title>Women's Self Defense Classes | Walnut Creek | East Bay | SF Bay Area</title>
+          <meta name="description" content="Women-only self defense classes in Walnut Creek, CA. Serving East Bay and San Francisco residents including Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, and surrounding areas. Mother-daughter training and adult/teen programs." />
+          <meta name="keywords" content="women's self defense Walnut Creek, East Bay self defense, mother daughter classes, teen self defense, Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, Bay Area women's safety" />
+          <meta property="og:title" content="Women's Self Defense Classes | Walnut Creek | Streetwise Self Defense" />
+          <meta property="og:description" content="Women-only self defense classes in Walnut Creek, serving the East Bay and SF" />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content="https://streetwiseselfdefense.com/public-classes" />
+          <link rel="canonical" href="https://streetwiseselfdefense.com/public-classes" />
+        </Helmet>
       {/* Header with Background */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -313,7 +326,7 @@ const PublicClassesPage = () => {
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                     <span>• 3-hour sessions</span>
-                    <span>• Maximum 20 participants per class</span>
+                    <span>• Maximum 10 participants per class</span>
                     <span>• Beginner to advanced levels</span>
                   </div>
                 </div>
@@ -354,7 +367,7 @@ const PublicClassesPage = () => {
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                     <span>• 3-hour sessions</span>
-                    <span>• Maximum 10 pairs per class</span>
+                    <span>• Maximum 5 pairs per class</span>
                     <span>• All skill levels welcome</span>
                   </div>
                 </div>
