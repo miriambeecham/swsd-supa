@@ -326,7 +326,7 @@ const FAQPage = () => {
               Can't find the answer you're looking for? We're here to help!
             </p>
             <a
-              href="/contact"
+              href="/contact#contact-cards"
               className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-3 rounded-lg font-semibold transition-colors inline-block"
             >
               Contact Us

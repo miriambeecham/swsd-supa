@@ -165,7 +165,7 @@ const AboutPage = () => {
             <div>
               <h3 className="text-2xl font-bold text-navy mb-6 flex items-center gap-3">
                 <Shield className="w-6 h-6 text-accent-primary" />
-                Corporate Safety Training
+                Workplace Safety Training
               </h3>
               <p className="text-lg text-gray-600 mb-6">
                 We partner with organizations to bolster workplace safety. Collaborating closely with management, 
@@ -244,8 +244,8 @@ const AboutPage = () => {
               <div className="mb-8">
                 <h3 className="text-xl font-bold text-navy mb-4">Specialized Knowledge</h3>
                 <p className="text-gray-600 mb-4">
-                  Jay possesses a unique blend of skills that allows him to expertly merge <strong>practical threat analysis</strong> 
-                  with an in-depth understanding of <strong>violence dynamics and predator behavior</strong>.
+                  Jay possesses a unique blend of skills that allows him to expertly merge <strong>practical threat  analysis</strong>{' '} 
+                    with an in-depth understanding of <strong>violence dynamics and predator behavior</strong>.
                 </p>
                 <p className="text-gray-600">
                   <strong>Violence dynamics</strong> involve studying the causes and development of violent situations, including 
@@ -287,7 +287,7 @@ const AboutPage = () => {
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="text-center">
                 <div className="text-4xl font-bold text-accent-primary mb-2">1,500+</div>
-                <div className="text-lg font-semibold text-navy mb-2">Women & Teens Trained</div>
+                <div className="text-lg font-semibold text-navy mb-2">Students Trained</div>
                 <p className="text-gray-600">Since 2014, including survivors of rape and domestic violence</p>
               </div>
               <div className="text-center">
@@ -362,14 +362,14 @@ const AboutPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Start Your Empowerment Journey?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join the 1,500+ women who have gained confidence and life-changing skills through our training.
+            Join the 1,500+ students who have gained confidence and life-changing skills through our training.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/contact"
               className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors"
             >
-              Schedule Free Consultation
+              Contact Us
             </Link>
             <Link
               to="/public-classes"

@@ -306,7 +306,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 className="h-12 w-auto mb-4 brightness-0 invert"
               />
               <p className="text-slate-400 max-w-md">
-                Empowering women through practical self-defense training. Building confidence, strength, and safety
+                Empowering women and vulnerable populations through practical self-defense training. Building confidence, strength, and safety
                 awareness since 2008.
               </p>
             </div>

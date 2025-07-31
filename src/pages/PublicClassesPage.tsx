@@ -96,6 +96,13 @@ const PublicClassesPage = () => {
           };
         })
         .filter(Boolean)
+        .filter(classData => {
+          // Only show future classes (including today)
+          const classDate = new Date(classData.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Start of today
+          return classDate >= today;
+        })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       setClassSchedules(combinedData);
@@ -156,10 +163,11 @@ const PublicClassesPage = () => {
           )}
 
           {/* Date & Time - Most prominent in teal */}
-          <div className="mb-3">
-            <div className="flex items-center gap-2 mb-1">
+          {/* Date, Time & Location - All in one container */}
+          <div className="mb-4 space-y-1">
+            <div className="flex items-center gap-2 h-6">
               <Calendar className="w-4 h-4 text-accent-primary" />
-              <span className="text-lg font-semibold text-accent-primary">
+              <span className="text-md font-semibold text-accent-primary">
                 {new Date(classData.date).toLocaleDateString('en-US', { 
                   weekday: 'long', 
                   month: 'long', 
@@ -167,22 +175,18 @@ const PublicClassesPage = () => {
                 })}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 h-6">
               <Clock className="w-4 h-4 text-accent-primary" />
-              <span className="text-lg font-semibold text-accent-primary">
+              <span className="text-md font-medium text-accent-primary">
                 {classData.start_time} - {classData.end_time}
               </span>
             </div>
-          </div>
-
-          {/* Location - Clickable in teal */}
-          <div className="mb-3">
             <button
               onClick={() => handleLocationClick(classData.location)}
-              className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors cursor-pointer"
+              className="flex items-center gap-2 h-6 text-accent-primary hover:text-accent-dark transition-colors cursor-pointer"
             >
               <MapPin className="w-4 h-4" />
-              <span className="text-sm font-medium underline">{classData.location}</span>
+              <span className="text-md font-medium underline">{classData.location}</span>
             </button>
           </div>
 
@@ -300,7 +304,7 @@ const PublicClassesPage = () => {
                     : 'text-gray-600 hover:text-navy'
                 }`}
               >
-                Mother-Daughter Classes
+                Mother & Daughter Classes
               </button>
             </div>
           </div>
@@ -311,7 +315,7 @@ const PublicClassesPage = () => {
               <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
                 <div className="relative w-full md:w-64 h-48 rounded-lg overflow-hidden md:flex-shrink-0">
                   <img
-                    src="/adult-teen.jpg"
+                    src="/adult-teen.png"
                     alt="Adult & Teen Classes"
                     className="w-full h-full object-cover"
                   />
@@ -333,10 +337,10 @@ const PublicClassesPage = () => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Adult & Teen Classes</h3>
+                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
                 {adultTeenClasses.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No upcoming adult & teen classes scheduled.</p>
+                    <p className="text-gray-600">No upcoming Adults & Teens classes scheduled.</p>
                   </div>
                 ) : (
                   adultTeenClasses.map((classData) => (
@@ -352,13 +356,13 @@ const PublicClassesPage = () => {
               <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
                 <div className="relative w-full md:w-64 h-48 rounded-lg overflow-hidden md:flex-shrink-0">
                   <img
-                    src="/mothers-daughters.jpg"
-                    alt="Mother-Daughter Classes"
+                    src="/mothers-daughters.png"
+                    alt="Mother & Daughter Classes"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Mother-Daughter Classes (Ages 12-15)</h2>
+                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Mother & Daughter Classes (Ages 12-15)</h2>
                   <p className="text-gray-600 text-base md:text-lg mb-4">
                     A unique bonding experience that empowers both mothers and daughters with essential self-defense
                     skills. These classes focus on building confidence, communication, and practical techniques in a fun,
@@ -374,10 +378,10 @@ const PublicClassesPage = () => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Mother-Daughter Classes</h3>
+                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
                 {motherDaughterClasses.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No upcoming mother-daughter classes scheduled.</p>
+                    <p className="text-gray-600">No upcoming Mother & Daughter Classes scheduled.</p>
                   </div>
                 ) : (
                   motherDaughterClasses.map((classData) => (
@@ -410,7 +414,7 @@ const PublicClassesPage = () => {
                   <Calendar className="w-6 h-6 text-accent-primary" />
                 </div>
                 <h4 className="font-semibold text-navy mb-2">Flexible Scheduling</h4>
-                <p className="text-gray-600 text-sm">Multiple class times throughout the week to fit your schedule</p>
+                <p className="text-gray-600 text-sm">Multiple class times throughout the year to fit your schedule</p>
               </div>
               <div className="text-center">
                 <div className="bg-accent-primary/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">

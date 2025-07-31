@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Shield, Users, Award, Phone, Mail, MapPin } from 'lucide-react';
+import { Star, Shield, Users, Award, Calendar, Phone, Mail, MapPin } from 'lucide-react';
 import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import { Helmet } from 'react-helmet-async';
@@ -281,7 +281,7 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">1100+</div>
+              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">1500+</div>
               <p className="text-gray-600 font-medium">Students Trained</p>
             </div>
             <div className="text-center">
@@ -422,12 +422,12 @@ const HomePage = () => {
                 />
               </div>
               <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-xl font-bold text-navy mb-3">Corporate Safety</h3>
+                <h3 className="text-xl font-bold text-navy mb-3">Workplace Safety</h3>
                 <p className="text-gray-600 mb-4 flex-1">
                   Workplace safety, team building, and executive protection awareness for your organization.
                 </p>
                 <Link 
-                  to="/corporate"
+                  to="/workplace-safety"
                   className="w-full bg-accent-primary hover:bg-accent-dark text-white py-3 px-4 rounded-lg font-semibold transition-colors text-center mt-auto flex items-center justify-center"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -723,14 +723,17 @@ const HomePage = () => {
               to="/public-classes"
               className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors"
             >
-              Book Your First Class
+              Public Class Schedule
             </Link>
-            <Link
-              to="/contact"
-              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent"
+            <a
+              href="https://calendly.com/streetwisewomen/question-answer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent flex items-center justify-center gap-2"
             >
-              Schedule a Consultation
-            </Link>
+              <Calendar className="w-5 h-5" />
+              Book Free Consultation
+            </a>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">

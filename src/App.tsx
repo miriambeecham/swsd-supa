@@ -12,11 +12,14 @@ import ContactPage from './pages/ContactPage';
 import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import ScrollToTop from './components/ScrollToTop';
+
 
 function App() {
   return (
     <HelmetProvider>
       <Router>
+         <ScrollToTop />
         <Layout>
           <Routes>
             <Route path="/" element={<HomePage />} />
