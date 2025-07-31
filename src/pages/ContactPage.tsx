@@ -36,19 +36,19 @@ const ContactPage = () => {
     {
       name: 'Facebook',
       icon: FaFacebook,
-      url: 'https://facebook.com/streetwiseselfdefense',
+      url: 'https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr',
       color: 'text-blue-600 hover:text-blue-700'
     },
     {
       name: 'Google Reviews',
       icon: FaGoogle,
-      url: 'https://g.page/r/your-google-business-id/review',
+      url: 'https://maps.app.goo.gl/TyZh5YWcB5jrVABe6',
       color: 'text-red-600 hover:text-red-700'
     },
     {
       name: 'Yelp',
       icon: SiYelp,
-      url: 'https://yelp.com/biz/streetwise-self-defense',
+      url: 'https://www.yelp.com/biz/streetwise-self-defense-walnut-creek?uid=VXhLysNTXIX84nwrstuQgQ&utm_campaign=www_business_share_popup&utm_medium=copy_link&utm_source=(direct)',
       color: 'text-red-600 hover:text-red-700'
     }
   ];

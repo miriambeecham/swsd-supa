@@ -157,7 +157,7 @@ const PrivateClassesPage = () => {
               </a>
               <button
                 onClick={() => setShowContactForm(true)}
-                className="bg-accent-primary hover:bg-accent-dark text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                className="bg-white border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
               >
                 <Mail className="w-5 h-5" />
                 Send Us Details

@@ -350,22 +350,22 @@ const CorporatePage = () => {
               We've partnered with companies across industries to enhance workplace safety
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center justify-items-center max-w-4xl mx-auto">
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-center justify-items-center max-w-4xl mx-auto">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm w-full h-20 sm:h-24 flex items-center justify-center">
               <img 
                 src="/corporate1.png" 
                 alt="Corporate client logo" 
                 className="max-w-full max-h-full object-contain"
               />
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm w-full h-20 sm:h-24 flex items-center justify-center">
               <img 
                 src="/corporate2.png" 
                 alt="Corporate client logo" 
                 className="max-w-full max-h-full object-contain"
               />
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm w-full h-20 sm:h-24 flex items-center justify-center">
               <img 
                 src="/corporate3.png" 
                 alt="Corporate client logo" 
