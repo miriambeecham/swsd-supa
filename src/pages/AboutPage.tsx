@@ -190,8 +190,7 @@ const AboutPage = () => {
 
           <div className="mt-12 text-center">
             <div className="bg-accent-light rounded-2xl p-8 max-w-4xl mx-auto">
-              <Globe className="w-12 h-12 text-accent-primary mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-navy mb-4">Our Global Vision</h3>
+              <h3 className="text-xl font-bold text-navy mb-4">Our Vision</h3>
               <p className="text-lg text-gray-700">
                 To create a safer world by equipping individuals and communities with the skills and knowledge 
                 to protect themselves and others.
@@ -378,10 +377,7 @@ const AboutPage = () => {
               View Our Classes
             </Link>
           </div>
-          <div className="mt-8 text-center opacity-75">
-            <p className="mb-2">Connect with us:</p>
-            <p>www.StreetwiseSelfDefense.com | @StreetwiseWomen</p>
-          </div>
+          
         </div>
       </section>
     </div>

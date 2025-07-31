@@ -729,7 +729,7 @@ const HomePage = () => {
               href="https://calendly.com/streetwisewomen/question-answer"
               target="_blank"
               rel="noopener noreferrer"
-              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              className="border-2 border-white text-white hover:bg-white hover:text- text-lg px-8 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
             >
               <Calendar className="w-5 h-5" />
               Book Free Consultation

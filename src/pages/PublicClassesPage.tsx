@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
 
 interface ClassSchedule {
   id: string;
@@ -22,6 +22,7 @@ interface ClassSchedule {
   start_time: string;
   end_time: string;
   booking_url?: string;
+  registration_opens?: string; // New field for registration opening date/time
   is_cancelled: boolean;
   special_notes?: string;
 }
@@ -91,6 +92,7 @@ const PublicClassesPage = () => {
             start_time: scheduleRecord.fields['Start Time'] || '',
             end_time: scheduleRecord.fields['End Time'] || '',
             booking_url: scheduleRecord.fields['Booking URL'],
+            registration_opens: scheduleRecord.fields['Registration Opens'], // New field
             is_cancelled: scheduleRecord.fields['Is Cancelled'] || false,
             special_notes: scheduleRecord.fields['Special Notes']
           };
@@ -112,6 +114,29 @@ const PublicClassesPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatRegistrationDate = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+  
+  const formatClassDate = (dateString: string) => {
+    // Add noon time to prevent timezone issues
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    });
   };
 
   const handleBooking = (classSchedule: ClassSchedule) => {
@@ -149,7 +174,9 @@ const PublicClassesPage = () => {
   );
 
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4">
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
+   
+
       <div className="flex justify-between items-start">
         <div className="flex-1">
           {/* Class Title - Less emphasized */}
@@ -162,31 +189,26 @@ const PublicClassesPage = () => {
             </p>
           )}
 
-          {/* Date & Time - Most prominent in teal */}
           {/* Date, Time & Location - All in one container */}
-          <div className="mb-4 space-y-1">
-            <div className="flex items-center gap-2 h-6">
-              <Calendar className="w-4 h-4 text-accent-primary" />
-              <span className="text-md font-semibold text-accent-primary">
-                {new Date(classData.date).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
+          <div className="mb-4 space-y-2">
+            <div className="flex items-start gap-2 min-h-[24px]">
+              <Calendar className="w-4 h-4 text-accent-primary mt-0.5 flex-shrink-0" />
+              <span className="text-md font-semibold text-accent-primary leading-tight">
+                {formatClassDate(classData.date)}
               </span>
             </div>
-            <div className="flex items-center gap-2 h-6">
-              <Clock className="w-4 h-4 text-accent-primary" />
-              <span className="text-md font-medium text-accent-primary">
+            <div className="flex items-start gap-2 min-h-[24px]">
+              <Clock className="w-4 h-4 text-accent-primary mt-0.5 flex-shrink-0" />
+              <span className="text-md font-medium text-accent-primary leading-tight">
                 {classData.start_time} - {classData.end_time}
               </span>
             </div>
             <button
               onClick={() => handleLocationClick(classData.location)}
-              className="flex items-center gap-2 h-6 text-accent-primary hover:text-accent-dark transition-colors cursor-pointer"
+              className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
             >
-              <MapPin className="w-4 h-4" />
-              <span className="text-md font-medium underline">{classData.location}</span>
+              <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span className="text-md font-medium underline leading-tight">{classData.location}</span>
             </button>
           </div>
 
@@ -198,17 +220,44 @@ const PublicClassesPage = () => {
           )}
         </div>
 
-        {/* Booking Button */}
-        <button
-          onClick={() => handleBooking(classData)}
-          className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2 ml-4"
-        >
-          {classData.booking_method === 'contact' ? 'Contact Us' : 'Register'}
-          {classData.booking_method === 'external' ? 
-            <ExternalLink className="w-4 h-4" /> : 
-            <Mail className="w-4 h-4" />
-          }
-        </button>
+        {/* Button/Registration Area */}
+        <div className="ml-4">
+          {classData.booking_url ? (
+            // Regular booking button for classes open for registration
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              {classData.booking_method === 'contact' ? 'Contact Us' : 'Register'}
+              {classData.booking_method === 'external' ? 
+                <ExternalLink className="w-4 h-4" /> : 
+                <Mail className="w-4 h-4" />
+              }
+            </button>
+          ) : classData.registration_opens ? (
+            // Registration opens text with inline badge
+            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                Coming Soon
+              </div>
+              <div>
+                Registration opens<br />
+                <span className="font-medium">
+                  {formatRegistrationDate(classData.registration_opens)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            // Fallback contact button for classes without registration date
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Contact Us
+              <Mail className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -245,7 +294,7 @@ const PublicClassesPage = () => {
   }
 
   return (
-    
+
     <div className="min-h-screen bg-white">
        {/*SEO Tags*/}
         <Helmet>
@@ -284,40 +333,46 @@ const PublicClassesPage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Tab Navigation */}
-          <div className="flex justify-center mb-12">
-            <div className="bg-gray-100 rounded-lg p-1 flex">
-              <button
-                onClick={() => setActiveTab('adult-teen')}
-                className={`px-6 py-3 rounded-md font-semibold transition-colors ${
-                  activeTab === 'adult-teen'
-                    ? 'bg-accent-primary text-white'
-                    : 'text-gray-600 hover:text-navy'
-                }`}
-              >
-                Adult & Teen Classes
-              </button>
-              <button
-                onClick={() => setActiveTab('mother-daughter')}
-                className={`px-6 py-3 rounded-md font-semibold transition-colors ${
-                  activeTab === 'mother-daughter'
-                    ? 'bg-accent-primary text-white'
-                    : 'text-gray-600 hover:text-navy'
-                }`}
-              >
-                Mother & Daughter Classes
-              </button>
+          <div className="mb-12">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-medium text-gray-700">Choose Your Program:</h3>
+            </div>
+            <div className="flex justify-center">
+              <div className="bg-white rounded-lg p-1 border-2 border-gray-200 shadow-sm w-full max-w-2xl flex flex-col md:flex-row">
+                <button
+                  onClick={() => setActiveTab('adult-teen')}
+                  className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
+                    activeTab === 'adult-teen'
+                      ? 'bg-accent-primary text-white shadow-md'
+                      : 'text-navy hover:text-accent-primary hover:bg-accent-light'
+                  }`}
+                >
+                  Adult & Teen Classes
+                  <div className="text-sm opacity-80">Ages 15+</div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('mother-daughter')}
+                  className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
+                    activeTab === 'mother-daughter'
+                      ? 'bg-accent-primary text-white shadow-md'
+                      : 'text-navy hover:text-accent-primary hover:bg-accent-light'
+                  }`}
+                >
+                  Mother & Daughter Classes
+                  <div className="text-sm opacity-80">Ages 12-15</div>
+                </button>
+              </div>
             </div>
           </div>
-
           {/* Tab Content */}
           {activeTab === 'adult-teen' && (
             <div className="mb-12">
               <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-                <div className="relative w-full md:w-64 h-48 rounded-lg overflow-hidden md:flex-shrink-0">
+                <div className="relative w-full md:w-64 h-auto md:h-48 rounded-lg overflow-hidden md:flex-shrink-0">
                   <img
                     src="/adult-teen.png"
                     alt="Adult & Teen Classes"
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto md:h-full object-cover"
                   />
                 </div>
                 <div className="flex-1">
@@ -354,11 +409,11 @@ const PublicClassesPage = () => {
           {activeTab === 'mother-daughter' && (
             <div className="mb-12">
               <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-                <div className="relative w-full md:w-64 h-48 rounded-lg overflow-hidden md:flex-shrink-0">
+                <div className="relative w-full md:w-64 h-auto md:h-48 rounded-lg overflow-hidden md:flex-shrink-0">
                   <img
                     src="/mothers-daughters.png"
                     alt="Mother & Daughter Classes"
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto md:h-full object-cover"
                   />
                 </div>
                 <div className="flex-1">

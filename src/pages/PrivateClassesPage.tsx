@@ -218,7 +218,7 @@ const PrivateClassesPage = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy mb-4">What Our Private Training Clients Say</h2>
+            <h2 className="text-3xl font-bold text-navy mb-4">What Our Clients Say</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
@@ -228,11 +228,27 @@ const PrivateClassesPage = () => {
                 ))}
               </div>
               <blockquote className="text-gray-700 mb-4">
-                "The private sessions were perfect for my family. The instructor adapted the training for my teenage son
-                with autism, and we all learned valuable skills together. Highly personalized and effective."
+                "Jay customized a mother/daughter class for 3 families in our neighborhood who have girls under the 12+ age limit that is the standard for the community center classes. He did a wonderful job of adapting to a younger age group and addressing both the mothers and their daughters in a way that was age appropriate but also direct about the topic.
+"
               </blockquote>
               <div>
-                <p className="font-medium text-navy">— Rebecca K.</p>
+                <p className="font-medium text-navy">— Bronwyn S.</p>
+                <p className="text-sm text-gray-600">Group Private Training</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
+              <div className="flex mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
+                ))}
+              </div>
+              <blockquote className="text-gray-700 mb-4">
+                "I highly recommend streetwise for all ages and abilities!!
+                We participated last night with my daughters, 12 and 16. The girls were so nervous to go initially but within the first 30 minutes they were bringing it and by the end we all felt empowered, strong and confident, I could see it in my girls as they both walked a bit taller to the car!!"
+              </blockquote>
+              <div>
+                <p className="font-medium text-navy">— Teri K.</p>
                 <p className="text-sm text-gray-600">Family Private Training</p>
               </div>
             </div>
@@ -244,28 +260,12 @@ const PrivateClassesPage = () => {
                 ))}
               </div>
               <blockquote className="text-gray-700 mb-4">
-                "As someone with social anxiety, private training was the only way I felt comfortable learning. The
-                instructor was patient, understanding, and helped me build confidence at my own pace."
+                "
+                This class was very empowering and made me feel much more confident. I know when and when not to use certain moves, and how to make it possible to get out of something bad. Jay is respectful and elegant with his work. I was impressed and intrigued by his skills."
               </blockquote>
               <div>
-                <p className="font-medium text-navy">— David M.</p>
-                <p className="text-sm text-gray-600">Individual Private Training</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "The co-ed private sessions were great for my husband and me. We learned together and the instructor
-                made sure we both felt comfortable with every technique. Worth every penny."
-              </blockquote>
-              <div>
-                <p className="font-medium text-navy">— Angela T.</p>
-                <p className="text-sm text-gray-600">Couples Private Training</p>
+                <p className="font-medium text-navy">— Cassidy C.</p>
+                <p className="text-sm text-gray-600"> Private Training</p>
               </div>
             </div>
           </div>

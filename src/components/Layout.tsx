@@ -305,10 +305,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 alt="Streetwise Self Defense"
                 className="h-12 w-auto mb-4 brightness-0 invert"
               />
-              <p className="text-slate-400 max-w-md">
+              <p className="text-slate-400 max-w-md mb-6">
                 Empowering women and vulnerable populations through practical self-defense training. Building confidence, strength, and safety
                 awareness since 2008.
               </p>
+              <div>
+                <p className="text-slate-400 text-sm mb-3">Insured by:</p>
+                <a 
+                  href="https://www.kandkinsurance.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block hover:opacity-80 transition-opacity"
+                >
+                  <img
+                    src="/K-K-insurance-logo.jpg"
+                    alt="K&K Insurance"
+                    className="h-10 w-auto"
+                  />
+                </a>
+              </div>
             </div>
             <div>
               <h4 className="font-bold mb-4">Programs</h4>

@@ -7,6 +7,14 @@ import { Helmet } from 'react-helmet-async';
 const ContactPage = () => {
   const primaryActions = [
     {
+      icon: Calendar,
+      title: 'Schedule Consultation',
+      details: 'Free 15-minute consultation',
+      description: 'Discuss your specific training needs with our experts',
+      action: 'https://calendly.com/streetwisewomen/question-answer',
+      buttonText: 'Schedule Now'
+    },
+    {
       icon: Phone,
       title: 'Call Us',
       details: '(925) 532-9953',
@@ -21,15 +29,8 @@ const ContactPage = () => {
       description: 'Send us a detailed message about your needs',
       action: 'mailto:info@streetwiseselfdefense.com',
       buttonText: 'Send Email'
-    },
-    {
-      icon: Calendar,
-      title: 'Schedule Consultation',
-      details: 'Free 15-minute consultation',
-      description: 'Discuss your specific training needs with our experts',
-      action: 'https://calendly.com/streetwisewomen/question-answer',
-      buttonText: 'Schedule Now'
     }
+  
   ];
 
   const socialLinks = [
@@ -81,7 +82,7 @@ const ContactPage = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-gray-600 text-lg">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-accent-primary" />
-                  <span>Serving SF Bay Area & Beyond</span>
+                  <span>Serving SF Bay Area & beyond</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-accent-primary" />
@@ -133,7 +134,7 @@ const ContactPage = () => {
               <div className="lg:col-span-3">
                 <div className="relative">
                   <img
-                    src="/contact-action-shot.png"
+                    src="/contact-action-shot.jpeg"
                     alt="Self-defense training in action"
                     className="w-full h-96 lg:h-full object-cover rounded-2xl shadow-lg"
                   />
