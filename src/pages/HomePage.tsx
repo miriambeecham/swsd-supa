@@ -43,27 +43,9 @@ const HomePage = () => {
     try {
       setLoading(true);
 
-      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
-      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
-
       console.log('Fetching homepage testimonials...');
-      console.log('Base ID:', baseId);
-      console.log('API Key exists:', !!apiKey);
 
-      if (!baseId || !apiKey) {
-        console.error('Missing Airtable configuration');
-        throw new Error('Missing Airtable configuration');
-      }
-
-      const response = await fetch(
-        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is Published}=1,{Homepage position}!="None",{Homepage position}!="")`,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch('/api/testimonials?filter=AND({Is Published}=1,{Homepage position}!="None",{Homepage position}!="")');
 
       console.log('Response status:', response.status);
 
@@ -72,27 +54,27 @@ const HomePage = () => {
       }
 
       const data = await response.json();
-      console.log('Raw Airtable data:', data);
+      console.log('Raw testimonials data:', data);
 
       // Group testimonials by homepage position
-      const groupedTestimonials = data.records.reduce((acc: Record<string, Testimonial>, record: any) => {
-        const testimonial = {
-          id: record.id,
-          name: record.fields.Name || '',
-          content: record.fields.Content || '',
-          rating: parseInt(record.fields.Rating) || 5,
-          class_type: record.fields['Class type'] || '',
-          platform: record.fields.Platform?.toLowerCase(),
-          profile_image_url: record.fields['Profile image URL'],
-          review_url: record.fields['Original review URL'],
-          homepage_position: record.fields['Homepage position'],
-          is_published: record.fields['Is published'] || false,
+      const groupedTestimonials = data.reduce((acc: Record<string, Testimonial>, testimonial: any) => {
+        const formattedTestimonial = {
+          id: testimonial.id,
+          name: testimonial.name || '',
+          content: testimonial.content || '',
+          rating: testimonial.rating || 5,
+          class_type: testimonial.class_type || '',
+          platform: testimonial.platform?.toLowerCase(),
+          profile_image_url: testimonial.profile_image_url,
+          review_url: testimonial.review_url,
+          homepage_position: testimonial.homepage_position,
+          is_published: testimonial.is_published || false,
         };
 
-        console.log('Processing testimonial:', testimonial.name, 'Position:', testimonial.homepage_position);
+        console.log('Processing testimonial:', formattedTestimonial.name, 'Position:', formattedTestimonial.homepage_position);
 
-        if (testimonial.homepage_position) {
-          acc[testimonial.homepage_position] = testimonial;
+        if (formattedTestimonial.homepage_position) {
+          acc[formattedTestimonial.homepage_position] = formattedTestimonial;
         }
 
         return acc;

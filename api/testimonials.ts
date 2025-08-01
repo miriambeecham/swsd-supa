@@ -1,25 +1,18 @@
 
-import { getTestimonials } from './airtable';
+import { getTestimonials } from './airtable.js';
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const url = new URL(req.url);
-    const filter = url.searchParams.get('filter');
+    const { filter } = req.query;
+    const testimonials = await getTestimonials(filter);
     
-    const testimonials = await getTestimonials(filter || undefined);
-    
-    return new Response(JSON.stringify(testimonials), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    res.status(200).json(testimonials);
   } catch (error) {
     console.error('Error fetching testimonials:', error);
-    return new Response('Internal server error', { status: 500 });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

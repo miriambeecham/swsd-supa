@@ -1,4 +1,3 @@
-
 import express from 'express';
 
 const app = express();
@@ -37,9 +36,9 @@ app.get('/api/classes', async (req, res) => {
     const endpoint = filter 
       ? `/Classes?filterByFormula=${encodeURIComponent(filter)}`
       : '/Classes';
-    
+
     const data = await makeAirtableRequest(endpoint);
-    
+
     const classes = data.records.map((record) => ({
       id: record.id,
       fields: {
@@ -72,9 +71,9 @@ app.get('/api/schedules', async (req, res) => {
     const endpoint = filter 
       ? `/Class%20Schedules?filterByFormula=${encodeURIComponent(filter)}`
       : '/Class%20Schedules';
-    
+
     const data = await makeAirtableRequest(endpoint);
-    
+
     const schedules = data.records.map((record) => ({
       id: record.id,
       fields: {
@@ -94,6 +93,29 @@ app.get('/api/schedules', async (req, res) => {
   } catch (error) {
     console.error('Error fetching schedules:', error);
     res.status(500).json({ error: 'Failed to fetch schedules' });
+  }
+});
+
+app.get('/api/testimonials', async (req, res) => {
+  try {
+    const endpoint = '/Testimonials';
+
+    const data = await makeAirtableRequest(endpoint);
+
+    const testimonials = data.records.map((record) => ({
+      id: record.id,
+      fields: {
+        'Quote': record.fields.Quote,
+        'Author': record.fields.Author,
+        'Role': record.fields.Role,
+        'Image URL': record.fields['Image URL'],
+      }
+    }));
+
+    res.json({ records: testimonials });
+  } catch (error) {
+    console.error('Error fetching testimonials:', error);
+    res.status(500).json({ error: 'Failed to fetch testimonials' });
   }
 });
 

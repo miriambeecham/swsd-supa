@@ -41,22 +41,7 @@ const TestimonialsPage = () => {
     try {
       setLoading(true);
 
-      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
-      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
-
-      if (!baseId || !apiKey) {
-        throw new Error('Missing Airtable configuration');
-      }
-
-      const response = await fetch(
-        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is published}=1,OR({Homepage position}="",{Homepage position}="None"))&sort[0][field]=Review Date&sort[0][direction]=desc`,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="",{Homepage position}="None"))');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch testimonials: ${response.status}`);
@@ -64,32 +49,18 @@ const TestimonialsPage = () => {
 
       const data = await response.json();
 
-      const formattedTestimonials = data.records.map((record: any) => {
-        // Handle profile picture - could be direct URL or Airtable attachment
-        let profileImageUrl = null;
-        const profileField = record.fields['Profile Image URL'];
-
-        if (typeof profileField === 'string') {
-          // Direct URL (like your Yelp example)
-          profileImageUrl = profileField;
-        } else if (Array.isArray(profileField) && profileField.length > 0) {
-          // Airtable attachment format
-          profileImageUrl = profileField[0].url;
-        }
-
-        return {
-          id: record.id,
-          name: record.fields.Name || '',
-          content: record.fields.Content || '',
-          rating: parseInt(record.fields.Rating) || 5,
-          class_type: record.fields['Class Type'] || '',
-          platform: record.fields.Platform?.toLowerCase(),
-          profile_image_url: profileImageUrl,
-          review_url: record.fields['Original Review URL'],
-          is_featured: record.fields['Is Featured'] || false,
-          is_published: record.fields['Is Published'] || false,
-        };
-      });
+      const formattedTestimonials = data.map((testimonial: any) => ({
+        id: testimonial.id,
+        name: testimonial.name || '',
+        content: testimonial.content || '',
+        rating: testimonial.rating || 5,
+        class_type: testimonial.class_type || '',
+        platform: testimonial.platform?.toLowerCase(),
+        profile_image_url: testimonial.profile_image_url,
+        review_url: testimonial.review_url,
+        is_featured: testimonial.is_featured || false,
+        is_published: testimonial.is_published || false,
+      }));
 
       setTestimonials(formattedTestimonials);
 
