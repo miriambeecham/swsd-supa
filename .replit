@@ -18,12 +18,25 @@ localPort = 5173
 externalPort = 80
 
 [workflows]
-runButton = "Run"
+runButton = "Run Both Servers"
 
 [[workflows.workflow]]
 name = "Run"
 author = 38791700
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Run Both Servers"
+author = 38791700
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
