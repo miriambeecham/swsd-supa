@@ -399,23 +399,51 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  try {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  } catch (error) {
+    console.error('Error serving index.html:', error);
+    res.status(500).send('Server Error');
+  }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Express API server running on http://0.0.0.0:${PORT}`);
-  console.log('=== ENVIRONMENT VARIABLES DEBUG ===');
-  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`PORT: ${process.env.PORT}`);
-  console.log(`AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 10)}...` : 'NOT SET'}`);
-  console.log(`AIRTABLE_API_KEY exists: ${!!AIRTABLE_API_KEY}`);
-  console.log(`ZOHO_CLIENT_ID exists: ${!!ZOHO_CLIENT_ID}`);
-  console.log(`ZOHO_CLIENT_SECRET exists: ${!!ZOHO_CLIENT_SECRET}`);
-  console.log(`ZOHO_REFRESH_TOKEN exists: ${!!ZOHO_REFRESH_TOKEN}`);
-  console.log(`ZOHO_DOMAIN: ${ZOHO_DOMAIN}`);
-  console.log('Raw ZOHO_DOMAIN from env:', process.env.ZOHO_DOMAIN);
-  console.log('Available env vars:', Object.keys(process.env).filter(key => 
-    key.includes('AIRTABLE') || key.includes('ZOHO')
-  ));
-  console.log('=====================================');
+// Add error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Express error:', error);
+  res.status(500).json({ error: 'Internal server error' });
 });
+
+// Add process error handlers
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+try {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Express API server running on http://0.0.0.0:${PORT}`);
+    console.log('=== SERVER STARTUP SUCCESSFUL ===');
+    console.log('=== ENVIRONMENT VARIABLES DEBUG ===');
+    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`PORT: ${process.env.PORT}`);
+    console.log(`AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 10)}...` : 'NOT SET'}`);
+    console.log(`AIRTABLE_API_KEY exists: ${!!AIRTABLE_API_KEY}`);
+    console.log(`ZOHO_CLIENT_ID exists: ${!!ZOHO_CLIENT_ID}`);
+    console.log(`ZOHO_CLIENT_SECRET exists: ${!!ZOHO_CLIENT_SECRET}`);
+    console.log(`ZOHO_REFRESH_TOKEN exists: ${!!ZOHO_REFRESH_TOKEN}`);
+    console.log(`ZOHO_DOMAIN: ${ZOHO_DOMAIN}`);
+    console.log('Raw ZOHO_DOMAIN from env:', process.env.ZOHO_DOMAIN);
+    console.log('Available env vars:', Object.keys(process.env).filter(key => 
+      key.includes('AIRTABLE') || key.includes('ZOHO')
+    ));
+    console.log('=====================================');
+  });
+} catch (error) {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+}
