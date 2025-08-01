@@ -34,7 +34,7 @@ app.post('/api/form-submissions', async (req, res) => {
   try {
     const formData = req.body;
     console.log('Received form data:', formData);
-    
+
     // Map form fields to Airtable field names
     const airtableFields = {
       'First Name': formData.firstName,
@@ -50,7 +50,7 @@ app.post('/api/form-submissions', async (req, res) => {
       'CBO': 'CBO Partnership',
       'Corporate': 'Corporate Training'
     };
-    
+
     if (formData.formType && formTypeMapping[formData.formType]) {
       airtableFields['Form Type'] = formTypeMapping[formData.formType];
     }
@@ -63,13 +63,13 @@ app.post('/api/form-submissions', async (req, res) => {
     if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
     if (formData.needs) airtableFields['Needs'] = formData.needs;
     if (formData.logistics) airtableFields['Logistics'] = formData.logistics;
-    if (formData.companyName) airtableFields['Company Name'] = formData.companyName;
+    if (formData.companyName) airtableFields['WS_Organization'] = formData.companyName;
     if (formData.industry) airtableFields['Industry'] = formData.industry;
     if (formData.employeeCount) airtableFields['Employee Count'] = formData.employeeCount;
     if (formData.safetyGoals) airtableFields['Safety Goals'] = formData.safetyGoals;
 
     console.log('Mapped Airtable fields:', airtableFields);
-    
+
     const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Form Submissions`, {
       method: 'POST',
       headers: {
