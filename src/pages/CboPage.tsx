@@ -1,107 +1,94 @@
-
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Heart, Home, Calendar, Mail, X } from 'lucide-react';
+import { FaGoogle, FaFacebook, FaLinkedin, FaComment, FaClipboardList } from 'react-icons/fa';
+import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { Helmet } from 'react-helmet-async';
-import { CheckCircle, Users, Target, Shield } from 'lucide-react';
 
-const US_STATES = [
-  { value: 'Alabama', label: 'Alabama' },
-  { value: 'Alaska', label: 'Alaska' },
-  { value: 'Arizona', label: 'Arizona' },
-  { value: 'Arkansas', label: 'Arkansas' },
-  { value: 'California', label: 'California' },
-  { value: 'Colorado', label: 'Colorado' },
-  { value: 'Connecticut', label: 'Connecticut' },
-  { value: 'Delaware', label: 'Delaware' },
-  { value: 'Florida', label: 'Florida' },
-  { value: 'Georgia', label: 'Georgia' },
-  { value: 'Hawaii', label: 'Hawaii' },
-  { value: 'Idaho', label: 'Idaho' },
-  { value: 'Illinois', label: 'Illinois' },
-  { value: 'Indiana', label: 'Indiana' },
-  { value: 'Iowa', label: 'Iowa' },
-  { value: 'Kansas', label: 'Kansas' },
-  { value: 'Kentucky', label: 'Kentucky' },
-  { value: 'Louisiana', label: 'Louisiana' },
-  { value: 'Maine', label: 'Maine' },
-  { value: 'Maryland', label: 'Maryland' },
-  { value: 'Massachusetts', label: 'Massachusetts' },
-  { value: 'Michigan', label: 'Michigan' },
-  { value: 'Minnesota', label: 'Minnesota' },
-  { value: 'Mississippi', label: 'Mississippi' },
-  { value: 'Missouri', label: 'Missouri' },
-  { value: 'Montana', label: 'Montana' },
-  { value: 'Nebraska', label: 'Nebraska' },
-  { value: 'Nevada', label: 'Nevada' },
-  { value: 'New Hampshire', label: 'New Hampshire' },
-  { value: 'New Jersey', label: 'New Jersey' },
-  { value: 'New Mexico', label: 'New Mexico' },
-  { value: 'New York', label: 'New York' },
-  { value: 'North Carolina', label: 'North Carolina' },
-  { value: 'North Dakota', label: 'North Dakota' },
-  { value: 'Ohio', label: 'Ohio' },
-  { value: 'Oklahoma', label: 'Oklahoma' },
-  { value: 'Oregon', label: 'Oregon' },
-  { value: 'Pennsylvania', label: 'Pennsylvania' },
-  { value: 'Rhode Island', label: 'Rhode Island' },
-  { value: 'South Carolina', label: 'South Carolina' },
-  { value: 'South Dakota', label: 'South Dakota' },
-  { value: 'Tennessee', label: 'Tennessee' },
-  { value: 'Texas', label: 'Texas' },
-  { value: 'Utah', label: 'Utah' },
-  { value: 'Vermont', label: 'Vermont' },
-  { value: 'Virginia', label: 'Virginia' },
-  { value: 'Washington', label: 'Washington' },
-  { value: 'West Virginia', label: 'West Virginia' },
-  { value: 'Wisconsin', label: 'Wisconsin' },
-  { value: 'Wyoming', label: 'Wyoming' }
-];
+interface Testimonial {
+  id: string;
+  name: string;
+  content: string;
+  rating: number;
+  class_type: string;
+  platform?: string;
+  profile_image_url?: string;
+  review_url?: string;
+  homepage_position?: string;
+  is_published: boolean;
+}
 
-const schema = yup.object().shape({
-  firstName: yup.string().required('First name is required'),
-  lastName: yup.string().required('Last name is required'),
-  organization: yup.string().required('Organization is required'),
-  title: yup.string().required('Title is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
-  phone: yup.string().required('Phone is required'),
-  city: yup.string().required('City is required'),
-  state: yup.string().required('State is required'),
-  webRequestDetails: yup.string().required('Please tell us how we can help'),
-  newsletter: yup.boolean()
-});
-
-type FormData = yup.InferType<typeof schema>;
-
-const CboPage: React.FC = () => {
+const CboPage = () => {
+  const [testimonials, setTestimonials] = useState<Record<string, Testimonial>>({});
+  const [loading, setLoading] = useState(true);
+  const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<FormData>({
-    resolver: yupResolver(schema)
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    organizationName: '',
+    organizationType: '',
+    participantCount: '',
+    ageRange: '',
+    eventDate: '',
+    goals: '',
+    logistics: '',
+    newsletter: false
   });
 
-  const onSubmit = async (data: FormData) => {
+  // Platform configurations - matching other pages
+  const platformConfig = {
+    google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
+    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' },
+    facebook: { name: 'Facebook', icon: FaFacebook, color: 'text-blue-700' },
+    trustpilot: { name: 'Trustpilot', icon: SiTrustpilot, color: 'text-green-600' },
+    linkedin: { name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-800' },
+    website: { name: 'Website', icon: FaComment, color: 'text-gray-600' },
+    survey: { name: 'Post-Class Survey', icon: FaClipboardList, color: 'text-gray-600' },
+    default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
+  };
+
+  const getPlatformInfo = (platform?: string) => {
+    return platformConfig[platform as keyof typeof platformConfig] || platformConfig.default;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleRecaptchaChange = (value: string | null) => {
+    setRecaptchaValue(value);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!recaptchaValue) {
-      setSubmitMessage('Please complete the reCAPTCHA');
+      alert('Please complete the reCAPTCHA verification');
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitMessage('');
 
     try {
-      const formDataWithType = {
-        ...data,
-        formType: 'Community Organizations'
+      const submissionData = {
+        ...formData,
+        formType: 'CBO/Community Organization'
       };
 
       const response = await fetch('/api/form-submissions', {
@@ -109,201 +96,201 @@ const CboPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formDataWithType),
+        body: JSON.stringify(submissionData),
       });
 
-      if (response.ok) {
-        setSubmitMessage('Thank you! Your inquiry has been submitted successfully. We\'ll be in touch soon.');
-        reset();
-        setRecaptchaValue(null);
-      } else {
-        throw new Error('Failed to submit form');
+      if (!response.ok) {
+        throw new Error(`Failed to submit: ${response.status}`);
       }
+
+      setIsSubmitted(true);
+      setRecaptchaValue(null);
     } catch (error) {
-      setSubmitMessage('There was an error submitting your form. Please try again.');
+      console.error('Form submission error:', error);
+      alert('There was an error submitting your form. Please try again or contact us directly.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setRecaptchaValue(null);
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      organizationName: '',
+      organizationType: '',
+      participantCount: '',
+      ageRange: '',
+      eventDate: '',
+      goals: '',
+      logistics: '',
+      newsletter: false
+    });
+  };
+
+  const fetchCboTestimonials = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="cbo1",{Homepage position}="cbo2"))');
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch testimonials: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Group testimonials by position
+      const groupedTestimonials = data.reduce((acc: Record<string, Testimonial>, testimonial: any) => {
+        const formattedTestimonial = {
+          id: testimonial.id,
+          name: testimonial.name || '',
+          content: testimonial.content || '',
+          rating: testimonial.rating || 5,
+          class_type: testimonial.class_type || '',
+          platform: testimonial.platform?.toLowerCase(),
+          profile_image_url: testimonial.profile_image_url,
+          review_url: testimonial.review_url,
+          homepage_position: testimonial.homepage_position,
+          is_published: testimonial.is_published || false,
+        };
+
+        if (formattedTestimonial.homepage_position) {
+          acc[formattedTestimonial.homepage_position] = formattedTestimonial;
+        }
+
+        return acc;
+      }, {});
+
+      setTestimonials(groupedTestimonials);
+
+    } catch (err) {
+      console.error('Error fetching CBO testimonials:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    document.title = 'Community Organization Training - Streetwise Self Defense';
+    fetchCboTestimonials();
+  }, []);
+
+  const renderTestimonial = (position: string, fallbackContent: { quote: string; name: string; program: string }) => {
+    const testimonial = testimonials[position];
+
+    if (testimonial) {
+      return {
+        quote: testimonial.content,
+        name: testimonial.name,
+        program: testimonial.class_type,
+        platform: testimonial.platform,
+        platformInfo: getPlatformInfo(testimonial.platform),
+        profileImage: testimonial.profile_image_url,
+        reviewUrl: testimonial.review_url,
+        rating: testimonial.rating
+      };
+    }
+
+    return fallbackContent;
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`w-5 h-5 ${
+          i < rating ? 'text-yellow fill-current' : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
   return (
-    <>
-      <Helmet>
-        <title>Community Organizations - Streetwise Self Defense</title>
-        <meta name="description" content="Empowering community organizations with comprehensive self-defense training programs. Custom workshops for nonprofits, schools, and community groups." />
-      </Helmet>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <section className="relative h-80 lg:h-96 flex items-center">
+        <div 
+          className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(/swsd-logo-bug.png)'
+          }}
+        ></div>
+        <div className="absolute inset-0 bg-white/95"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-navy mb-4 lg:mb-6">Community Training</h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-6 lg:mb-8">
+              Empowering communities with culturally sensitive and age-appropriate self-defense training.
+            </p>
 
-      {/* Hero Section */}
-      <section className="relative py-24 bg-gradient-to-br from-navy to-navy-light overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            Empowering Your Community
-          </h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Comprehensive self-defense training programs designed specifically for nonprofits, schools, and community organizations
-          </p>
-          <a 
-            href="#contact-form" 
-            className="inline-block bg-accent-primary hover:bg-accent-primary-dark text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-200"
-          >
-            Get Program Information
-          </a>
-        </div>
-      </section>
+            {/* Dual CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
+              <a
+                href="https://calendly.com/streetwisewomen/question-answer"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-accent-primary hover:bg-accent-dark text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-4 h-4 md:w-5 md:h-5" />
+                Schedule Free Consultation
+              </a>
+              <button
+                onClick={() => setShowContactForm(true)}
+                className="bg-white border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <Mail className="w-4 h-4 md:w-5 md:h-5" />
+                Send Organization Details
+              </button>
+            </div>
 
-      {/* Community Impact Stats */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-navy mb-2">50+</div>
-              <p className="text-gray-600">Community Organizations Served</p>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-navy mb-2">2,000+</div>
-              <p className="text-gray-600">Community Members Trained</p>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-navy mb-2">100%</div>
-              <p className="text-gray-600">Participant Satisfaction Rate</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Programs Overview */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-navy mb-4">
-              Tailored Programs for Every Community Need
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our community programs are designed to address the unique safety challenges your organization faces
+            <p className="text-sm text-gray-500 mt-3 md:mt-4">
+              Prefer to talk first? Schedule a 15-minute consultation • Want to share organization details first? Fill out our form.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-gray-50 rounded-lg p-8">
-              <Users className="w-12 h-12 text-accent-primary mb-6" />
-              <h3 className="text-2xl font-bold text-navy mb-4">Youth Programs</h3>
-              <p className="text-gray-600 mb-6">
-                Age-appropriate self-defense training for teens and young adults, focusing on confidence building and personal safety awareness.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Bullying prevention strategies</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Situational awareness training</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Confidence building exercises</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <Target className="w-12 h-12 text-accent-primary mb-6" />
-              <h3 className="text-2xl font-bold text-navy mb-4">Women's Safety</h3>
-              <p className="text-gray-600 mb-6">
-                Specialized training programs addressing the unique safety concerns women face in various environments.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Personal space boundaries</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Escape techniques</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Verbal de-escalation</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <Shield className="w-12 h-12 text-accent-primary mb-6" />
-              <h3 className="text-2xl font-bold text-navy mb-4">Senior Safety</h3>
-              <p className="text-gray-600 mb-6">
-                Gentle, effective self-defense techniques adapted for older adults and those with mobility considerations.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Fall prevention techniques</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Adaptive defense strategies</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">Scam awareness education</span>
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="py-20 bg-gray-50">
+      {/* Offering Description */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-navy mb-6">
-                Why Choose Our Community Programs?
-              </h2>
-              <ul className="space-y-4">
+              <h2 className="text-3xl font-bold text-navy mb-6">Specialized Training for Diverse Communities</h2>
+              <p className="text-lg text-gray-600 mb-6">
+                Our community programs are designed with deep understanding of trauma, cultural sensitivities, and the unique needs of vulnerable populations. We create safe, inclusive environments where everyone can learn and grow.
+              </p>
+              <ul className="space-y-3 text-gray-600">
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-navy mb-1">Customized Curriculum</h3>
-                    <p className="text-gray-600">Programs tailored to your organization's specific needs and demographics</p>
-                  </div>
+                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
+                  <span>Trauma-informed training approaches for survivors and vulnerable populations</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-navy mb-1">Flexible Scheduling</h3>
-                    <p className="text-gray-600">One-time workshops or ongoing training series to fit your calendar</p>
-                  </div>
+                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
+                  <span>Culturally sensitive programs respecting diverse backgrounds and experiences</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-navy mb-1">On-Site Training</h3>
-                    <p className="text-gray-600">We bring the training to your location for maximum convenience</p>
-                  </div>
+                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
+                  <span>Co-ed and gender-specific options to ensure comfort for all participants</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-navy mb-1">Affordable Pricing</h3>
-                    <p className="text-gray-600">Special nonprofit rates and group discounts available</p>
-                  </div>
+                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
+                  <span>Age-appropriate programs from youth groups to senior communities</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="w-6 h-6 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-navy mb-1">Inclusive Approach</h3>
-                    <p className="text-gray-600">Training adapted for all abilities and comfort levels</p>
-                  </div>
+                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
+                  <span>Specialized training for high-risk environments and vulnerable settings</span>
                 </li>
               </ul>
             </div>
             <div className="relative h-96">
               <img
-                src="/community1.png"
-                alt="Community training session"
+                src="/community.jpeg"
+                alt="Community training session with diverse participants"
                 className="w-full h-full object-cover rounded-lg"
               />
             </div>
@@ -311,263 +298,527 @@ const CboPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-white">
+      {/* Client Logos */}
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-navy text-center mb-16">
-            What Community Leaders Say
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-gray-50 rounded-lg p-8">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i}>★</span>
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-700 mb-6 italic">
-                "Attending Jay's self-defense class with a group of teenage girls we mentor regularly was such a beautiful and empowering experience. Jay taught with great respect and knowledge and every one of the girls LOVED learning how to own their own space and stand up for their rights."
-              </p>
-              <div className="border-t pt-4">
-                <p className="font-semibold text-navy">Deborah Ryman</p>
-                <p className="text-gray-600 text-sm">Board Member & Dir. of Operations, Gate of Hope</p>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-8">
-              <div className="flex items-center mb-4">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i}>★</span>
-                  ))}
-                </div>
-              </div>
-              <p className="text-gray-700 mb-6 italic">
-                "The training Jay provided was exactly what our students needed. Professional, age-appropriate, and incredibly empowering. Our teens still talk about the confidence they gained from that workshop."
-              </p>
-              <div className="border-t pt-4">
-                <p className="font-semibold text-navy">Anna Delay</p>
-                <p className="text-gray-600 text-sm">AVID Coordinator, Boise High School</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Form */}
-      <section id="contact-form" className="py-20 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-navy mb-4">
-              Ready to Empower Your Community?
-            </h2>
-            <p className="text-xl text-gray-600">
-              Let's discuss how we can create a custom self-defense program for your organization
+            <h2 className="text-2xl font-bold text-navy mb-4">Serving Diverse Community Organizations</h2>
+            <p className="text-gray-600">
+              From women's shelters to youth groups, we provide trauma-informed, culturally sensitive self-defense training tailored to each community's unique needs
             </p>
           </div>
-
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    {...register('firstName')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    {...register('lastName')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
-                    Organization *
-                  </label>
-                  <input
-                    type="text"
-                    id="organization"
-                    {...register('organization')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.organization && (
-                    <p className="mt-1 text-sm text-red-600">{errors.organization.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    id="title"
-                    {...register('title')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.title && (
-                    <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    {...register('email')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    {...register('phone')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.phone && (
-                    <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    id="city"
-                    {...register('city')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  />
-                  {errors.city && (
-                    <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                    State *
-                  </label>
-                  <select
-                    id="state"
-                    {...register('state')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                  >
-                    <option value="">Select a state</option>
-                    {US_STATES.map((state) => (
-                      <option key={state.value} value={state.value}>
-                        {state.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.state && (
-                    <p className="mt-1 text-sm text-red-600">{errors.state.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="webRequestDetails" className="block text-sm font-medium text-gray-700 mb-2">
-                  How can we help? *
-                </label>
-                <textarea
-                  id="webRequestDetails"
-                  rows={6}
-                  {...register('webRequestDetails')}
-                  placeholder="Tell us about your organization's training needs, group size, preferred dates, and any specific safety concerns you'd like to address. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-transparent resize-vertical"
-                />
-                {errors.webRequestDetails && (
-                  <p className="mt-1 text-sm text-red-600">{errors.webRequestDetails.message}</p>
-                )}
-              </div>
-
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="newsletter"
-                  {...register('newsletter')}
-                  className="mt-1 w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
-                />
-                <label htmlFor="newsletter" className="text-sm text-gray-600">
-                  Subscribe to our newsletter for safety tips and training updates
-                </label>
-              </div>
-
-              <div className="flex justify-center">
-                <ReCAPTCHA
-                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                  onChange={setRecaptchaValue}
-                />
-              </div>
-
-              <div className="text-center">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-accent-primary hover:bg-accent-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Submitting...
-                    </>
-                  ) : (
-                    'Send Inquiry'
-                  )}
-                </button>
-              </div>
-
-              {submitMessage && (
-                <div className={`text-center p-4 rounded-lg ${submitMessage.includes('error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                  {submitMessage}
-                </div>
-              )}
-            </form>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center">
+            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+              <img 
+                src="/community1.png" 
+                alt="Girl Scouts of Northern California logo" 
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+              <img 
+                src="/community2.png" 
+                alt="Chrysalis Girls Adventures logo" 
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+              <img 
+                src="/community3.png" 
+                alt="Boise High School logo" 
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
+              <img 
+                src="/community4.png" 
+                alt="The Keys HOA community logo" 
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
           </div>
         </div>
       </section>
-    </>
+
+      {/* Testimonials */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* First Testimonial */}
+            {(() => {
+              const testimonialData = renderTestimonial('cbo1', {
+                quote: "The training provided to our Girl Scout troop was exceptional. The instructor created a safe, empowering environment where the girls could learn confidence-building techniques while having fun. The age-appropriate approach and positive messaging made all the difference.",
+                name: "Jennifer Martinez",
+                program: "Girl Scout Troop Leader"
+              });
+
+              return (
+                <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-100">
+                  <div className="flex mb-4">
+                    {renderStars(testimonialData.rating || 5)}
+                  </div>
+                  <blockquote className="text-lg text-gray-700 mb-6">
+                    "{testimonialData.quote}"
+                  </blockquote>
+                  <div className="flex items-center space-x-3">
+                    {testimonialData.profileImage ? (
+                      <img
+                        src={testimonialData.profileImage}
+                        alt={testimonialData.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                    >
+                      {testimonialData.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-navy">{testimonialData.name}</p>
+                      <p className="text-sm text-gray-600">{testimonialData.program}</p>
+                      {testimonialData.platform && (
+                        <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                          {React.createElement(testimonialData.platformInfo.icon, {
+                            className: 'w-3 h-3'
+                          })}
+                          <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Second Testimonial */}
+            {(() => {
+              const testimonialData = renderTestimonial('cbo2', {
+                quote: "Working with vulnerable populations requires a special touch, and this instructor understood that completely. The trauma-informed approach and cultural sensitivity made our residents feel safe and empowered. This training was exactly what our community needed.",
+                name: "Dr. Sarah Chen",
+                program: "Women's Shelter Director"
+              });
+
+              return (
+                <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-100">
+                  <div className="flex mb-4">
+                    {renderStars(testimonialData.rating || 5)}
+                  </div>
+                  <blockquote className="text-lg text-gray-700 mb-6">
+                    "{testimonialData.quote}"
+                  </blockquote>
+                  <div className="flex items-center space-x-3">
+                    {testimonialData.profileImage ? (
+                      <img
+                        src={testimonialData.profileImage}
+                        alt={testimonialData.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-12 h-12 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ display: testimonialData.profileImage ? 'none' : 'flex' }}
+                    >
+                      {testimonialData.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-navy">{testimonialData.name}</p>
+                      <p className="text-sm text-gray-600">{testimonialData.program}</p>
+                      {testimonialData.platform && (
+                        <div className={`inline-flex items-center space-x-1 mt-1 ${testimonialData.platformInfo.color}`}>
+                          {React.createElement(testimonialData.platformInfo.icon, {
+                            className: 'w-3 h-3'
+                          })}
+                          <span className="text-xs font-medium">{testimonialData.platformInfo.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Info */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-navy mb-4">Why Choose Our Community Training</h2>
+          </div>
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart className="w-8 h-8 text-accent-primary" />
+              </div>
+              <h3 className="font-bold text-navy mb-2">Trauma-Informed</h3>
+              <p className="text-gray-600 text-sm">
+                Specialized approaches for survivors and vulnerable populations
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-accent-primary" />
+              </div>
+              <h3 className="font-bold text-navy mb-2">Culturally Sensitive</h3>
+              <p className="text-gray-600 text-sm">Respectful of diverse backgrounds and experiences</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-accent-primary" />
+              </div>
+              <h3 className="font-bold text-navy mb-2">Safe Environment</h3>
+              <p className="text-gray-600 text-sm">Creating spaces where everyone feels secure and supported</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Home className="w-8 h-8 text-accent-primary" />
+              </div>
+              <h3 className="font-bold text-navy mb-2">On-Site Training</h3>
+              <p className="text-gray-600 text-sm">We come to your location for maximum comfort and convenience</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-navy">Community Organization Details</h2>
+                <button
+                  onClick={() => setShowContactForm(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mt-2">Tell us about your community and training needs so we can create a specialized program that serves your members safely and effectively.</p>
+            </div>
+
+            <div className="p-6">
+              {!isSubmitted ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        placeholder="Your first name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        placeholder="Your last name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="your.email@organization.org"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="(555) 123-4567"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-2">
+                        Organization Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="organizationName"
+                        name="organizationName"
+                        value={formData.organizationName}
+                        onChange={handleInputChange}
+                        placeholder="Your organization name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="organizationType" className="block text-sm font-medium text-gray-700 mb-2">
+                        Organization Type
+                      </label>
+                      <select
+                        id="organizationType"
+                        name="organizationType"
+                        value={formData.organizationType}
+                        onChange={(e) => handleSelectChange('organizationType', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select organization type</option>
+                        <option value="nonprofit">Nonprofit Organization</option>
+                        <option value="school">School/Educational Institution</option>
+                        <option value="youth">Youth Group/Club</option>
+                        <option value="religious">Religious Organization</option>
+                        <option value="shelter">Women's/Family Shelter</option>
+                        <option value="community">Community Center</option>
+                        <option value="senior">Senior Center</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="participantCount" className="block text-sm font-medium text-gray-700 mb-2">
+                        Expected Number of Participants
+                      </label>
+                      <select
+                        id="participantCount"
+                        name="participantCount"
+                        value={formData.participantCount}
+                        onChange={(e) => handleSelectChange('participantCount', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select participant count</option>
+                        <option value="1-10">1-10 participants</option>
+                        <option value="11-25">11-25 participants</option>
+                        <option value="26-50">26-50 participants</option>
+                        <option value="51-100">51-100 participants</option>
+                        <option value="100+">100+ participants</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="ageRange" className="block text-sm font-medium text-gray-700 mb-2">
+                        Age Range of Participants
+                      </label>
+                      <select
+                        id="ageRange"
+                        name="ageRange"
+                        value={formData.ageRange}
+                        onChange={(e) => handleSelectChange('ageRange', e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      >
+                        <option value="">Select age range</option>
+                        <option value="children">Children (6-12)</option>
+                        <option value="teens">Teens (13-17)</option>
+                        <option value="adults">Adults (18-64)</option>
+                        <option value="seniors">Seniors (65+)</option>
+                        <option value="mixed">Mixed Ages</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Event Date or Timeline
+                    </label>
+                    <input
+                      type="text"
+                      id="eventDate"
+                      name="eventDate"
+                      value={formData.eventDate}
+                      onChange={handleInputChange}
+                      placeholder="e.g., March 2025, Spring semester, flexible timing"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
+                      Training Goals & Community Needs
+                    </label>
+                    <textarea
+                      id="goals"
+                      name="goals"
+                      value={formData.goals}
+                      onChange={handleInputChange}
+                      placeholder="Tell us about your community's specific needs, any trauma considerations, cultural sensitivities, or special circumstances we should be aware of..."
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="logistics" className="block text-sm font-medium text-gray-700 mb-2">
+                      Location & Logistics
+                    </label>
+                    <textarea
+                      id="logistics"
+                      name="logistics"
+                      value={formData.logistics}
+                      onChange={handleInputChange}
+                      placeholder="Where would training take place? Any space limitations, accessibility needs, or scheduling constraints we should know about..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="newsletter"
+                      name="newsletter"
+                      checked={formData.newsletter}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                    />
+                    <label htmlFor="newsletter" className="text-sm text-gray-700">
+                      I'd like to receive updates about community safety programs and training opportunities
+                    </label>
+                  </div>
+
+                  <div className="flex justify-center mb-6">
+                    <ReCAPTCHA
+                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
+                      onChange={handleRecaptchaChange}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    By submitting this form, you agree to our{' '}
+                    <a 
+                      href="/privacy-policy" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-accent-primary hover:underline"
+                    > 
+                      Privacy Policy
+                    </a>.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !recaptchaValue}
+                    className="w-full bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-5 h-5" />
+                        Send Organization Details
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
+                  <p className="text-gray-600 mb-6">
+                    We've received your organization details and will contact you within 24 hours to discuss how we can create a specialized training program for your community.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <a
+                      href="https://calendly.com/streetwisewomen/question-answer"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Schedule Call Now
+                    </a>
+                    <button
+                      onClick={() => {
+                        setShowContactForm(false);
+                        resetForm();
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CTA Section */}
+      <section className="py-16 bg-navy text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">Ready to Empower Your Community?</h2>
+          <p className="text-xl mb-8 opacity-90">
+            Contact us today to discuss how our specialized training can benefit your organization and community members.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="https://calendly.com/streetwisewomen/question-answer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <Calendar className="w-5 h-5" />
+              Schedule Free Consultation
+            </a>
+            <button
+              onClick={() => setShowContactForm(true)}
+              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent flex items-center justify-center gap-2"
+            >
+              <Mail className="w-5 h-5" />
+              Send Organization Details
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 };
 
