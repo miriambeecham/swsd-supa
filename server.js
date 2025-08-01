@@ -114,8 +114,8 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       Form_Type: formData.formType
     };
 
-    // Add organization and title for CBO and Corporate forms
-    if (formData.formType === 'CBO' || formData.formType === 'Corporate') {
+    // Add organization and title for Community Organizations and Workplace Safety forms
+    if (formData.formType === 'Community Organizations' || formData.formType === 'Workplace Safety') {
       if (formData.organization) baseFields.Company = formData.organization;
       if (formData.title) baseFields.Title = formData.title;
     } else {
