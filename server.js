@@ -43,7 +43,6 @@ app.post('/api/form-submissions', async (req, res) => {
       'Phone': formData.phone,
       'Newsletter Signup': formData.newsletter,
       'Form Type': formData.formType || 'Contact Form',
-      'Submission Date': new Date().toISOString(),
     };
 
     // Add page-specific fields
