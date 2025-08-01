@@ -86,41 +86,32 @@ const CboPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Submit to Airtable
-      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
-      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
-
-      const response = await fetch(`https://api.airtable.com/v0/${baseId}/Form Submissions`, {
+      const response = await fetch('/api/form-submissions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          fields: {
-            'First Name': formData.firstName,
-            'Last Name': formData.lastName,
-            'Email': formData.email,
-            'Phone': formData.phone,
-            'Form Type': 'Community Organizations',
-            'CBO_Organization Name': formData.organizationName,
-            'CBO_Organization Type': formData.organizationType,
-            'CBO_Participant Count': formData.participantCount,
-            'CBO_Age Range': formData.ageRange,
-            'CBO_Event Date': formData.eventDate,
-            'CBO_Training Goals': formData.goals,
-            'CBO_Logistics': formData.logistics,
-            'Newsletter Signup': formData.newsletter,
-            'Submitted Date': new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-            'Status': 'New'
-          }
+          'First Name': formData.firstName,
+          'Last Name': formData.lastName,
+          'Email': formData.email,
+          'Phone': formData.phone,
+          'Form Type': 'Community Organizations',
+          'CBO_Organization Name': formData.organizationName,
+          'CBO_Organization Type': formData.organizationType,
+          'CBO_Participant Count': formData.participantCount,
+          'CBO_Age Range': formData.ageRange,
+          'CBO_Event Date': formData.eventDate,
+          'CBO_Training Goals': formData.goals,
+          'CBO_Logistics': formData.logistics,
+          'Newsletter Signup': formData.newsletter,
+          'Submitted Date': new Date().toISOString().split('T')[0],
+          'Status': 'New'
         })
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Airtable error:', errorText);
-        throw new Error(`Failed to submit: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to submit: ${response.status}`);
       }
 
       setIsSubmitted(true);

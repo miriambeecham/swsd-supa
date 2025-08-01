@@ -85,19 +85,13 @@ const CorporatePage = () => {
 
     setIsSubmitting(true);
 
-    // Simulate form submission
-    // Submit to Airtable
-    const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
-    const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
-
-    const response = await fetch(`https://api.airtable.com/v0/${baseId}/Form Submissions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fields: {
+    try {
+      const response = await fetch('/api/form-submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           'First Name': formData.firstName,
           'Last Name': formData.lastName,
           'Email': formData.email,
@@ -110,16 +104,17 @@ const CorporatePage = () => {
           'WS_Training Needs': formData.needs,
           'WS_Timeline': formData.timeline,
           'Newsletter Signup': formData.newsletter,
-          'Submitted Date': new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          'Submitted Date': new Date().toISOString().split('T')[0],
           'Status': 'New'
-        }
-      })
-    });
+        })
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Airtable error:', errorText);
-      throw new Error(`Failed to submit: ${response.status} - ${errorText}`);
+      if (!response.ok) {
+        throw new Error(`Failed to submit: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      alert('There was an error submitting your form. Please try again.');
     }
 
     setIsSubmitting(false);

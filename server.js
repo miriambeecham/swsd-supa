@@ -29,6 +29,36 @@ const makeAirtableRequest = async (endpoint) => {
   return response.json();
 };
 
+// Form submission endpoint
+app.post('/api/form-submissions', async (req, res) => {
+  try {
+    const formData = req.body;
+    
+    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Form Submissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: formData
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Airtable form submission error:', errorText);
+      throw new Error(`Failed to submit: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    res.json(result);
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    res.status(500).json({ error: 'Failed to submit form' });
+  }
+});
+
 // API Routes
 app.get('/api/classes', async (req, res) => {
   try {
