@@ -110,22 +110,22 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
     // Private Classes specific fields
     if (formData.formType === 'Private Classes') {
       // Map to your custom Zoho fields for private training
-      customFields.PT_Training_Type = formData.trainingType;
-      customFields.PT_Group_Size = formData.groupSize;
-      customFields.PT_Training_Goals = formData.goals;
-      customFields.PT_Availability = formData.availability;
+      // customFields.PT_Training_Type = formData.trainingType;
+      // customFields.PT_Group_Size = formData.groupSize;
+      // customFields.PT_Training_Goals = formData.goals;
+      // customFields.PT_Availability = formData.availability;
       // Add more custom fields as needed:
       // customFields.Custom_Field_Name = formData.fieldName;
     }
     
     // Corporate/Workplace Safety specific fields
     if (formData.formType === 'Corporate') {
-      customFields.Organization_Name = formData.companyName;
-      customFields.Job_Title = formData.role; // or Role_Title
-      customFields.Employee_Count = formData.employeeCount;
-      customFields.Training_Format = formData.trainingFormat;
-      customFields.Timeline = formData.timeline;
-      customFields.Training_Needs = formData.needs;
+      // customFields.Organization_Name = formData.companyName;
+      // customFields.Job_Title = formData.role; // or Role_Title
+      // customFields.Employee_Count = formData.employeeCount;
+      // customFields.Training_Format = formData.trainingFormat;
+      // customFields.Timeline = formData.timeline;
+      // customFields.Training_Needs = formData.needs;
       // Add more corporate-specific fields:
       // customFields.Industry = formData.industry;
       // customFields.Budget_Range = formData.budget;
@@ -133,13 +133,13 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
     
     // CBO/Community Organization specific fields
     if (formData.formType === 'CBO') {
-      customFields.Organization_Name = formData.organizationName;
-      customFields.Organization_Type = formData.organizationType;
-      customFields.Age_Range = formData.ageRange;
-      customFields.Participant_Count = formData.participantCount;
-      customFields.Event_Date = formData.eventDate;
-      customFields.Training_Goals = formData.goals;
-      customFields.Logistics = formData.logistics;
+      // customFields.Organization_Name = formData.organizationName;
+      // customFields.Organization_Type = formData.organizationType;
+      // customFields.Age_Range = formData.ageRange;
+      // customFields.Participant_Count = formData.participantCount;
+      // customFields.Event_Date = formData.eventDate;
+      // customFields.Training_Goals = formData.goals;
+      // customFields.Logistics = formData.logistics;
       // Add more CBO-specific fields:
       // customFields.Funding_Source = formData.fundingSource;
       // customFields.Previous_Training = formData.previousTraining;
