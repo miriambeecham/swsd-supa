@@ -24,7 +24,8 @@ export default defineConfig({
     port: 5173,
     allowedHosts: [
       'all',
-      'streetwise-website-1-miriambeecham.replit.app'
+      'streetwise-website-1-miriambeecham.replit.app',
+      'streetwise-website-server-side-version-miriambeecham.replit.app'
     ]
   },
   optimizeDeps: {
