@@ -1,2 +1,1 @@
 Analysis: The code modifications involve standardizing the form fields in the CBO page, updating the form data state, reset function, and replacing the existing form fields with the new structure, including a state dropdown.
-```
