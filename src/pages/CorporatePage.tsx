@@ -149,22 +149,7 @@ const CorporatePage = () => {
     try {
       setLoading(true);
 
-      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
-      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
-
-      if (!baseId || !apiKey) {
-        throw new Error('Missing Airtable configuration');
-      }
-
-      const response = await fetch(
-        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is published}=1,OR({Homepage position}="corporate1",{Homepage position}="corporate2"))`,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="corporate1",{Homepage position}="corporate2"))');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch testimonials: ${response.status}`);
@@ -173,22 +158,22 @@ const CorporatePage = () => {
       const data = await response.json();
 
       // Group testimonials by position
-      const groupedTestimonials = data.records.reduce((acc: Record<string, Testimonial>, record: any) => {
-        const testimonial = {
-          id: record.id,
-          name: record.fields.Name || '',
-          content: record.fields.Content || '',
-          rating: parseInt(record.fields.Rating) || 5,
-          class_type: record.fields['Class type'] || '',
-          platform: record.fields.Platform?.toLowerCase(),
-          profile_image_url: record.fields['Profile image URL'],
-          review_url: record.fields['Original review URL'],
-          homepage_position: record.fields['Homepage position'],
-          is_published: record.fields['Is published'] || false,
+      const groupedTestimonials = data.reduce((acc: Record<string, Testimonial>, testimonial: any) => {
+        const formattedTestimonial = {
+          id: testimonial.id,
+          name: testimonial.name || '',
+          content: testimonial.content || '',
+          rating: testimonial.rating || 5,
+          class_type: testimonial.class_type || '',
+          platform: testimonial.platform?.toLowerCase(),
+          profile_image_url: testimonial.profile_image_url,
+          review_url: testimonial.review_url,
+          homepage_position: testimonial.homepage_position,
+          is_published: testimonial.is_published || false,
         };
 
-        if (testimonial.homepage_position) {
-          acc[testimonial.homepage_position] = testimonial;
+        if (formattedTestimonial.homepage_position) {
+          acc[formattedTestimonial.homepage_position] = formattedTestimonial;
         }
 
         return acc;
