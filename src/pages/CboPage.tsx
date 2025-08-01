@@ -38,6 +38,59 @@ const CboPage = () => {
     newsletter: false
   });
 
+  const US_STATES = [
+    { value: 'Alabama', label: 'Alabama' },
+    { value: 'Alaska', label: 'Alaska' },
+    { value: 'Arizona', label: 'Arizona' },
+    { value: 'Arkansas', label: 'Arkansas' },
+    { value: 'California', label: 'California' },
+    { value: 'Colorado', label: 'Colorado' },
+    { value: 'Connecticut', label: 'Connecticut' },
+    { value: 'Delaware', label: 'Delaware' },
+    { value: 'Florida', label: 'Florida' },
+    { value: 'Georgia', label: 'Georgia' },
+    { value: 'Hawaii', label: 'Hawaii' },
+    { value: 'Idaho', label: 'Idaho' },
+    { value: 'Illinois', label: 'Illinois' },
+    { value: 'Indiana', label: 'Indiana' },
+    { value: 'Iowa', label: 'Iowa' },
+    { value: 'Kansas', label: 'Kansas' },
+    { value: 'Kentucky', label: 'Kentucky' },
+    { value: 'Louisiana', label: 'Louisiana' },
+    { value: 'Maine', label: 'Maine' },
+    { value: 'Maryland', label: 'Maryland' },
+    { value: 'Massachusetts', label: 'Massachusetts' },
+    { value: 'Michigan', label: 'Michigan' },
+    { value: 'Minnesota', label: 'Minnesota' },
+    { value: 'Mississippi', label: 'Mississippi' },
+    { value: 'Missouri', label: 'Missouri' },
+    { value: 'Montana', label: 'Montana' },
+    { value: 'Nebraska', label: 'Nebraska' },
+    { value: 'Nevada', label: 'Nevada' },
+    { value: 'New Hampshire', label: 'New Hampshire' },
+    { value: 'New Jersey', label: 'New Jersey' },
+    { value: 'New Mexico', label: 'New Mexico' },
+    { value: 'New York', label: 'New York' },
+    { value: 'North Carolina', label: 'North Carolina' },
+    { value: 'North Dakota', label: 'North Dakota' },
+    { value: 'Ohio', label: 'Ohio' },
+    { value: 'Oklahoma', label: 'Oklahoma' },
+    { value: 'Oregon', label: 'Oregon' },
+    { value: 'Pennsylvania', label: 'Pennsylvania' },
+    { value: 'Rhode Island', label: 'Rhode Island' },
+    { value: 'South Carolina', label: 'South Carolina' },
+    { value: 'South Dakota', label: 'South Dakota' },
+    { value: 'Tennessee', label: 'Tennessee' },
+    { value: 'Texas', label: 'Texas' },
+    { value: 'Utah', label: 'Utah' },
+    { value: 'Vermont', label: 'Vermont' },
+    { value: 'Virginia', label: 'Virginia' },
+    { value: 'Washington', label: 'Washington' },
+    { value: 'West Virginia', label: 'West Virginia' },
+    { value: 'Wisconsin', label: 'Wisconsin' },
+    { value: 'Wyoming', label: 'Wyoming' }
+  ];
+
   // Platform configurations - matching other pages
   const platformConfig = {
     google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
@@ -545,38 +598,6 @@ const CboPage = () => {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
-                        Organization Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="organization"
-                        name="organization"
-                        value={formData.organization}
-                        onChange={handleInputChange}
-                        placeholder="Your organization name"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                        Your Title/Role
-                      </label>
-                      <input
-                        type="text"
-                        id="title"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleInputChange}
-                        placeholder="Your role in the organization"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                         Email *
                       </label>
@@ -610,8 +631,41 @@ const CboPage = () => {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
+                      <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
+                        Organization *
+                      </label>
+                      <input
+                        type="text"
+                        id="organization"
+                        name="organization"
+                        value={formData.organization}
+                        onChange={handleInputChange}
+                        placeholder="Your organization name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                        Title *
+                      </label>
+                      <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleInputChange}
+                        placeholder="Your job title"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
                       <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                        City
+                        City *
                       </label>
                       <input
                         type="text"
@@ -621,21 +675,28 @@ const CboPage = () => {
                         onChange={handleInputChange}
                         placeholder="Your city"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
                       />
                     </div>
                     <div>
                       <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                        State
+                        State *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         id="state"
                         name="state"
                         value={formData.state}
-                        onChange={handleInputChange}
-                        placeholder="Your state"
+                        onChange={(e) => handleSelectChange('state', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      />
+                        required
+                      >
+                        <option value="">Select your state</option>
+                        {US_STATES.map((state) => (
+                          <option key={state.value} value={state.value}>
+                            {state.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
