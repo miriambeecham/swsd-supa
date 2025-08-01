@@ -99,7 +99,7 @@ const getZohoAccessToken = async () => {
 const createZohoRecord = async (formData, recordType = 'Leads') => {
   try {
     const accessToken = await getZohoAccessToken();
-    
+
     // Base fields that map to standard Zoho fields
     const baseFields = {
       First_Name: formData.firstName,
@@ -122,10 +122,16 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       baseFields.Company = 'Individual';
     }
 
-    // Custom field mappings
+    // Custom field mappings - all forms use the same base mapping
     const customFields = {
-      Web_Request_Details: formData.webRequestDetails || ''
+      Web_Lead_Specific_Interests: formData.webRequestDetails || ''
     };
+
+    // Add organization and title fields for Community Organizations and Workplace Safety
+    if (formData.formType === 'Community Organizations' || formData.formType === 'Workplace Safety') {
+      if (formData.organization) customFields.Organization_Name = formData.organization;
+      if (formData.title) customFields.Job_Title = formData.title;
+    }
 
     // Combine base and custom fields
     const recordData = {
@@ -140,7 +146,7 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       recordData: JSON.stringify(recordData, null, 2),
       accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : 'missing'
     });
-    
+
     console.log('Detailed field mapping for Zoho:');
     console.log('Base fields:', baseFields);
     console.log('Custom fields:', customFields);
@@ -258,7 +264,7 @@ app.post('/api/form-submissions', async (req, res) => {
 
     // Submit to Zoho CRM (non-blocking) - defaults to Leads
     const zohoResult = await createZohoRecord(formData, 'Leads');
-    
+
     // Return success response
     res.json({
       airtable: airtableResult,
