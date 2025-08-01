@@ -86,47 +86,17 @@ const CboPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Only include non-empty values to avoid Airtable select field errors
-      const submissionData: Record<string, any> = {
-        'First Name': formData.firstName,
-        'Last Name': formData.lastName,
-        'Email': formData.email,
-        'Phone': formData.phone,
-        'Form Type': 'Community Organizations',
-        'Newsletter Signup': formData.newsletter,
-        'Submitted Date': new Date().toISOString().split('T')[0],
-        'Status': 'New'
+      const submissionData = {
+        ...formData,
+        formType: 'CBO/Community Organization'
       };
-
-      // Only add optional fields if they have values
-      if (formData.organizationName) {
-        submissionData['CBO_Organization Name'] = formData.organizationName;
-      }
-      if (formData.organizationType) {
-        submissionData['CBO_Organization Type'] = formData.organizationType;
-      }
-      if (formData.participantCount) {
-        submissionData['CBO_Participant Count'] = formData.participantCount;
-      }
-      if (formData.ageRange) {
-        submissionData['CBO_Age Range'] = formData.ageRange;
-      }
-      if (formData.eventDate) {
-        submissionData['CBO_Event Date'] = formData.eventDate;
-      }
-      if (formData.goals) {
-        submissionData['CBO_Training Goals'] = formData.goals;
-      }
-      if (formData.logistics) {
-        submissionData['CBO_Logistics'] = formData.logistics;
-      }
 
       const response = await fetch('/api/form-submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData)
+        body: JSON.stringify(submissionData),
       });
 
       if (!response.ok) {

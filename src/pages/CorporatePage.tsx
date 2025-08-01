@@ -25,7 +25,7 @@ const CorporatePage = () => {
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
+  const [recaptchaValue, setRecaptchaValue = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -86,44 +86,17 @@ const CorporatePage = () => {
     setIsSubmitting(true);
 
     try {
-      // Only include non-empty values to avoid Airtable select field errors
-      const submissionData: Record<string, any> = {
-        'First Name': formData.firstName,
-        'Last Name': formData.lastName,
-        'Email': formData.email,
-        'Phone': formData.phone,
-        'Form Type': 'Workplace Safety',
-        'Newsletter Signup': formData.newsletter,
-        'Submitted Date': new Date().toISOString().split('T')[0],
-        'Status': 'New'
+      const submissionData = {
+        ...formData,
+        formType: 'Corporate/Workplace Safety'
       };
-
-      // Only add optional fields if they have values
-      if (formData.companyName) {
-        submissionData['WS_Organization Name'] = formData.companyName;
-      }
-      if (formData.role) {
-        submissionData['WS_Role Title'] = formData.role;
-      }
-      if (formData.employeeCount) {
-        submissionData['WS_Employee Count'] = formData.employeeCount;
-      }
-      if (formData.trainingFormat) {
-        submissionData['WS_Training Format'] = formData.trainingFormat;
-      }
-      if (formData.needs) {
-        submissionData['WS_Training Needs'] = formData.needs;
-      }
-      if (formData.timeline) {
-        submissionData['WS_Timeline'] = formData.timeline;
-      }
 
       const response = await fetch('/api/form-submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(submissionData)
+        body: JSON.stringify(submissionData),
       });
 
       if (!response.ok) {
@@ -745,8 +718,7 @@ const CorporatePage = () => {
                       Privacy Policy
                     </a>.
                   </p>
-                  <```python
-button
+                  <button
                     type="submit"
                     disabled={isSubmitting || !recaptchaValue}
                     className="w-full bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"

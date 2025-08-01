@@ -33,6 +33,35 @@ const makeAirtableRequest = async (endpoint) => {
 app.post('/api/form-submissions', async (req, res) => {
   try {
     const formData = req.body;
+    console.log('Received form data:', formData);
+    
+    // Map form fields to Airtable field names
+    const airtableFields = {
+      'First Name': formData.firstName,
+      'Last Name': formData.lastName,
+      'Email': formData.email,
+      'Phone': formData.phone,
+      'Newsletter Signup': formData.newsletter,
+      'Form Type': formData.formType || 'Contact Form',
+      'Submission Date': new Date().toISOString(),
+    };
+
+    // Add page-specific fields
+    if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
+    if (formData.trainingType) airtableFields['Training Type'] = formData.trainingType;
+    if (formData.goals) airtableFields['Goals'] = formData.goals;
+    if (formData.availability) airtableFields['Availability'] = formData.availability;
+    if (formData.organizationType) airtableFields['Organization Type'] = formData.organizationType;
+    if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
+    if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
+    if (formData.needs) airtableFields['Needs'] = formData.needs;
+    if (formData.logistics) airtableFields['Logistics'] = formData.logistics;
+    if (formData.companyName) airtableFields['Company Name'] = formData.companyName;
+    if (formData.industry) airtableFields['Industry'] = formData.industry;
+    if (formData.employeeCount) airtableFields['Employee Count'] = formData.employeeCount;
+    if (formData.safetyGoals) airtableFields['Safety Goals'] = formData.safetyGoals;
+
+    console.log('Mapped Airtable fields:', airtableFields);
     
     const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Form Submissions`, {
       method: 'POST',
@@ -41,7 +70,7 @@ app.post('/api/form-submissions', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        fields: formData
+        fields: airtableFields
       })
     });
 
@@ -52,9 +81,10 @@ app.post('/api/form-submissions', async (req, res) => {
     }
 
     const result = await response.json();
+    console.log('Form submission successful:', result.id);
     res.json(result);
   } catch (error) {
-    console.error('Error submitting form:', error);
+    console.error('Error submitting form:', error.message);
     res.status(500).json({ error: 'Failed to submit form' });
   }
 });
