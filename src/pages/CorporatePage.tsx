@@ -29,16 +29,68 @@ const CorporatePage = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    organization: '',
+    title: '',
     email: '',
     phone: '',
-    companyName: '',
-    role: '',
-    employeeCount: '',
-    trainingFormat: '',
-    needs: '',
-    timeline: '',
+    city: '',
+    state: '',
+    webRequestDetails: '',
     newsletter: false
   });
+
+  const US_STATES = [
+    { value: 'AL', label: 'Alabama' },
+    { value: 'AK', label: 'Alaska' },
+    { value: 'AZ', label: 'Arizona' },
+    { value: 'AR', label: 'Arkansas' },
+    { value: 'CA', label: 'California' },
+    { value: 'CO', label: 'Colorado' },
+    { value: 'CT', label: 'Connecticut' },
+    { value: 'DE', label: 'Delaware' },
+    { value: 'FL', label: 'Florida' },
+    { value: 'GA', label: 'Georgia' },
+    { value: 'HI', label: 'Hawaii' },
+    { value: 'ID', label: 'Idaho' },
+    { value: 'IL', label: 'Illinois' },
+    { value: 'IN', label: 'Indiana' },
+    { value: 'IA', label: 'Iowa' },
+    { value: 'KS', label: 'Kansas' },
+    { value: 'KY', label: 'Kentucky' },
+    { value: 'LA', label: 'Louisiana' },
+    { value: 'ME', label: 'Maine' },
+    { value: 'MD', label: 'Maryland' },
+    { value: 'MA', label: 'Massachusetts' },
+    { value: 'MI', label: 'Michigan' },
+    { value: 'MN', label: 'Minnesota' },
+    { value: 'MS', label: 'Mississippi' },
+    { value: 'MO', label: 'Missouri' },
+    { value: 'MT', label: 'Montana' },
+    { value: 'NE', label: 'Nebraska' },
+    { value: 'NV', label: 'Nevada' },
+    { value: 'NH', label: 'New Hampshire' },
+    { value: 'NJ', label: 'New Jersey' },
+    { value: 'NM', label: 'New Mexico' },
+    { value: 'NY', label: 'New York' },
+    { value: 'NC', label: 'North Carolina' },
+    { value: 'ND', label: 'North Dakota' },
+    { value: 'OH', label: 'Ohio' },
+    { value: 'OK', label: 'Oklahoma' },
+    { value: 'OR', label: 'Oregon' },
+    { value: 'PA', label: 'Pennsylvania' },
+    { value: 'RI', label: 'Rhode Island' },
+    { value: 'SC', label: 'South Carolina' },
+    { value: 'SD', label: 'South Dakota' },
+    { value: 'TN', label: 'Tennessee' },
+    { value: 'TX', label: 'Texas' },
+    { value: 'UT', label: 'Utah' },
+    { value: 'VT', label: 'Vermont' },
+    { value: 'VA', label: 'Virginia' },
+    { value: 'WA', label: 'Washington' },
+    { value: 'WV', label: 'West Virginia' },
+    { value: 'WI', label: 'Wisconsin' },
+    { value: 'WY', label: 'Wyoming' }
+  ];
 
   // Platform configurations - matching other pages
   const platformConfig = {
@@ -88,7 +140,7 @@ const CorporatePage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Corporate/Workplace Safety'
+        formType: 'Corporate'
       };
 
       const response = await fetch('/api/form-submissions', {
@@ -118,14 +170,13 @@ const CorporatePage = () => {
     setFormData({
       firstName: '',
       lastName: '',
+      organization: '',
+      title: '',
       email: '',
       phone: '',
-      companyName: '',
-      role: '',
-      employeeCount: '',
-      trainingFormat: '',
-      needs: '',
-      timeline: '',
+      city: '',
+      state: '',
+      webRequestDetails: '',
       newsletter: false
     });
   };
@@ -588,14 +639,14 @@ const CorporatePage = () => {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
-                        Organization Name *
+                      <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
+                        Organization *
                       </label>
                       <input
                         type="text"
-                        id="companyName"
-                        name="companyName"
-                        value={formData.companyName}
+                        id="organization"
+                        name="organization"
+                        value={formData.organization}
                         onChange={handleInputChange}
                         placeholder="Your organization name"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
@@ -603,87 +654,73 @@ const CorporatePage = () => {
                       />
                     </div>
                     <div>
-                      <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                        Your Role/Title
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                        Title *
                       </label>
                       <input
                         type="text"
-                        id="role"
-                        name="role"
-                        value={formData.role}
+                        id="title"
+                        name="title"
+                        value={formData.title}
                         onChange={handleInputChange}
-                        placeholder="e.g., Manager, Director, Owner"
+                        placeholder="Your job title"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
                       />
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="employeeCount" className="block text-sm font-medium text-gray-700 mb-2">
-                        Number of Employees
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                        City *
                       </label>
-                      <select
-                        id="employeeCount"
-                        name="employeeCount"
-                        value={formData.employeeCount}
-                        onChange={(e) => handleSelectChange('employeeCount', e.target.value)}
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="Your city"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      >
-                        <option value="">Select employee count</option>
-                        <option value="1-10">1-10 employees</option>
-                        <option value="11-50">11-50 employees</option>
-                        <option value="51-100">51-100 employees</option>
-                        <option value="101-500">101-500 employees</option>
-                        <option value="500+">500+ employees</option>
-                      </select>
+                        required
+                      />
                     </div>
                     <div>
-                      <label htmlFor="trainingFormat" className="block text-sm font-medium text-gray-700 mb-2">
-                        Preferred Training Format
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                        State *
                       </label>
                       <select
-                        id="trainingFormat"
-                        name="trainingFormat"
-                        value={formData.trainingFormat}
-                        onChange={(e) => handleSelectChange('trainingFormat', e.target.value)}
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={(e) => handleSelectChange('state', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
                       >
-                        <option value="">Select format</option>
-                        <option value="onsite">On-site at our location</option>
-                        <option value="offsite">Off-site venue</option>
-                        <option value="flexible">Flexible - discuss options</option>
+                        <option value="">Select your state</option>
+                        {US_STATES.map((state) => (
+                          <option key={state.value} value={state.value}>
+                            {state.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="needs" className="block text-sm font-medium text-gray-700 mb-2">
-                      Training Needs & Goals
+                    <label htmlFor="webRequestDetails" className="block text-sm font-medium text-gray-700 mb-2">
+                      How can we help? *
                     </label>
                     <textarea
-                      id="needs"
-                      name="needs"
-                      value={formData.needs}
+                      id="webRequestDetails"
+                      name="webRequestDetails"
+                      value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Tell us about your workplace safety goals, specific concerns, industry requirements, or other details that would help us customize your training..."
+                      placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Tell us about your workplace safety goals, number of employees, preferred training format, timeline, and any specific requirements for your organization..."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="timeline" className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Timeline
-                    </label>
-                    <textarea
-                      id="timeline"
-                      name="timeline"
-                      value={formData.timeline}
-                      onChange={handleInputChange}
-                      placeholder="When would you like to schedule training? Any scheduling constraints or preferences..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      required
                     />
                   </div>
 

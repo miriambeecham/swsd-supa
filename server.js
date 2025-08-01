@@ -106,62 +106,26 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       Last_Name: formData.lastName,
       Email: formData.email,
       Mobile: formData.phone,
+      City: formData.city,
+      State: formData.state,
       Lead_Source: 'Website',
-      //Company: formData.companyName || formData.organizationName || 'Individual',
-      Newsletter_Opt_In: formData.newsletter || false
+      Newsletter_Opt_In: formData.newsletter || false,
+      Description: formData.webRequestDetails || '',
+      Form_Type: formData.formType
     };
 
-    // Build description from all available form data
-    let description = `Form Type: ${formData.formType}\n`;
-    if (formData.goals) description += `Goals: ${formData.goals}\n`;
-    if (formData.needs) description += `Training Needs: ${formData.needs}\n`;
-    if (formData.availability) description += `Availability: ${formData.availability}\n`;
-    if (formData.logistics) description += `Logistics: ${formData.logistics}\n`;
-    if (formData.demographics) description += `Demographics: ${formData.demographics}\n`;
-    if (formData.timeline) description += `Timeline: ${formData.timeline}\n`;
-    
-    baseFields.Description = description;
+    // Add organization and title for CBO and Corporate forms
+    if (formData.formType === 'CBO' || formData.formType === 'Corporate') {
+      if (formData.organization) baseFields.Company = formData.organization;
+      if (formData.title) baseFields.Title = formData.title;
+    } else {
+      baseFields.Company = 'Individual';
+    }
 
-    // Custom field mappings - CUSTOMIZE THESE TO MATCH YOUR ZOHO SETUP
-    const customFields = {};
-    
-    // Private Classes specific fields
-    if (formData.formType === 'Private Classes') {
-      // Map to your custom Zoho fields for private training
-      customFields.PT_Training_Type = formData.trainingType;
-      customFields.PT_Group_Size = formData.groupSize;
-      customFields.PT_Training_Goals = formData.goals;
-      customFields.PT_Availability = formData.availability;
-      // Add more custom fields as needed:
-      // customFields.Custom_Field_Name = formData.fieldName;
-    }
-    
-    // Corporate/Workplace Safety specific fields
-    if (formData.formType === 'Corporate') {
-      // customFields.Organization_Name = formData.companyName;
-      // customFields.Job_Title = formData.role; // or Role_Title
-      // customFields.Employee_Count = formData.employeeCount;
-      // customFields.Training_Format = formData.trainingFormat;
-      // customFields.Timeline = formData.timeline;
-      // customFields.Training_Needs = formData.needs;
-      // Add more corporate-specific fields:
-      // customFields.Industry = formData.industry;
-      // customFields.Budget_Range = formData.budget;
-    }
-    
-    // CBO/Community Organization specific fields
-    if (formData.formType === 'CBO') {
-      // customFields.Organization_Name = formData.organizationName;
-      // customFields.Organization_Type = formData.organizationType;
-      // customFields.Age_Range = formData.ageRange;
-      // customFields.Participant_Count = formData.participantCount;
-      // customFields.Event_Date = formData.eventDate;
-      // customFields.Training_Goals = formData.goals;
-      // customFields.Logistics = formData.logistics;
-      // Add more CBO-specific fields:
-      // customFields.Funding_Source = formData.fundingSource;
-      // customFields.Previous_Training = formData.previousTraining;
-    }
+    // Custom field mappings
+    const customFields = {
+      Web_Request_Details: formData.webRequestDetails || ''
+    };
 
     // Combine base and custom fields
     const recordData = {
@@ -256,51 +220,17 @@ app.post('/api/form-submissions', async (req, res) => {
       'Last Name': formData.lastName,
       'Email': formData.email,
       'Phone': formData.phone,
+      'City': formData.city,
+      'State': formData.state,
+      'Web_Request_Details': formData.webRequestDetails,
       'Newsletter Signup': formData.newsletter,
+      'Form Type': formData.formType
     };
 
-    // Map form types to match Airtable select options
-    const formTypeMapping = {
-      'Private Classes': 'Private Training',
-      'CBO': 'CBO Partnership',
-      'Corporate': 'Corporate Training'
-    };
-
-    if (formData.formType && formTypeMapping[formData.formType]) {
-      airtableFields['Form Type'] = formTypeMapping[formData.formType];
-    }
-
-    // Add page-specific fields based on form type
-    if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
-
-    // Private Training fields
-    if (formData.groupSize) airtableFields['PT_Group Size'] = formData.groupSize;
-    if (formData.trainingType) airtableFields['PT_Training Type'] = formData.trainingType;
-    if (formData.availability) airtableFields['PT_Availability'] = formData.availability;
-
-    // Corporate/Workplace Safety fields
-    if (formData.needs) airtableFields['WS_Training Needs'] = formData.needs;
-    if (formData.companyName) airtableFields['WS_Organization Name'] = formData.companyName;
-    if (formData.role) airtableFields['WS_Role Title'] = formData.role;
-    if (formData.employeeCount) airtableFields['WS_Employee Count'] = formData.employeeCount;
-    if (formData.trainingFormat) airtableFields['WS_Training Format'] = formData.trainingFormat;
-    if (formData.timeline) airtableFields['WS_Timeline'] = formData.timeline;
-
-    // CBO fields
-    if (formData.organizationName) airtableFields['CBO_Organization Name'] = formData.organizationName;
-    if (formData.organizationType) airtableFields['CBO_Organization Type'] = formData.organizationType;
-    if (formData.ageRange) airtableFields['CBO_Age Range'] = formData.ageRange;
-    if (formData.participantCount) airtableFields['CBO_Participant Count'] = formData.participantCount;
-    if (formData.eventDate) airtableFields['CBO_Event Date'] = formData.eventDate;
-    if (formData.logistics) airtableFields['CBO_Logistics'] = formData.logistics;
-
-    // Handle goals field based on form type
-    if (formData.goals) {
-      if (formData.formType === 'Private Classes') {
-        airtableFields['PT_Training Goals'] = formData.goals;
-      } else if (formData.formType === 'CBO') {
-        airtableFields['CBO_Training Goals'] = formData.goals;
-      }
+    // Add organization and title for CBO and Corporate forms
+    if (formData.formType === 'CBO' || formData.formType === 'Corporate') {
+      if (formData.organization) airtableFields['Organization'] = formData.organization;
+      if (formData.title) airtableFields['Title'] = formData.title;
     }
 
     console.log('Mapped Airtable fields:', airtableFields);

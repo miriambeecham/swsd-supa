@@ -1,8 +1,62 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Clock, CheckCircle, ArrowLeft, Star, Shield, ChevronDown, Calendar, Mail, X } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Helmet } from 'react-helmet-async';
+
+const US_STATES = [
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' }
+];
 
 const PrivateClassesPage = () => {
   const [showContactForm, setShowContactForm] = useState(false);
@@ -14,10 +68,9 @@ const PrivateClassesPage = () => {
     lastName: '',
     email: '',
     phone: '',
-    groupSize: '',
-    trainingType: '',
-    goals: '',
-    availability: '',
+    city: '',
+    state: '',
+    webRequestDetails: '',
     newsletter: false
   });
 
@@ -77,8 +130,6 @@ const PrivateClassesPage = () => {
     }
 
     setIsSubmitting(false);
-    setIsSubmitted(true);
-    setRecaptchaValue(null);
   };
 
   const resetForm = () => {
@@ -89,10 +140,9 @@ const PrivateClassesPage = () => {
       lastName: '',
       email: '',
       phone: '',
-      groupSize: '',
-      trainingType: '',
-      goals: '',
-      availability: '',
+      city: '',
+      state: '',
+      webRequestDetails: '',
       newsletter: false
     });
   };
@@ -298,7 +348,7 @@ const PrivateClassesPage = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-navy">Private Training Details</h2>
+                <h2 className="text-2xl font-bold text-navy">Private Training Request</h2>
                 <button
                   onClick={() => setShowContactForm(false)}
                   className="text-gray-500 hover:text-gray-700 p-1"
@@ -380,73 +430,55 @@ const PrivateClassesPage = () => {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="groupSize" className="block text-sm font-medium text-gray-700 mb-2">
-                        Group Size
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                        City *
                       </label>
-                      <select
-                        id="groupSize"
-                        name="groupSize"
-                        value={formData.groupSize}
-                        onChange={(e) => handleSelectChange('groupSize', e.target.value)}
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="Your city"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      >
-                        <option value="">Select group size</option>
-                        <option value="1">Just me (1 person)</option>
-                        <option value="2">2 people</option>
-                        <option value="3-5">3-5 people</option>
-                        <option value="6-10">6-10 people</option>
-                        <option value="10+">More than 10 people</option>
-                      </select>
+                        required
+                      />
                     </div>
                     <div>
-                      <label htmlFor="trainingType" className="block text-sm font-medium text-gray-700 mb-2">
-                        Training Type
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                        State *
                       </label>
                       <select
-                        id="trainingType"
-                        name="trainingType"
-                        value={formData.trainingType}
-                        onChange={(e) => handleSelectChange('trainingType', e.target.value)}
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={(e) => handleSelectChange('state', e.target.value)}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
                       >
-                        <option value="">Select training type</option>
-                        <option value="individual">Individual Training</option>
-                        <option value="family">Family Training</option>
-                        <option value="coed">Co-ed Group</option>
-                        <option value="neurodivergent">Neurodivergent-Friendly</option>
-                        <option value="bullying">Bullying Prevention</option>
-                        <option value="other">Other (please specify)</option>
+                        <option value="">Select your state</option>
+                        {US_STATES.map((state) => (
+                          <option key={state.value} value={state.value}>
+                            {state.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
-                      Training Goals & Specific Needs
+                    <label htmlFor="webRequestDetails" className="block text-sm font-medium text-gray-700 mb-2">
+                      How can we help? *
                     </label>
                     <textarea
-                      id="goals"
-                      name="goals"
-                      value={formData.goals}
+                      id="webRequestDetails"
+                      name="webRequestDetails"
+                      value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Tell us about your goals, any specific concerns, accessibility needs, or other details that would help us customize your training..."
+                      placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Tell us about your training goals, group size, preferred schedule, accessibility needs, or any specific concerns you'd like us to address in your customized program..."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Schedule
-                    </label>
-                    <textarea
-                      id="availability"
-                      name="availability"
-                      value={formData.availability}
-                      onChange={handleInputChange}
-                      placeholder="Let us know your preferred days, times, and any scheduling constraints..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      required
                     />
                   </div>
 
@@ -506,7 +538,7 @@ const PrivateClassesPage = () => {
                   </div>
                   <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
                   <p className="text-gray-600 mb-6">
-                    We've received your training details and will contact you within 24 hours to discuss your customized program.
+                    We've received your training request and will contact you within 24 hours to discuss your customized program.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <a
