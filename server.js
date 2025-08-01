@@ -55,19 +55,28 @@ app.post('/api/form-submissions', async (req, res) => {
       airtableFields['Form Type'] = formTypeMapping[formData.formType];
     }
 
-    // Add page-specific fields
+    // Add page-specific fields based on form type
     if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
     if (formData.goals) airtableFields['Goals'] = formData.goals;
     if (formData.availability) airtableFields['Availability'] = formData.availability;
-    if (formData.organizationType) airtableFields['Organization Type'] = formData.organizationType;
     if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
+
+    // Corporate/Workplace Safety fields
     if (formData.needs) airtableFields['WS_Training Needs'] = formData.needs;
-    if (formData.logistics) airtableFields['Logistics'] = formData.logistics;
     if (formData.companyName) airtableFields['WS_Organization Name'] = formData.companyName;
     if (formData.role) airtableFields['WS_Role Title'] = formData.role;
     if (formData.employeeCount) airtableFields['WS_Employee Count'] = formData.employeeCount;
     if (formData.trainingFormat) airtableFields['WS_Training Format'] = formData.trainingFormat;
     if (formData.timeline) airtableFields['WS_Timeline'] = formData.timeline;
+
+    // CBO fields
+    if (formData.organizationName) airtableFields['CBO_Organization Name'] = formData.organizationName;
+    if (formData.organizationType) airtableFields['CBO_Organization Type'] = formData.organizationType;
+    if (formData.ageRange) airtableFields['CBO_Age Range'] = formData.ageRange;
+    if (formData.participantCount) airtableFields['CBO_Participant Count'] = formData.participantCount;
+    if (formData.eventDate) airtableFields['CBO_Event Date'] = formData.eventDate;
+    if (formData.goals) airtableFields['CBO_Training Goals'] = formData.goals;
+    if (formData.logistics) airtableFields['CBO_Logistics'] = formData.logistics;
 
     console.log('Mapped Airtable fields:', airtableFields);
 
