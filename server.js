@@ -57,7 +57,6 @@ app.post('/api/form-submissions', async (req, res) => {
 
     // Add page-specific fields
     if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
-    if (formData.trainingType) airtableFields['Training Type'] = formData.trainingType;
     if (formData.goals) airtableFields['Goals'] = formData.goals;
     if (formData.availability) airtableFields['Availability'] = formData.availability;
     if (formData.organizationType) airtableFields['Organization Type'] = formData.organizationType;
