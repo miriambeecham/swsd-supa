@@ -56,9 +56,12 @@ app.post('/api/form-submissions', async (req, res) => {
     }
 
     // Add page-specific fields based on form type
-    if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
-    if (formData.availability) airtableFields['Availability'] = formData.availability;
     if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
+
+    // Private Training fields
+    if (formData.groupSize) airtableFields['PT_Group Size'] = formData.groupSize;
+    if (formData.trainingType) airtableFields['PT_Training Type'] = formData.trainingType;
+    if (formData.availability) airtableFields['PT_Availability'] = formData.availability;
 
     // Corporate/Workplace Safety fields
     if (formData.needs) airtableFields['WS_Training Needs'] = formData.needs;
@@ -74,8 +77,16 @@ app.post('/api/form-submissions', async (req, res) => {
     if (formData.ageRange) airtableFields['CBO_Age Range'] = formData.ageRange;
     if (formData.participantCount) airtableFields['CBO_Participant Count'] = formData.participantCount;
     if (formData.eventDate) airtableFields['CBO_Event Date'] = formData.eventDate;
-    if (formData.goals) airtableFields['CBO_Training Goals'] = formData.goals;
     if (formData.logistics) airtableFields['CBO_Logistics'] = formData.logistics;
+
+    // Handle goals field based on form type
+    if (formData.goals) {
+      if (formData.formType === 'Private Classes') {
+        airtableFields['PT_Training Goals'] = formData.goals;
+      } else if (formData.formType === 'CBO') {
+        airtableFields['CBO_Training Goals'] = formData.goals;
+      }
+    }
 
     console.log('Mapped Airtable fields:', airtableFields);
 
