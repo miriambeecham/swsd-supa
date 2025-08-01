@@ -1,22 +1,6 @@
-
 // Airtable API configuration - these will be accessed server-side
 // For client-side code, these values come from API endpoints
-export const airtableApiKey = process.env.AIRTABLE_API_KEY || '';
-export const airtableBaseId = process.env.AIRTABLE_BASE_ID || '';
-
-// Check if we have valid Airtable credentials
-const hasValidCredentials = airtableApiKey && 
-  airtableBaseId && 
-  airtableApiKey !== 'your_airtable_api_key_here' &&
-  airtableBaseId !== 'your_airtable_base_id_here';
-
-if (!hasValidCredentials) {
-  console.warn('⚠️ Airtable not configured properly. Some features may not work.');
-  console.warn('Please set up your AIRTABLE_API_KEY and AIRTABLE_BASE_ID environment variables.');
-}
-
 // Export a flag to check if Airtable is properly configured
-export const isAirtableConfigured = hasValidCredentials;
 
 // Types for our data
 export interface Class {
