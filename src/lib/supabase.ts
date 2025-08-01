@@ -1,11 +1,8 @@
 
-// Airtable API configuration
-const airtableApiKey = import.meta.env.AIRTABLE_API_KEY || '';
-const airtableBaseId = import.meta.env.AIRTABLE_BASE_ID || '';
-
-// Debug: Check what Airtable values we're getting
-console.log('Airtable Base ID:', airtableBaseId);
-console.log('Airtable API Key (first 20 chars):', airtableApiKey ? airtableApiKey.substring(0, 20) + '...' : 'MISSING');
+// Airtable API configuration - these will be accessed server-side
+// For client-side code, these values come from API endpoints
+export const airtableApiKey = process.env.AIRTABLE_API_KEY || '';
+export const airtableBaseId = process.env.AIRTABLE_BASE_ID || '';
 
 // Check if we have valid Airtable credentials
 const hasValidCredentials = airtableApiKey && 
@@ -20,7 +17,6 @@ if (!hasValidCredentials) {
 
 // Export a flag to check if Airtable is properly configured
 export const isAirtableConfigured = hasValidCredentials;
-export { airtableApiKey, airtableBaseId };
 
 // Types for our data
 export interface Class {

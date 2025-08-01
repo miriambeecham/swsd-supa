@@ -49,36 +49,16 @@ const AboutPage = () => {
         throw new Error('Missing Airtable configuration');
       }
 
-      const response = await fetch(
-        `https://api.airtable.com/v0/${baseId}/Testimonials?filterByFormula=AND({Is published}=1,{Homepage position}="About1")`,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,{Homepage position}="About1")');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch testimonials: ${response.status}`);
       }
 
-      const data = await response.json();
+      const testimonials = await response.json();
 
-      if (data.records.length > 0) {
-        const record = data.records[0];
-        setTestimonial({
-          id: record.id,
-          name: record.fields.Name || '',
-          content: record.fields.Content || '',
-          rating: parseInt(record.fields.Rating) || 5,
-          class_type: record.fields['Class type'] || '',
-          platform: record.fields.Platform?.toLowerCase(),
-          profile_image_url: record.fields['Profile image URL'],
-          review_url: record.fields['Original review URL'],
-          homepage_position: record.fields['Homepage position'],
-          is_published: record.fields['Is published'] || false,
-        });
+      if (testimonials.length > 0) {
+        setTestimonial(testimonials[0]);
       }
 
     } catch (err) {
