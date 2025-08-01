@@ -111,7 +111,7 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       Lead_Source: 'Website',
       Newsletter_Opt_In: formData.newsletter || false,
       Description: formData.webRequestDetails || '',
-      Form_Type: formData.formType
+      Web_Lead_Type: formData.formType
     };
 
     // Add organization and title for Community Organizations and Workplace Safety forms
