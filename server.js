@@ -98,21 +98,43 @@ app.get('/api/schedules', async (req, res) => {
 
 app.get('/api/testimonials', async (req, res) => {
   try {
-    const endpoint = '/Testimonials';
+    const { filter } = req.query;
+    const endpoint = filter 
+      ? `/Testimonials?filterByFormula=${encodeURIComponent(filter)}`
+      : '/Testimonials';
 
     const data = await makeAirtableRequest(endpoint);
 
-    const testimonials = data.records.map((record) => ({
-      id: record.id,
-      fields: {
-        'Quote': record.fields.Quote,
-        'Author': record.fields.Author,
-        'Role': record.fields.Role,
-        'Image URL': record.fields['Image URL'],
-      }
-    }));
+    // Map to the format expected by the frontend
+    const testimonials = data.records.map((record) => {
+      // Handle profile picture - could be direct URL or Airtable attachment
+      let profileImageUrl = null;
+      const profileField = record.fields['Profile Image URL'];
 
-    res.json({ records: testimonials });
+      if (typeof profileField === 'string') {
+        // Direct URL
+        profileImageUrl = profileField;
+      } else if (Array.isArray(profileField) && profileField.length > 0) {
+        // Airtable attachment format
+        profileImageUrl = profileField[0].url;
+      }
+
+      return {
+        id: record.id,
+        name: record.fields.Name || '',
+        content: record.fields.Content || '',
+        rating: parseInt(record.fields.Rating) || 5,
+        class_type: record.fields['Class Type'] || '',
+        platform: record.fields.Platform?.toLowerCase(),
+        profile_image_url: profileImageUrl,
+        review_url: record.fields['Original Review URL'],
+        homepage_position: record.fields['Homepage position'],
+        is_featured: record.fields['Is Featured'] || false,
+        is_published: record.fields['Is Published'] || false,
+      };
+    });
+
+    res.json(testimonials);
   } catch (error) {
     console.error('Error fetching testimonials:', error);
     res.status(500).json({ error: 'Failed to fetch testimonials' });
