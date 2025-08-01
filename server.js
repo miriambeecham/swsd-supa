@@ -210,6 +210,26 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
   }
 };
 
+// Test endpoint for Zoho integration
+app.get('/api/test-zoho', async (req, res) => {
+  try {
+    console.log('=== TESTING ZOHO INTEGRATION ===');
+    const accessToken = await getZohoAccessToken();
+    res.json({ 
+      success: true, 
+      message: 'Zoho integration working',
+      tokenExists: !!accessToken,
+      tokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : null
+    });
+  } catch (error) {
+    console.error('Zoho test failed:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Form submission endpoint
 app.post('/api/form-submissions', async (req, res) => {
   try {
