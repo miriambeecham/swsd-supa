@@ -58,10 +58,22 @@ const getZohoAccessToken = async () => {
   });
 
   if (!response.ok) {
-    throw new Error(`Zoho token refresh failed: ${response.status}`);
+    const errorText = await response.text();
+    console.error('Zoho token refresh error details:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: tokenUrl,
+      domain: ZOHO_DOMAIN,
+      clientIdExists: !!ZOHO_CLIENT_ID,
+      clientSecretExists: !!ZOHO_CLIENT_SECRET,
+      refreshTokenExists: !!ZOHO_REFRESH_TOKEN,
+      errorResponse: errorText
+    });
+    throw new Error(`Zoho token refresh failed: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
+  console.log('Zoho token refresh successful');
   return data.access_token;
 };
 
