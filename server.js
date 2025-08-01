@@ -399,12 +399,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    // This shouldn't happen as API routes are defined above, but just in case
-    res.status(404).json({ error: 'API endpoint not found' });
-  } else {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
