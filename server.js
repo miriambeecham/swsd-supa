@@ -57,7 +57,6 @@ app.post('/api/form-submissions', async (req, res) => {
 
     // Add page-specific fields based on form type
     if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
-    if (formData.goals) airtableFields['Goals'] = formData.goals;
     if (formData.availability) airtableFields['Availability'] = formData.availability;
     if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
 
