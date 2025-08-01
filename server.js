@@ -47,7 +47,8 @@ const getZohoAccessToken = async () => {
     throw new Error('Zoho CRM not configured properly');
   }
 
-  const tokenUrl = `${ZOHO_DOMAIN}/oauth/v2/token`;
+  // Use accounts server for OAuth, not API server
+  const tokenUrl = `https://accounts.zoho.com/oauth/v2/token`;
   const params = new URLSearchParams({
     refresh_token: ZOHO_REFRESH_TOKEN,
     client_id: ZOHO_CLIENT_ID,
@@ -59,7 +60,8 @@ const getZohoAccessToken = async () => {
     url: tokenUrl,
     domain: ZOHO_DOMAIN,
     clientId: ZOHO_CLIENT_ID ? `${ZOHO_CLIENT_ID.substring(0, 10)}...` : 'missing',
-    refreshToken: ZOHO_REFRESH_TOKEN ? `${ZOHO_REFRESH_TOKEN.substring(0, 10)}...` : 'missing'
+    refreshToken: ZOHO_REFRESH_TOKEN ? `${ZOHO_REFRESH_TOKEN.substring(0, 10)}...` : 'missing',
+    bodyParams: params.toString()
   });
 
   const response = await fetch(tokenUrl, {
@@ -67,7 +69,7 @@ const getZohoAccessToken = async () => {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: params
+    body: params.toString()
   });
 
   console.log('Zoho token response status:', response.status);
