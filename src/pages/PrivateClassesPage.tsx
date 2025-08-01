@@ -51,25 +51,38 @@ const PrivateClassesPage = () => {
     setIsSubmitting(true);
 
     try {
+      // Only include non-empty values to avoid Airtable select field errors
+      const submissionData: Record<string, any> = {
+        'First Name': formData.firstName,
+        'Last Name': formData.lastName,
+        'Email': formData.email,
+        'Phone': formData.phone,
+        'Form Type': 'Private Training',
+        'Newsletter Signup': formData.newsletter,
+        'Submitted Date': new Date().toISOString().split('T')[0],
+        'Status': 'New'
+      };
+
+      // Only add optional fields if they have values
+      if (formData.groupSize) {
+        submissionData['PT_Group Size'] = formData.groupSize;
+      }
+      if (formData.trainingType) {
+        submissionData['PT_Training Type'] = formData.trainingType;
+      }
+      if (formData.goals) {
+        submissionData['PT_Training Goals'] = formData.goals;
+      }
+      if (formData.availability) {
+        submissionData['PT_Availability'] = formData.availability;
+      }
+
       const response = await fetch('/api/form-submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          'First Name': formData.firstName,
-          'Last Name': formData.lastName,
-          'Email': formData.email,
-          'Phone': formData.phone,
-          'Form Type': 'Private Training',
-          'PT_Group Size': formData.groupSize,
-          'PT_Training Type': formData.trainingType,
-          'PT_Training Goals': formData.goals,
-          'PT_Availability': formData.availability,
-          'Newsletter Signup': formData.newsletter,
-          'Submitted Date': new Date().toISOString().split('T')[0],
-          'Status': 'New'
-        })
+        body: JSON.stringify(submissionData)
       });
 
       if (!response.ok) {
