@@ -42,8 +42,18 @@ app.post('/api/form-submissions', async (req, res) => {
       'Email': formData.email,
       'Phone': formData.phone,
       'Newsletter Signup': formData.newsletter,
-      'Form Type': formData.formType || 'Contact Form',
     };
+
+    // Map form types to match Airtable select options
+    const formTypeMapping = {
+      'Private Classes': 'Private Training',
+      'CBO': 'CBO Partnership',
+      'Corporate': 'Corporate Training'
+    };
+    
+    if (formData.formType && formTypeMapping[formData.formType]) {
+      airtableFields['Form Type'] = formTypeMapping[formData.formType];
+    }
 
     // Add page-specific fields
     if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
@@ -51,7 +61,6 @@ app.post('/api/form-submissions', async (req, res) => {
     if (formData.goals) airtableFields['Goals'] = formData.goals;
     if (formData.availability) airtableFields['Availability'] = formData.availability;
     if (formData.organizationType) airtableFields['Organization Type'] = formData.organizationType;
-    if (formData.groupSize) airtableFields['Group Size'] = formData.groupSize;
     if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
     if (formData.needs) airtableFields['Needs'] = formData.needs;
     if (formData.logistics) airtableFields['Logistics'] = formData.logistics;
