@@ -97,10 +97,10 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
     // Private Classes specific fields
     if (formData.formType === 'Private Classes') {
       // Map to your custom Zoho fields for private training
-      customFields.Training_Type = formData.trainingType;
-      customFields.Group_Size = formData.groupSize;
-      customFields.Training_Goals = formData.goals;
-      customFields.Availability = formData.availability;
+      customFields.PT_Training_Type = formData.trainingType;
+      customFields.PT_Group_Size = formData.groupSize;
+      customFields.PT_Training_Goals = formData.goals;
+      customFields.PT_Availability = formData.availability;
       // Add more custom fields as needed:
       // customFields.Custom_Field_Name = formData.fieldName;
     }
