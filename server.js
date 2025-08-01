@@ -1,4 +1,9 @@
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -386,6 +391,19 @@ app.get('/api/testimonials', async (req, res) => {
   } catch (error) {
     console.error('Error fetching testimonials:', error);
     res.status(500).json({ error: 'Failed to fetch testimonials' });
+  }
+});
+
+// Serve static files from the built Vite app
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Catch-all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    // This shouldn't happen as API routes are defined above, but just in case
+    res.status(404).json({ error: 'API endpoint not found' });
+  } else {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   }
 });
 
