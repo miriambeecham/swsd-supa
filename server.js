@@ -394,12 +394,27 @@ app.get('/api/testimonials', async (req, res) => {
   }
 });
 
+// Add route validation middleware to catch malformed routes early
+app.use((req, res, next) => {
+  // Log the incoming route for debugging
+  console.log('Processing route:', req.path, 'Method:', req.method);
+  
+  // Check for malformed route patterns that could cause path-to-regexp issues
+  if (req.path.includes(':') && !req.path.match(/\/:[a-zA-Z_][a-zA-Z0-9_]*(\?|\/|$)/)) {
+    console.error('Potentially malformed route detected:', req.path);
+    return res.status(400).json({ error: 'Malformed route pattern' });
+  }
+  
+  next();
+});
+
 // Serve static files from the built Vite app
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (req, res) => {
   try {
+    console.log('Serving index.html for route:', req.path);
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   } catch (error) {
     console.error('Error serving index.html:', error);
@@ -424,6 +439,31 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+// Validate all routes before starting server
+console.log('=== VALIDATING ROUTES ===');
+const routes = [];
+app._router.stack.forEach((layer) => {
+  if (layer.route) {
+    const methods = Object.keys(layer.route.methods);
+    routes.push(`${methods.join(',').toUpperCase()} ${layer.route.path}`);
+  }
+});
+console.log('Registered routes:', routes);
+
+// Check for any environment variables that might contain route patterns
+const suspiciousEnvVars = Object.keys(process.env).filter(key => {
+  const value = process.env[key] || '';
+  return value.includes(':') && (value.includes('/') || value.includes('\\'));
+});
+
+if (suspiciousEnvVars.length > 0) {
+  console.log('=== WARNING: SUSPICIOUS ENV VARS ===');
+  suspiciousEnvVars.forEach(key => {
+    console.log(`${key}: ${process.env[key]}`);
+  });
+  console.log('=====================================');
+}
+
 try {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Express API server running on http://0.0.0.0:${PORT}`);
@@ -445,5 +485,6 @@ try {
   });
 } catch (error) {
   console.error('Failed to start server:', error);
+  console.error('Error stack:', error.stack);
   process.exit(1);
 }
