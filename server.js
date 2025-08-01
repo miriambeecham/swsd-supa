@@ -234,7 +234,7 @@ app.post('/api/form-submissions', async (req, res) => {
     };
 
     // Add organization and title for CBO and Corporate forms
-    if (formData.formType === 'CBO' || formData.formType === 'Corporate') {
+    if (formData.formType === 'Community Organizations' || formData.formType === 'Workplace Safety') {
       if (formData.organization) airtableFields['Organization'] = formData.organization;
       if (formData.title) airtableFields['Title'] = formData.title;
     }
