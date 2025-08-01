@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Helmet } from 'react-helmet-async';
-import { CheckCircle, Users, Target, Shield, Calendar } from 'lucide-react';
+import { CheckCircle, Users, Target, Shield } from 'lucide-react';
 
 const US_STATES = [
   { value: 'Alabama', label: 'Alabama' },
