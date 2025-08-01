@@ -25,7 +25,7 @@ const CorporatePage = () => {
   const [showContactForm, setShowContactForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [recaptchaValue, setRecaptchaValue = useState<string | null>(null);
+  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
