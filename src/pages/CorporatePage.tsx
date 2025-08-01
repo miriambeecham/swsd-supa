@@ -140,7 +140,7 @@ const CorporatePage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Corporate'
+        formType: 'Workplace Safety'
       };
 
       const response = await fetch('/api/form-submissions', {

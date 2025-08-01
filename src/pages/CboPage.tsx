@@ -101,7 +101,7 @@ const CboPage: React.FC = () => {
     try {
       const formDataWithType = {
         ...data,
-        formType: 'CBO'
+        formType: 'Community Organizations'
       };
 
       const response = await fetch('/api/form-submissions', {
