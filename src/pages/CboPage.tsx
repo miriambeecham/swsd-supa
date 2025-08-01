@@ -709,7 +709,7 @@ const CboPage = () => {
                       name="webRequestDetails"
                       value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Tell us about your community organization's specific training needs, number of participants, age groups, any trauma considerations or cultural sensitivities, preferred timeline, and location details. Include any special circumstances we should be aware of to create the most effective and appropriate program for your community..."
+                      placeholder="Tell us about your community organization's specific training needs, number of participants, age groups, any trauma considerations or cultural sensitivities, preferred timeline, and location details."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
                       required
@@ -774,18 +774,9 @@ const CboPage = () => {
                   </div>
                   <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
                   <p className="text-gray-600 mb-6">
-                    We've received your organization details and will contact you within 24 hours to discuss how we can create a specialized training program for your community.
+                    We've received your organization details and will contact you within 1-2 business days to discuss how we can create a specialized training program for your community.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a
-                      href="https://calendly.com/streetwisewomen/question-answer"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Schedule Call Now
-                    </a>
                     <button
                       onClick={() => {
                         setShowContactForm(false);

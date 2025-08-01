@@ -148,16 +148,13 @@ const PublicClassesPage = () => {
   };
 
   // Filter classes by type for different sections
+  // Filter classes by type for different sections
   const motherDaughterClasses = classSchedules.filter(c => 
-    c.class_name.toLowerCase().includes('mother') || 
-    c.class_name.toLowerCase().includes('daughter') ||
-    c.age_range.includes('12-15')
+    c.type === 'public: mother & daughter'
   );
 
   const adultTeenClasses = classSchedules.filter(c => 
-    c.age_range.includes('15+') || 
-    c.class_name.toLowerCase().includes('adult') ||
-    c.class_name.toLowerCase().includes('teen')
+    c.type === 'public: adult & teen'
   );
 
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
@@ -409,10 +406,10 @@ const PublicClassesPage = () => {
                     A unique bonding experience that empowers both mothers and daughters with essential self-defense
                     skills. These classes focus on building confidence, communication, and practical techniques in a fun,
                     supportive environment. Perfect for strengthening your relationship while learning to protect
-                    yourselves. Classes are led by experienced instructors and cost $139 per pair.
+                    yourselves. Classes are led by experienced instructors. The cost is $139 per mother-daughter pair for a 3-hour class sponsored by the City of Walnut Creek, or $99 per pair for a 2-hour class sponsored by Diablo Valley College.
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                    <span>• 3-hour sessions</span>
+                    <span>• 2-3-hour sessions</span>
                     <span>• Maximum 5 pairs per class</span>
                     <span>• All skill levels welcome</span>
                   </div>

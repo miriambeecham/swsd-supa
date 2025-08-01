@@ -717,7 +717,7 @@ const CorporatePage = () => {
                       name="webRequestDetails"
                       value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Tell us about your workplace safety goals, number of employees, preferred training format, timeline, and any specific requirements for your organization..."
+                      placeholder="Tell us about your workplace safety goals, number of employees participating, preferred training format, timeline, and any specific requirements for your organization."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
                       required
@@ -780,29 +780,20 @@ const CorporatePage = () => {
                   </div>
                   <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
                   <p className="text-gray-600 mb-6">
-                    We've received your workplace details and will contact you within 24 hours to discuss your customized safety training program.
+                    We've received your workplace details and will contact you within 1-2 business days to discuss your customized safety training program.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a
-                      href="https://calendly.com/your-calendly-link"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Schedule Call Now
-                    </a>
-                    <button 
-                      onClick={() => { 
-                        setShowContactForm(false); 
-                        resetForm(); 
-                        window.open('https://calendly.com/streetwisewomen/question-answer', '_blank', 'noopener,noreferrer'); 
-                      }} 
-                      className="bg-white border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center justify-center"
-                    >
-                      <Calendar className="w-5 h-5 mr-2" />
-                      Schedule Free Consultation
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={() => {
+                          setShowContactForm(false);
+                          resetForm();
+                        }}
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
