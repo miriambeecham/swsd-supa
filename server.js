@@ -173,9 +173,14 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
 
     console.log(`Creating ${recordType} in Zoho CRM:`, {
       url: `${ZOHO_DOMAIN}/crm/v2/${recordType}`,
-      recordData: recordData,
+      recordData: JSON.stringify(recordData, null, 2),
       accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : 'missing'
     });
+    
+    console.log('Detailed field mapping for Zoho:');
+    console.log('Base fields:', baseFields);
+    console.log('Custom fields:', customFields);
+    console.log('Combined record data:', recordData.data[0]);
 
     const response = await fetch(`${ZOHO_DOMAIN}/crm/v2/${recordType}`, {
       method: 'POST',
