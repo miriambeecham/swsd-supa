@@ -61,11 +61,14 @@ app.post('/api/form-submissions', async (req, res) => {
     if (formData.availability) airtableFields['Availability'] = formData.availability;
     if (formData.organizationType) airtableFields['Organization Type'] = formData.organizationType;
     if (formData.demographics) airtableFields['Demographics'] = formData.demographics;
-    if (formData.needs) airtableFields['Needs'] = formData.needs;
+    if (formData.needs) airtableFields['WS_Training Needs'] = formData.needs;
     if (formData.logistics) airtableFields['Logistics'] = formData.logistics;
     if (formData.companyName) airtableFields['WS_Organization'] = formData.companyName;
+    if (formData.role) airtableFields['WS_Role Title'] = formData.role;
+    if (formData.employeeCount) airtableFields['WS_Employee Count'] = formData.employeeCount;
+    if (formData.trainingFormat) airtableFields['WS_Training Format'] = formData.trainingFormat;
+    if (formData.timeline) airtableFields['WS_Timeline'] = formData.timeline;
     if (formData.industry) airtableFields['Industry'] = formData.industry;
-    if (formData.employeeCount) airtableFields['Employee Count'] = formData.employeeCount;
     if (formData.safetyGoals) airtableFields['Safety Goals'] = formData.safetyGoals;
 
     console.log('Mapped Airtable fields:', airtableFields);
