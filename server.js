@@ -65,55 +65,90 @@ const getZohoAccessToken = async () => {
   return data.access_token;
 };
 
-// Function to create lead in Zoho CRM
-const createZohoLead = async (formData) => {
+// Function to create record in Zoho CRM (configurable for Leads, Contacts, etc.)
+const createZohoRecord = async (formData, recordType = 'Leads') => {
   try {
     const accessToken = await getZohoAccessToken();
     
-    // Map form data to Zoho CRM lead format
-    const leadData = {
+    // Base fields that map to standard Zoho fields
+    const baseFields = {
+      First_Name: formData.firstName,
+      Last_Name: formData.lastName,
+      Email: formData.email,
+      Phone: formData.phone,
+      Lead_Source: 'Website Form',
+      Company: formData.companyName || formData.organizationName || 'Individual'
+    };
+
+    // Build description from all available form data
+    let description = `Form Type: ${formData.formType}\n`;
+    if (formData.goals) description += `Goals: ${formData.goals}\n`;
+    if (formData.needs) description += `Training Needs: ${formData.needs}\n`;
+    if (formData.availability) description += `Availability: ${formData.availability}\n`;
+    if (formData.logistics) description += `Logistics: ${formData.logistics}\n`;
+    if (formData.demographics) description += `Demographics: ${formData.demographics}\n`;
+    if (formData.timeline) description += `Timeline: ${formData.timeline}\n`;
+    
+    baseFields.Description = description;
+
+    // Custom field mappings - CUSTOMIZE THESE TO MATCH YOUR ZOHO SETUP
+    const customFields = {};
+    
+    // Private Classes specific fields
+    if (formData.formType === 'Private Classes') {
+      // Map to your custom Zoho fields for private training
+      customFields.Training_Type = formData.trainingType;
+      customFields.Group_Size = formData.groupSize;
+      customFields.Training_Goals = formData.goals;
+      customFields.Availability = formData.availability;
+      // Add more custom fields as needed:
+      // customFields.Custom_Field_Name = formData.fieldName;
+    }
+    
+    // Corporate/Workplace Safety specific fields
+    if (formData.formType === 'Corporate') {
+      customFields.Organization_Name = formData.companyName;
+      customFields.Job_Title = formData.role; // or Role_Title
+      customFields.Employee_Count = formData.employeeCount;
+      customFields.Training_Format = formData.trainingFormat;
+      customFields.Timeline = formData.timeline;
+      customFields.Training_Needs = formData.needs;
+      // Add more corporate-specific fields:
+      // customFields.Industry = formData.industry;
+      // customFields.Budget_Range = formData.budget;
+    }
+    
+    // CBO/Community Organization specific fields
+    if (formData.formType === 'CBO') {
+      customFields.Organization_Name = formData.organizationName;
+      customFields.Organization_Type = formData.organizationType;
+      customFields.Age_Range = formData.ageRange;
+      customFields.Participant_Count = formData.participantCount;
+      customFields.Event_Date = formData.eventDate;
+      customFields.Training_Goals = formData.goals;
+      customFields.Logistics = formData.logistics;
+      // Add more CBO-specific fields:
+      // customFields.Funding_Source = formData.fundingSource;
+      // customFields.Previous_Training = formData.previousTraining;
+    }
+
+    // Combine base and custom fields
+    const recordData = {
       data: [{
-        First_Name: formData.firstName,
-        Last_Name: formData.lastName,
-        Email: formData.email,
-        Phone: formData.phone,
-        Lead_Source: 'Website Form',
-        Company: formData.companyName || formData.organizationName || 'Individual',
-        Description: `Form Type: ${formData.formType}\n` +
-                    (formData.goals ? `Goals: ${formData.goals}\n` : '') +
-                    (formData.needs ? `Training Needs: ${formData.needs}\n` : '') +
-                    (formData.availability ? `Availability: ${formData.availability}\n` : '') +
-                    (formData.logistics ? `Logistics: ${formData.logistics}\n` : '') +
-                    (formData.demographics ? `Demographics: ${formData.demographics}\n` : ''),
-        // Custom fields based on form type
-        ...(formData.formType === 'Private Classes' && {
-          Training_Type: formData.trainingType,
-          Group_Size: formData.groupSize,
-        }),
-        ...(formData.formType === 'Corporate' && {
-          Organization_Name: formData.companyName,
-          Role_Title: formData.role,
-          Employee_Count: formData.employeeCount,
-          Training_Format: formData.trainingFormat,
-          Timeline: formData.timeline,
-        }),
-        ...(formData.formType === 'CBO' && {
-          Organization_Name: formData.organizationName,
-          Organization_Type: formData.organizationType,
-          Age_Range: formData.ageRange,
-          Participant_Count: formData.participantCount,
-          Event_Date: formData.eventDate,
-        }),
+        ...baseFields,
+        ...customFields
       }]
     };
 
-    const response = await fetch(`${ZOHO_DOMAIN}/crm/v2/Leads`, {
+    console.log(`Creating ${recordType} in Zoho CRM:`, recordData);
+
+    const response = await fetch(`${ZOHO_DOMAIN}/crm/v2/${recordType}`, {
       method: 'POST',
       headers: {
         'Authorization': `Zoho-oauthtoken ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(leadData)
+      body: JSON.stringify(recordData)
     });
 
     if (!response.ok) {
@@ -123,10 +158,10 @@ const createZohoLead = async (formData) => {
     }
 
     const result = await response.json();
-    console.log('Zoho lead created successfully:', result.data[0].details.id);
+    console.log(`Zoho ${recordType} created successfully:`, result.data[0].details.id);
     return result;
   } catch (error) {
-    console.error('Error creating Zoho lead:', error.message);
+    console.error(`Error creating Zoho ${recordType}:`, error.message);
     // Don't throw error to prevent Airtable submission from failing
     return null;
   }
@@ -214,8 +249,8 @@ app.post('/api/form-submissions', async (req, res) => {
     const airtableResult = await airtableResponse.json();
     console.log('Airtable submission successful:', airtableResult.id);
 
-    // Submit to Zoho CRM (non-blocking)
-    const zohoResult = await createZohoLead(formData);
+    // Submit to Zoho CRM (non-blocking) - defaults to Leads
+    const zohoResult = await createZohoRecord(formData, 'Leads');
     
     // Return success response
     res.json({
