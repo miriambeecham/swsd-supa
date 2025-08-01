@@ -42,22 +42,14 @@ const PublicClassesPage = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch both Classes and Class Schedules from Airtable
+      // Use server-side API endpoints instead of direct Airtable calls
       const [classesResponse, schedulesResponse] = await Promise.all([
-        fetch(`https://api.airtable.com/v0/${import.meta.env.VITE_AIRTABLE_BASE_ID}/Classes`, {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_AIRTABLE_API_KEY}`
-          }
-        }),
-        fetch(`https://api.airtable.com/v0/${import.meta.env.VITE_AIRTABLE_BASE_ID}/Class%20Schedules`, {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_AIRTABLE_API_KEY}`
-          }
-        })
+        fetch('/api/classes'),
+        fetch('/api/schedules')
       ]);
 
       if (!classesResponse.ok || !schedulesResponse.ok) {
-        throw new Error('Failed to fetch data from Airtable');
+        throw new Error('Failed to fetch data from server');
       }
 
       const classesData = await classesResponse.json();

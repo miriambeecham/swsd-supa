@@ -12,7 +12,7 @@ export default async function handler(req: Request): Promise<Response> {
     
     const classes = await getClasses(filter || undefined);
     
-    return new Response(JSON.stringify(classes), {
+    return new Response(JSON.stringify({ records: classes }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',

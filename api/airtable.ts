@@ -81,18 +81,21 @@ export async function getClasses(filterFormula?: string) {
   
   return data.records.map((record: any) => ({
     id: record.id,
-    title: record.fields.Title || '',
-    description: record.fields.Description || '',
-    type: record.fields.Type || '',
-    date: record.fields.Date || '',
-    time: record.fields.Time || '',
-    location: record.fields.Location || '',
-    price: record.fields.Price || 0,
-    maxParticipants: record.fields['Max Participants'] || 0,
-    availableSpots: record.fields['Available Spots'] || 0,
-    externalRegistrationUrl: record.fields['External Registration URL'],
-    weHandleRegistration: record.fields['We Handle Registration'] || false,
-    isActive: record.fields['Is Active'] || false,
+    fields: {
+      'Class Name': record.fields['Class Name'] || record.fields.Title,
+      'Description': record.fields.Description,
+      'Type': record.fields.Type,
+      'Age Range': record.fields['Age Range'],
+      'Duration': record.fields.Duration,
+      'Max Participants': record.fields['Max Participants'],
+      'Location': record.fields.Location,
+      'Instructor': record.fields.Instructor,
+      'Price': record.fields.Price,
+      'Partner Organization': record.fields['Partner Organization'],
+      'Booking Method': record.fields['Booking Method'],
+      'Registration Instructions': record.fields['Registration Instructions'],
+      'Is Active': record.fields['Is Active'],
+    }
   }));
 }
 
@@ -154,6 +157,30 @@ export async function createBooking(data: {
   });
 
   return response;
+}
+
+// Get schedules
+export async function getSchedules(filterFormula?: string) {
+  const endpoint = filterFormula 
+    ? `/Class%20Schedules?filterByFormula=${encodeURIComponent(filterFormula)}`
+    : '/Class%20Schedules';
+  
+  const data = await makeAirtableRequest(endpoint);
+  
+  return data.records.map((record: any) => ({
+    id: record.id,
+    fields: {
+      'Class': record.fields.Class,
+      'Date': record.fields.Date,
+      'Start Time': record.fields['Start Time'],
+      'End Time': record.fields['End Time'],
+      'Booking URL': record.fields['Booking URL'],
+      'Registration Opens': record.fields['Registration Opens'],
+      'Is Cancelled': record.fields['Is Cancelled'],
+      'Special Notes': record.fields['Special Notes'],
+      'Pricing Unit': record.fields['Pricing Unit'],
+    }
+  }));
 }
 
 // Update booking payment
