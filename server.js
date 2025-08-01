@@ -38,6 +38,12 @@ const makeAirtableRequest = async (endpoint) => {
 // Function to get Zoho access token
 const getZohoAccessToken = async () => {
   if (!ZOHO_CLIENT_ID || !ZOHO_CLIENT_SECRET || !ZOHO_REFRESH_TOKEN) {
+    console.error('Missing Zoho credentials:', {
+      clientIdExists: !!ZOHO_CLIENT_ID,
+      clientSecretExists: !!ZOHO_CLIENT_SECRET,
+      refreshTokenExists: !!ZOHO_REFRESH_TOKEN,
+      domain: ZOHO_DOMAIN
+    });
     throw new Error('Zoho CRM not configured properly');
   }
 
@@ -49,6 +55,13 @@ const getZohoAccessToken = async () => {
     grant_type: 'refresh_token'
   });
 
+  console.log('Making Zoho token request:', {
+    url: tokenUrl,
+    domain: ZOHO_DOMAIN,
+    clientId: ZOHO_CLIENT_ID ? `${ZOHO_CLIENT_ID.substring(0, 10)}...` : 'missing',
+    refreshToken: ZOHO_REFRESH_TOKEN ? `${ZOHO_REFRESH_TOKEN.substring(0, 10)}...` : 'missing'
+  });
+
   const response = await fetch(tokenUrl, {
     method: 'POST',
     headers: {
@@ -56,6 +69,8 @@ const getZohoAccessToken = async () => {
     },
     body: params
   });
+
+  console.log('Zoho token response status:', response.status);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -67,13 +82,14 @@ const getZohoAccessToken = async () => {
       clientIdExists: !!ZOHO_CLIENT_ID,
       clientSecretExists: !!ZOHO_CLIENT_SECRET,
       refreshTokenExists: !!ZOHO_REFRESH_TOKEN,
+      requestBody: params.toString(),
       errorResponse: errorText
     });
     throw new Error(`Zoho token refresh failed: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log('Zoho token refresh successful');
+  console.log('Zoho token refresh successful:', data);
   return data.access_token;
 };
 
@@ -153,7 +169,11 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       }]
     };
 
-    console.log(`Creating ${recordType} in Zoho CRM:`, recordData);
+    console.log(`Creating ${recordType} in Zoho CRM:`, {
+      url: `${ZOHO_DOMAIN}/crm/v2/${recordType}`,
+      recordData: recordData,
+      accessToken: accessToken ? `${accessToken.substring(0, 10)}...` : 'missing'
+    });
 
     const response = await fetch(`${ZOHO_DOMAIN}/crm/v2/${recordType}`, {
       method: 'POST',
@@ -164,14 +184,24 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       body: JSON.stringify(recordData)
     });
 
+    console.log(`Zoho CRM ${recordType} response status:`, response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Zoho CRM API error:', errorText);
-      throw new Error(`Zoho API error: ${response.status}`);
+      console.error('Zoho CRM API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: `${ZOHO_DOMAIN}/crm/v2/${recordType}`,
+        domain: ZOHO_DOMAIN,
+        recordType: recordType,
+        errorResponse: errorText,
+        requestBody: JSON.stringify(recordData, null, 2)
+      });
+      throw new Error(`Zoho API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
-    console.log(`Zoho ${recordType} created successfully:`, result.data[0].details.id);
+    console.log(`Zoho ${recordType} created successfully:`, result);
     return result;
   } catch (error) {
     console.error(`Error creating Zoho ${recordType}:`, error.message);
@@ -184,7 +214,14 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
 app.post('/api/form-submissions', async (req, res) => {
   try {
     const formData = req.body;
+    console.log('=== FORM SUBMISSION START ===');
     console.log('Received form data:', formData);
+    console.log('Form type:', formData.formType);
+    console.log('Basic fields:', {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email
+    });
 
     // Map form fields to Airtable field names
     const airtableFields = {
