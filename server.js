@@ -1,4 +1,3 @@
-
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,48 +19,61 @@ const port = process.env.PORT || 3001;
 
 app.use(express.json());
 
-// API routes
+// API Routes - handle each endpoint specifically
 app.get('/api/classes', async (req, res) => {
   try {
-    const request = new Request(`http://localhost:${port}${req.originalUrl}`, {
-      method: req.method,
-      headers: req.headers,
-    });
-    const response = await classesHandler(request);
-    const data = await response.json();
-    res.status(response.status).json(data);
+    const { getClasses } = await import('./api/airtable.js');
+    const filter = req.query.filter;
+    const classes = await getClasses(filter);
+    res.json({ records: classes });
   } catch (error) {
-    console.error('Classes API error:', error);
+    console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.get('/api/schedules', async (req, res) => {
   try {
-    const request = new Request(`http://localhost:${port}${req.originalUrl}`, {
-      method: req.method,
-      headers: req.headers,
-    });
-    const response = await schedulesHandler(request);
-    const data = await response.json();
-    res.status(response.status).json(data);
+    const { getSchedules } = await import('./api/airtable.js');
+    const filter = req.query.filter;
+    const schedules = await getSchedules(filter);
+    res.json({ records: schedules });
   } catch (error) {
-    console.error('Schedules API error:', error);
+    console.error('Error fetching schedules:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.get('/api/testimonials', async (req, res) => {
   try {
-    const request = new Request(`http://localhost:${port}${req.originalUrl}`, {
-      method: req.method,
-      headers: req.headers,
-    });
-    const response = await testimonialsHandler(request);
-    const data = await response.json();
-    res.status(response.status).json(data);
+    const { getTestimonials } = await import('./api/airtable.js');
+    const filter = req.query.filter;
+    const testimonials = await getTestimonials(filter);
+    res.json(testimonials);
   } catch (error) {
-    console.error('Testimonials API error:', error);
+    console.error('Error fetching testimonials:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/faqs', async (req, res) => {
+  try {
+    const { getFAQs } = await import('./api/airtable.js');
+    const faqs = await getFAQs();
+    res.json(faqs);
+  } catch (error) {
+    console.error('Error fetching FAQs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/faq-categories', async (req, res) => {
+  try {
+    const { getFAQCategories } = await import('./api/airtable.js');
+    const categories = await getFAQCategories();
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching FAQ categories:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
