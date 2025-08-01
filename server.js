@@ -427,6 +427,18 @@ app.get('/api/testimonials', async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Express API server running on http://0.0.0.0:${PORT}`);
-  console.log(`Base ID: ${AIRTABLE_BASE_ID}`);
-  console.log(`API Key exists: ${!!AIRTABLE_API_KEY}`);
+  console.log('=== ENVIRONMENT VARIABLES DEBUG ===');
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`PORT: ${process.env.PORT}`);
+  console.log(`AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 10)}...` : 'NOT SET'}`);
+  console.log(`AIRTABLE_API_KEY exists: ${!!AIRTABLE_API_KEY}`);
+  console.log(`ZOHO_CLIENT_ID exists: ${!!ZOHO_CLIENT_ID}`);
+  console.log(`ZOHO_CLIENT_SECRET exists: ${!!ZOHO_CLIENT_SECRET}`);
+  console.log(`ZOHO_REFRESH_TOKEN exists: ${!!ZOHO_REFRESH_TOKEN}`);
+  console.log(`ZOHO_DOMAIN: ${ZOHO_DOMAIN}`);
+  console.log('Raw ZOHO_DOMAIN from env:', process.env.ZOHO_DOMAIN);
+  console.log('Available env vars:', Object.keys(process.env).filter(key => 
+    key.includes('AIRTABLE') || key.includes('ZOHO')
+  ));
+  console.log('=====================================');
 });
