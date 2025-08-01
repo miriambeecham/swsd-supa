@@ -228,7 +228,7 @@ app.post('/api/form-submissions', async (req, res) => {
       'Phone': formData.phone,
       'City': formData.city,
       'State': formData.state,
-      'Web_Request_Details': formData.webRequestDetails,
+      'Web Lead Message': formData.webRequestDetails,
       'Newsletter Signup': formData.newsletter,
       'Form Type': formData.formType
     };
