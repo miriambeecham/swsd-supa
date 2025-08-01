@@ -185,7 +185,7 @@ const CboPage = () => {
     try {
       setLoading(true);
 
-      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="cbo1",{Homepage position}="cbo2"))');
+      const response = await fetch('/zog/testimonials?filter=AND({Is published}=1,OR({Homepage position}="cbo1",{Homepage position}="cbo2"))');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch testimonials: ${response.status}`);

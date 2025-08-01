@@ -106,7 +106,7 @@ const PrivateClassesPage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Private Classes'
+        formType: 'Private Training'
       };
 
       const response = await fetch('/api/form-submissions', {
