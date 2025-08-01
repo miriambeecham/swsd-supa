@@ -28,15 +28,13 @@ const CboPage = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    organization: '',
+    title: '',
     email: '',
     phone: '',
-    organizationName: '',
-    organizationType: '',
-    participantCount: '',
-    ageRange: '',
-    eventDate: '',
-    goals: '',
-    logistics: '',
+    city: '',
+    state: '',
+    webRequestDetails: '',
     newsletter: false
   });
 
@@ -88,7 +86,7 @@ const CboPage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'CBO/Community Organization'
+        formType: 'Community Organizations'
       };
 
       const response = await fetch('/api/form-submissions', {
@@ -119,15 +117,13 @@ const CboPage = () => {
     setFormData({
       firstName: '',
       lastName: '',
+      organization: '',
+      title: '',
       email: '',
       phone: '',
-      organizationName: '',
-      organizationType: '',
-      participantCount: '',
-      ageRange: '',
-      eventDate: '',
-      goals: '',
-      logistics: '',
+      city: '',
+      state: '',
+      webRequestDetails: '',
       newsletter: false
     });
   };
@@ -508,7 +504,7 @@ const CboPage = () => {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              <p className="text-gray-600 mt-2">Tell us about your community and training needs so we can create a specialized program that serves your members safely and effectively.</p>
+              <p className="text-gray-600 mt-2">Tell us about your community organization and training needs so we can create a specialized program that serves your members safely and effectively.</p>
             </div>
 
             <div className="p-6">
@@ -549,6 +545,38 @@ const CboPage = () => {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
+                      <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-2">
+                        Organization Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="organization"
+                        name="organization"
+                        value={formData.organization}
+                        onChange={handleInputChange}
+                        placeholder="Your organization name"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                        Your Title/Role
+                      </label>
+                      <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleInputChange}
+                        placeholder="Your role in the organization"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                         Email *
                       </label>
@@ -582,127 +610,48 @@ const CboPage = () => {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 mb-2">
-                        Organization Name *
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                        City
                       </label>
                       <input
                         type="text"
-                        id="organizationName"
-                        name="organizationName"
-                        value={formData.organizationName}
+                        id="city"
+                        name="city"
+                        value={formData.city}
                         onChange={handleInputChange}
-                        placeholder="Your organization name"
+                        placeholder="Your city"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
                       />
                     </div>
                     <div>
-                      <label htmlFor="organizationType" className="block text-sm font-medium text-gray-700 mb-2">
-                        Organization Type
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                        State
                       </label>
-                      <select
-                        id="organizationType"
-                        name="organizationType"
-                        value={formData.organizationType}
-                        onChange={(e) => handleSelectChange('organizationType', e.target.value)}
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        placeholder="Your state"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      >
-                        <option value="">Select organization type</option>
-                        <option value="nonprofit">Nonprofit Organization</option>
-                        <option value="school">School/Educational Institution</option>
-                        <option value="youth">Youth Group/Club</option>
-                        <option value="religious">Religious Organization</option>
-                        <option value="shelter">Women's/Family Shelter</option>
-                        <option value="community">Community Center</option>
-                        <option value="senior">Senior Center</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="participantCount" className="block text-sm font-medium text-gray-700 mb-2">
-                        Expected Number of Participants
-                      </label>
-                      <select
-                        id="participantCount"
-                        name="participantCount"
-                        value={formData.participantCount}
-                        onChange={(e) => handleSelectChange('participantCount', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      >
-                        <option value="">Select participant count</option>
-                        <option value="1-10">1-10 participants</option>
-                        <option value="11-25">11-25 participants</option>
-                        <option value="26-50">26-50 participants</option>
-                        <option value="51-100">51-100 participants</option>
-                        <option value="100+">100+ participants</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="ageRange" className="block text-sm font-medium text-gray-700 mb-2">
-                        Age Range of Participants
-                      </label>
-                      <select
-                        id="ageRange"
-                        name="ageRange"
-                        value={formData.ageRange}
-                        onChange={(e) => handleSelectChange('ageRange', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      >
-                        <option value="">Select age range</option>
-                        <option value="children">Children (6-12)</option>
-                        <option value="teens">Teens (13-17)</option>
-                        <option value="adults">Adults (18-64)</option>
-                        <option value="seniors">Seniors (65+)</option>
-                        <option value="mixed">Mixed Ages</option>
-                      </select>
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Event Date or Timeline
-                    </label>
-                    <input
-                      type="text"
-                      id="eventDate"
-                      name="eventDate"
-                      value={formData.eventDate}
-                      onChange={handleInputChange}
-                      placeholder="e.g., March 2025, Spring semester, flexible timing"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
-                      Training Goals & Community Needs
+                    <label htmlFor="webRequestDetails" className="block text-sm font-medium text-gray-700 mb-2">
+                      How can we help? *
                     </label>
                     <textarea
-                      id="goals"
-                      name="goals"
-                      value={formData.goals}
+                      id="webRequestDetails"
+                      name="webRequestDetails"
+                      value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Tell us about your community's specific needs, any trauma considerations, cultural sensitivities, or special circumstances we should be aware of..."
+                      placeholder="Tell us about your community organization's specific training needs, number of participants, age groups, any trauma considerations or cultural sensitivities, preferred timeline, and location details. Include any special circumstances we should be aware of to create the most effective and appropriate program for your community..."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="logistics" className="block text-sm font-medium text-gray-700 mb-2">
-                      Location & Logistics
-                    </label>
-                    <textarea
-                      id="logistics"
-                      name="logistics"
-                      value={formData.logistics}
-                      onChange={handleInputChange}
-                      placeholder="Where would training take place? Any space limitations, accessibility needs, or scheduling constraints we should know about..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
+                      required
                     />
                   </div>
 
@@ -726,6 +675,7 @@ const CboPage = () => {
                       onChange={handleRecaptchaChange}
                     />
                   </div>
+
                   <p className="text-sm text-gray-500">
                     By submitting this form, you agree to our{' '}
                     <a 
@@ -737,6 +687,7 @@ const CboPage = () => {
                       Privacy Policy
                     </a>.
                   </p>
+
                   <button
                     type="submit"
                     disabled={isSubmitting || !recaptchaValue}
