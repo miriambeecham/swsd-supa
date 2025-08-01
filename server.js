@@ -87,10 +87,10 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       First_Name: formData.firstName,
       Last_Name: formData.lastName,
       Email: formData.email,
-      Phone: formData.phone,
-      Lead_Source: 'Website Form',
-      Company: formData.companyName || formData.organizationName || 'Individual',
-      Newsletter_Opt_In: formData.newsletter || false
+      //Phone: formData.phone,
+      //Lead_Source: 'Website',
+      //Company: formData.companyName || formData.organizationName || 'Individual',
+      //Newsletter_Opt_In: formData.newsletter || false
     };
 
     // Build description from all available form data
