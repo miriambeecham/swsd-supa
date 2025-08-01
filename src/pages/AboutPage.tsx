@@ -290,7 +290,7 @@ const AboutPage = () => {
                 <p className="text-gray-600">Since 2014, including survivors of rape and domestic violence</p>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent-primary mb-2">15+</div>
+                <div className="text-4xl font-bold text-accent-primary mb-2">10+</div>
                 <div className="text-lg font-semibold text-navy mb-2">Years of Service</div>
                 <p className="text-gray-600">Building safer communities through empowerment</p>
               </div>

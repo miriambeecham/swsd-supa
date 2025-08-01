@@ -285,7 +285,7 @@ const HomePage = () => {
               <p className="text-gray-600 font-medium">Students Trained</p>
             </div>
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">15+</div>
+              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">10+</div>
               <p className="text-gray-600 font-medium">Years Experience</p>
             </div>
             <div className="text-center">

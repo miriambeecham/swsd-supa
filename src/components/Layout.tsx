@@ -307,7 +307,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               />
               <p className="text-slate-400 max-w-md mb-6">
                 Empowering women and vulnerable populations through practical self-defense training. Building confidence, strength, and safety
-                awareness since 2008.
+                awareness since 2014.
               </p>
               <div>
                 <p className="text-slate-400 text-sm mb-3">Insured by:</p>
