@@ -1,6 +1,5 @@
 
 import express from 'express';
-import { ViteDevServer } from 'vite';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -98,21 +97,8 @@ app.get('/api/schedules', async (req, res) => {
   }
 });
 
-// Vite setup
-let vite;
-if (process.env.NODE_ENV !== 'production') {
-  const { createServer } = await import('vite');
-  vite = await createServer({
-    server: { middlewareMode: true },
-    appType: 'spa'
-  });
-  app.use(vite.ssrFixStacktrace);
-  app.use(vite.middlewares);
-} else {
-  const { default: sirv } = await import('sirv');
-  app.use(sirv('dist', { single: true }));
-}
-
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`Express API server running on http://0.0.0.0:${PORT}`);
+  console.log(`Base ID: ${AIRTABLE_BASE_ID}`);
+  console.log(`API Key exists: ${!!AIRTABLE_API_KEY}`);
 });
