@@ -1,43 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Airtable API configuration
+const airtableApiKey = import.meta.env.AIRTABLE_API_KEY || '';
+const airtableBaseId = import.meta.env.AIRTABLE_BASE_ID || '';
 
-// Debug: Check what Supabase values we're getting
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key (first 20 chars):', supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'MISSING');
+// Debug: Check what Airtable values we're getting
+console.log('Airtable Base ID:', airtableBaseId);
+console.log('Airtable API Key (first 20 chars):', airtableApiKey ? airtableApiKey.substring(0, 20) + '...' : 'MISSING');
 
-// Validate URL format
-const isValidUrl = (url: string) => {
-  try {
-    new URL(url);
-    return url.startsWith('https://') && url.includes('.supabase.co');
-  } catch {
-    return false;
-  }
-};
-
-// Check if we have valid Supabase credentials
-const hasValidCredentials = supabaseUrl && 
-  supabaseAnonKey && 
-  isValidUrl(supabaseUrl) && 
-  supabaseUrl !== 'your_supabase_url_here' &&
-  supabaseAnonKey !== 'your_supabase_anon_key_here';
+// Check if we have valid Airtable credentials
+const hasValidCredentials = airtableApiKey && 
+  airtableBaseId && 
+  airtableApiKey !== 'your_airtable_api_key_here' &&
+  airtableBaseId !== 'your_airtable_base_id_here';
 
 if (!hasValidCredentials) {
-  console.warn('⚠️ Supabase not configured properly. Some features may not work.');
-  console.warn('Please click "Connect to Supabase" in the top right to set up your database connection.');
+  console.warn('⚠️ Airtable not configured properly. Some features may not work.');
+  console.warn('Please set up your AIRTABLE_API_KEY and AIRTABLE_BASE_ID environment variables.');
 }
 
-// Create a mock client if credentials are invalid to prevent crashes
-export const supabase = hasValidCredentials 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createClient('https://placeholder.supabase.co', 'placeholder-key');
+// Export a flag to check if Airtable is properly configured
+export const isAirtableConfigured = hasValidCredentials;
+export { airtableApiKey, airtableBaseId };
 
-// Export a flag to check if Supabase is properly configured
-export const isSupabaseConfigured = hasValidCredentials;
-
-// Types for our database tables
+// Types for our data
 export interface Class {
   id: string;
   title: string;

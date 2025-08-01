@@ -1,64 +1,33 @@
-import { supabase, isSupabaseConfigured } from './supabase';
+
 import type { Class, ClassSchedule, Booking } from './supabase';
 
 // Fetch all active classes with their schedules
 export async function getClassesWithSchedules() {
-  if (!isSupabaseConfigured) {
-    console.warn('Supabase not configured - returning empty classes array');
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from('classes')
-    .select(`
-      *,
-      sponsoring_entity:sponsoring_entities (*),
-      class_schedules (
-        *
-      )
-    `)
-    .eq('is_active', true)
-    .order('created_at', { ascending: true });
-
-  if (error) {
+  try {
+    const response = await fetch('/api/classes');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch classes: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
     console.error('Error fetching classes:', error);
     throw error;
   }
-
-  return data;
 }
 
 // Fetch upcoming schedules for a specific class type
 export async function getUpcomingSchedules(classType?: string) {
-  if (!isSupabaseConfigured) {
-    console.warn('Supabase not configured - returning empty schedules array');
-    return [];
-  }
-
-  const query = supabase
-    .from('class_schedules')
-    .select(`
-      *,
-      classes!inner (
-        *,
-        sponsoring_entity:sponsoring_entities (*)
-      )
-    `)
-    .eq('is_cancelled', false)
-    .gte('start_time', new Date().toISOString())
-    .order('start_time', { ascending: true });
-
-  // Filter by class type if specified
-  const { data, error } = classType 
-    ? await query.eq('classes.type', classType)
-    : await query;
-
-  if (error) {
+  try {
+    const url = classType ? `/api/schedules?type=${classType}` : '/api/schedules';
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch schedules: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
     console.error('Error fetching schedules:', error);
     throw error;
   }
-
-  return data;
 }
 
 // Get mother-daughter classes specifically
@@ -81,25 +50,24 @@ export async function createBooking(bookingData: {
   emergency_contact_phone?: string;
   special_requirements?: string;
 }) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured. Please connect to Supabase to create bookings.');
-  }
+  try {
+    const response = await fetch('/api/bookings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bookingData),
+    });
 
-  const { data, error } = await supabase
-    .from('bookings')
-    .insert([{
-      ...bookingData,
-      payment_status: 'pending'
-    }])
-    .select()
-    .single();
+    if (!response.ok) {
+      throw new Error(`Failed to create booking: ${response.status}`);
+    }
 
-  if (error) {
+    return response.json();
+  } catch (error) {
     console.error('Error creating booking:', error);
     throw error;
   }
-
-  return data;
 }
 
 // Update booking payment status
@@ -108,74 +76,137 @@ export async function updateBookingPayment(
   paymentIntentId: string, 
   amountPaid: number
 ) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured. Please connect to Supabase to update payments.');
-  }
+  try {
+    const response = await fetch(`/api/bookings/${bookingId}/payment`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        paymentIntentId,
+        amountPaid,
+      }),
+    });
 
-  const { data, error } = await supabase
-    .from('bookings')
-    .update({
-      payment_status: 'completed',
-      stripe_payment_intent_id: paymentIntentId,
-      amount_paid_cents: amountPaid
-    })
-    .eq('id', bookingId)
-    .select()
-    .single();
+    if (!response.ok) {
+      throw new Error(`Failed to update booking payment: ${response.status}`);
+    }
 
-  if (error) {
+    return response.json();
+  } catch (error) {
     console.error('Error updating booking payment:', error);
     throw error;
   }
-
-  return data;
 }
 
 // Get booking by ID
 export async function getBooking(bookingId: string) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured. Please connect to Supabase to fetch bookings.');
-  }
-
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(`
-      *,
-      class_schedule:class_schedules (
-        *,
-        class:classes (*)
-      )
-    `)
-    .eq('id', bookingId)
-    .single();
-
-  if (error) {
+  try {
+    const response = await fetch(`/api/bookings/${bookingId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch booking: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
     console.error('Error fetching booking:', error);
     throw error;
   }
-
-  return data;
 }
 
 // Update available spots after booking
 export async function updateAvailableSpots(scheduleId: string, spotsToReduce: number = 1) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase not configured. Please connect to Supabase to update spots.');
-  }
+  try {
+    const response = await fetch(`/api/schedules/${scheduleId}/spots`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        spotsToReduce,
+      }),
+    });
 
-  const { data, error } = await supabase
-    .from('class_schedules')
-    .update({
-      available_spots: supabase.raw(`available_spots - ${spotsToReduce}`)
-    })
-    .eq('id', scheduleId)
-    .select()
-    .single();
+    if (!response.ok) {
+      throw new Error(`Failed to update available spots: ${response.status}`);
+    }
 
-  if (error) {
+    return response.json();
+  } catch (error) {
     console.error('Error updating available spots:', error);
     throw error;
   }
+}
 
-  return data;
+// Get testimonials
+export async function getTestimonials(filter?: string) {
+  try {
+    const url = filter ? `/api/testimonials?filter=${encodeURIComponent(filter)}` : '/api/testimonials';
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch testimonials: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching testimonials:', error);
+    throw error;
+  }
+}
+
+// Get FAQs
+export async function getFAQs() {
+  try {
+    const response = await fetch('/api/faqs');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch FAQs: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching FAQs:', error);
+    throw error;
+  }
+}
+
+// Get FAQ categories
+export async function getFAQCategories() {
+  try {
+    const response = await fetch('/api/faq-categories');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch FAQ categories: ${response.status}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching FAQ categories:', error);
+    throw error;
+  }
+}
+
+// Create contact inquiry
+export async function createContactInquiry(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  message?: string;
+  inquiryType: string;
+}) {
+  try {
+    const response = await fetch('/api/contact', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create contact inquiry: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error creating contact inquiry:', error);
+    throw error;
+  }
 }
