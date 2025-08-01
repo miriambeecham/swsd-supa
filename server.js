@@ -107,7 +107,7 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       Email: formData.email,
       Mobile: formData.phone,
       City: formData.city,
-      State: formData.state,
+      State_Territory: formData.state,
       Lead_Source: 'Website',
       Newsletter_Opt_In: formData.newsletter || false,
       Description: formData.webRequestDetails || '',
