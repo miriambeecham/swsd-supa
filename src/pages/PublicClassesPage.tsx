@@ -42,18 +42,13 @@ const PublicClassesPage = () => {
       setLoading(true);
       setError(null);
 
-      // Use server-side API endpoints instead of direct Airtable calls
-      const [classesResponse, schedulesResponse] = await Promise.all([
-        fetch('/api/classes'),
-        fetch('/api/schedules')
+      // Import API functions directly from lib
+      const { getClasses, getSchedules } = await import('../lib/api');
+
+      const [classesData, schedulesData] = await Promise.all([
+        getClasses(),
+        getSchedules()
       ]);
-
-      if (!classesResponse.ok || !schedulesResponse.ok) {
-        throw new Error('Failed to fetch data from server');
-      }
-
-      const classesData = await classesResponse.json();
-      const schedulesData = await schedulesResponse.json();
 
       // Combine classes with their schedules
       const combinedData: ClassSchedule[] = schedulesData.records

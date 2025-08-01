@@ -1,212 +1,97 @@
+import { airtableApiKey, airtableBaseId, isAirtableConfigured } from './supabase';
 
-import type { Class, ClassSchedule, Booking } from './supabase';
+const AIRTABLE_BASE_URL = `https://api.airtable.com/v0/${airtableBaseId}`;
 
-// Fetch all active classes with their schedules
+async function makeAirtableRequest(endpoint: string, options: RequestInit = {}) {
+  if (!isAirtableConfigured) {
+    throw new Error('Airtable not configured properly');
+  }
+
+  const response = await fetch(`${AIRTABLE_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${airtableApiKey}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Get classes
+export async function getClasses(filterFormula?: string) {
+  const endpoint = filterFormula 
+    ? `/Classes?filterByFormula=${encodeURIComponent(filterFormula)}`
+    : '/Classes';
+
+  const data = await makeAirtableRequest(endpoint);
+
+  return {
+    records: data.records.map((record: any) => ({
+      id: record.id,
+      fields: {
+        'Class Name': record.fields['Class Name'] || record.fields.Title,
+        'Description': record.fields.Description,
+        'Type': record.fields.Type,
+        'Age Range': record.fields['Age Range'],
+        'Duration': record.fields.Duration,
+        'Max Participants': record.fields['Max Participants'],
+        'Location': record.fields.Location,
+        'Instructor': record.fields.Instructor,
+        'Price': record.fields.Price,
+        'Partner Organization': record.fields['Partner Organization'],
+        'Booking Method': record.fields['Booking Method'],
+        'Registration Instructions': record.fields['Registration Instructions'],
+        'Is Active': record.fields['Is Active'],
+      }
+    }))
+  };
+}
+
+// Get schedules
+export async function getSchedules(filterFormula?: string) {
+  const endpoint = filterFormula 
+    ? `/Class%20Schedules?filterByFormula=${encodeURIComponent(filterFormula)}`
+    : '/Class%20Schedules';
+
+  const data = await makeAirtableRequest(endpoint);
+
+  return {
+    records: data.records.map((record: any) => ({
+      id: record.id,
+      fields: {
+        'Class': record.fields.Class,
+        'Date': record.fields.Date,
+        'Start Time': record.fields['Start Time'],
+        'End Time': record.fields['End Time'],
+        'Booking URL': record.fields['Booking URL'],
+        'Registration Opens': record.fields['Registration Opens'],
+        'Is Cancelled': record.fields['Is Cancelled'],
+        'Special Notes': record.fields['Special Notes'],
+        'Pricing Unit': record.fields['Pricing Unit'],
+      }
+    }))
+  };
+}
+
+// Legacy functions for backward compatibility
 export async function getClassesWithSchedules() {
-  try {
-    const response = await fetch('/api/classes');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch classes: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching classes:', error);
-    throw error;
-  }
+  return getClasses();
 }
 
-// Fetch upcoming schedules for a specific class type
 export async function getUpcomingSchedules(classType?: string) {
-  try {
-    const url = classType ? `/api/schedules?type=${classType}` : '/api/schedules';
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch schedules: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching schedules:', error);
-    throw error;
-  }
+  return getSchedules();
 }
 
-// Get mother-daughter classes specifically
 export async function getMotherDaughterClasses() {
   return getUpcomingSchedules('mothers-daughters');
 }
 
-// Get adult-teen classes specifically  
 export async function getAdultTeenClasses() {
   return getUpcomingSchedules('adult-teen');
-}
-
-// Create a new booking
-export async function createBooking(bookingData: {
-  schedule_id: string;
-  participant_name: string;
-  participant_email: string;
-  participant_phone?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  special_requirements?: string;
-}) {
-  try {
-    const response = await fetch('/api/bookings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(bookingData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create booking: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error creating booking:', error);
-    throw error;
-  }
-}
-
-// Update booking payment status
-export async function updateBookingPayment(
-  bookingId: string, 
-  paymentIntentId: string, 
-  amountPaid: number
-) {
-  try {
-    const response = await fetch(`/api/bookings/${bookingId}/payment`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        paymentIntentId,
-        amountPaid,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to update booking payment: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error updating booking payment:', error);
-    throw error;
-  }
-}
-
-// Get booking by ID
-export async function getBooking(bookingId: string) {
-  try {
-    const response = await fetch(`/api/bookings/${bookingId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch booking: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching booking:', error);
-    throw error;
-  }
-}
-
-// Update available spots after booking
-export async function updateAvailableSpots(scheduleId: string, spotsToReduce: number = 1) {
-  try {
-    const response = await fetch(`/api/schedules/${scheduleId}/spots`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        spotsToReduce,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to update available spots: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error updating available spots:', error);
-    throw error;
-  }
-}
-
-// Get testimonials
-export async function getTestimonials(filter?: string) {
-  try {
-    const url = filter ? `/api/testimonials?filter=${encodeURIComponent(filter)}` : '/api/testimonials';
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch testimonials: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching testimonials:', error);
-    throw error;
-  }
-}
-
-// Get FAQs
-export async function getFAQs() {
-  try {
-    const response = await fetch('/api/faqs');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch FAQs: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching FAQs:', error);
-    throw error;
-  }
-}
-
-// Get FAQ categories
-export async function getFAQCategories() {
-  try {
-    const response = await fetch('/api/faq-categories');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch FAQ categories: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching FAQ categories:', error);
-    throw error;
-  }
-}
-
-// Create contact inquiry
-export async function createContactInquiry(data: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  city?: string;
-  state?: string;
-  message?: string;
-  inquiryType: string;
-}) {
-  try {
-    const response = await fetch('/api/contact', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create contact inquiry: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error creating contact inquiry:', error);
-    throw error;
-  }
 }
