@@ -10,6 +10,12 @@ app.use(express.json());
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
 
+// Zoho CRM configuration
+const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID;
+const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
+const ZOHO_REFRESH_TOKEN = process.env.ZOHO_REFRESH_TOKEN;
+const ZOHO_DOMAIN = process.env.ZOHO_DOMAIN || 'https://www.zohoapis.com'; // Default to .com, can be .eu, .in, etc.
+
 const makeAirtableRequest = async (endpoint) => {
   if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
     throw new Error('Airtable not configured properly');
@@ -27,6 +33,103 @@ const makeAirtableRequest = async (endpoint) => {
   }
 
   return response.json();
+};
+
+// Function to get Zoho access token
+const getZohoAccessToken = async () => {
+  if (!ZOHO_CLIENT_ID || !ZOHO_CLIENT_SECRET || !ZOHO_REFRESH_TOKEN) {
+    throw new Error('Zoho CRM not configured properly');
+  }
+
+  const tokenUrl = `${ZOHO_DOMAIN}/oauth/v2/token`;
+  const params = new URLSearchParams({
+    refresh_token: ZOHO_REFRESH_TOKEN,
+    client_id: ZOHO_CLIENT_ID,
+    client_secret: ZOHO_CLIENT_SECRET,
+    grant_type: 'refresh_token'
+  });
+
+  const response = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params
+  });
+
+  if (!response.ok) {
+    throw new Error(`Zoho token refresh failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+};
+
+// Function to create lead in Zoho CRM
+const createZohoLead = async (formData) => {
+  try {
+    const accessToken = await getZohoAccessToken();
+    
+    // Map form data to Zoho CRM lead format
+    const leadData = {
+      data: [{
+        First_Name: formData.firstName,
+        Last_Name: formData.lastName,
+        Email: formData.email,
+        Phone: formData.phone,
+        Lead_Source: 'Website Form',
+        Company: formData.companyName || formData.organizationName || 'Individual',
+        Description: `Form Type: ${formData.formType}\n` +
+                    (formData.goals ? `Goals: ${formData.goals}\n` : '') +
+                    (formData.needs ? `Training Needs: ${formData.needs}\n` : '') +
+                    (formData.availability ? `Availability: ${formData.availability}\n` : '') +
+                    (formData.logistics ? `Logistics: ${formData.logistics}\n` : '') +
+                    (formData.demographics ? `Demographics: ${formData.demographics}\n` : ''),
+        // Custom fields based on form type
+        ...(formData.formType === 'Private Classes' && {
+          Training_Type: formData.trainingType,
+          Group_Size: formData.groupSize,
+        }),
+        ...(formData.formType === 'Corporate' && {
+          Organization_Name: formData.companyName,
+          Role_Title: formData.role,
+          Employee_Count: formData.employeeCount,
+          Training_Format: formData.trainingFormat,
+          Timeline: formData.timeline,
+        }),
+        ...(formData.formType === 'CBO' && {
+          Organization_Name: formData.organizationName,
+          Organization_Type: formData.organizationType,
+          Age_Range: formData.ageRange,
+          Participant_Count: formData.participantCount,
+          Event_Date: formData.eventDate,
+        }),
+      }]
+    };
+
+    const response = await fetch(`${ZOHO_DOMAIN}/crm/v2/Leads`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Zoho-oauthtoken ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(leadData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Zoho CRM API error:', errorText);
+      throw new Error(`Zoho API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Zoho lead created successfully:', result.data[0].details.id);
+    return result;
+  } catch (error) {
+    console.error('Error creating Zoho lead:', error.message);
+    // Don't throw error to prevent Airtable submission from failing
+    return null;
+  }
 };
 
 // Form submission endpoint
@@ -90,7 +193,8 @@ app.post('/api/form-submissions', async (req, res) => {
 
     console.log('Mapped Airtable fields:', airtableFields);
 
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Form Submissions`, {
+    // Submit to Airtable
+    const airtableResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Form Submissions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -101,15 +205,23 @@ app.post('/api/form-submissions', async (req, res) => {
       })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!airtableResponse.ok) {
+      const errorText = await airtableResponse.text();
       console.error('Airtable form submission error:', errorText);
-      throw new Error(`Failed to submit: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to submit to Airtable: ${airtableResponse.status} - ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log('Form submission successful:', result.id);
-    res.json(result);
+    const airtableResult = await airtableResponse.json();
+    console.log('Airtable submission successful:', airtableResult.id);
+
+    // Submit to Zoho CRM (non-blocking)
+    const zohoResult = await createZohoLead(formData);
+    
+    // Return success response
+    res.json({
+      airtable: airtableResult,
+      zoho: zohoResult ? 'success' : 'failed'
+    });
   } catch (error) {
     console.error('Error submitting form:', error.message);
     res.status(500).json({ error: 'Failed to submit form' });
