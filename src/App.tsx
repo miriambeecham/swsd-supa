@@ -11,6 +11,9 @@ import TestimonialsPage from './pages/TestimonialsPage';
 import ContactPage from './pages/ContactPage';
 import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
+import CityWalnutCreekPrepPage from './pages/CityWalnutCreekPrepPage';
+import CityWalnutCreekStaticPage from './pages/CityWalnutCreekStaticPage';
+import PrivateClassStaticPage from './pages/PrivateClassStaticPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -32,6 +35,9 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/city-walnut-creek-prep" element={<CityWalnutCreekPrepPage />} />
+            <Route path="/city-walnut-creek-static" element={<CityWalnutCreekStaticPage />} />
+            <Route path="/private-class-static" element={<PrivateClassStaticPage />} />
           </Routes>
         </Layout>
       </Router>
