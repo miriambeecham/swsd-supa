@@ -411,6 +411,19 @@ app.use((req, res, next) => {
 // Serve static files from the built Vite app
 app.use(express.static(path.join(__dirname, 'dist')));
 
+//Redirects for legacy site pages
+app.get('/organizer/city-of-walnut-creek-arts-recreation-program/', (req, res) => {
+  res.redirect(301, '/public-classes');
+});
+
+app.get('/organizer/forma-gym-walnut-creek/', (req, res) => {
+  res.redirect(301, '/public-classes');
+});
+
+app.get('/organizer/venue/forma-igf-studio/', (req, res) => {
+  res.redirect(301, '/public-classes');
+});
+
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (req, res) => {
   try {

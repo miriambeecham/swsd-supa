@@ -86,6 +86,25 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+
+      <Helmet>
+        <title>About Streetwise Self Defense - Professional Self Defense Training Since 2014</title>
+        <meta name="description" content="Learn about Streetwise Self Defense's mission to empower women and communities through practical self defense training. Serving the SF Bay Area since 2014 with expert instruction." />
+        <meta name="keywords" content="about streetwise self defense, professional self defense instructor, women's safety training expert, self defense experience, SF Bay Area instructor, self defense background, safety training credentials, community empowerment" />
+
+        <meta property="og:title" content="About Streetwise Self Defense - Professional Self Defense Training" />
+        <meta property="og:description" content="Learn about our mission to empower women and communities through practical self defense training. Serving the SF Bay Area since 2014." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/about" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About Streetwise Self Defense - Professional Self Defense Training" />
+        <meta name="twitter:description" content="Learn about our mission to empower women and communities through practical self defense training." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+      </Helmet>
+
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 

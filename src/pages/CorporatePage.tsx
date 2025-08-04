@@ -271,6 +271,17 @@ const CorporatePage = () => {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://streetwiseselfdefense.com/workplace-safety" />
         <link rel="canonical" href="https://streetwiseselfdefense.com/workplace-safety" />
+        <meta property="og:title" content="Workplace Safety Training - Streetwise Self Defense" />
+        <meta property="og:description" content="Professional workplace safety training for businesses, medical practices, restaurants, and organizations. Empower your workforce with practical safety skills." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/corporate" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Workplace Safety Training - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Professional workplace safety training for businesses, medical practices, restaurants, and organizations." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">

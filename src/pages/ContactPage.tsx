@@ -59,6 +59,17 @@ const ContactPage = () => {
       <Helmet>
         <title>Contact Us - Streetwise Self Defense</title>
         <meta name="description" content="Contact Streetwise Self Defense for self-defense training in the SF Bay Area. Call, email, or schedule a free consultation today." />
+        <meta property="og:title" content="Contact Streetwise Self Defense - Get in Touch" />
+        <meta property="og:description" content="Contact us for self defense training inquiries. Serving the SF Bay Area with public classes, private training, and workplace safety programs." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/contact" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Contact Streetwise Self Defense - Get in Touch" />
+        <meta name="twitter:description" content="Contact us for self defense training inquiries. Serving the SF Bay Area." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
 
       <div>

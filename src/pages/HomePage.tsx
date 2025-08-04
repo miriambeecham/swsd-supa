@@ -145,12 +145,23 @@ const HomePage = () => {
         <meta name="twitter:title" content="Streetwise Self Defense - Building Confidence, Staying Safe" />
         <meta name="twitter:description" content="Professional self-defense training in the SF Bay Area" />
         <link rel="canonical" href="https://streetwiseselfdefense.com/" />
+        <meta property="og:title" content="Streetwise Self Defense - Building Confidence, Staying Safe" />
+        <meta property="og:description" content="Professional self-defense training for women, families, and workplaces in the SF Bay Area. Public classes, private sessions, and workplace safety programs." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Streetwise Self Defense - Building Confidence, Staying Safe" />
+        <meta name="twitter:description" content="Professional self-defense training for women, families, and workplaces in the SF Bay Area." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
       {/* Mobile Hero - Vertical Layout */}
       <section className="relative min-h-screen flex items-center overflow-hidden md:hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src="/eeb059d7-ab80-43ab-9c6c-2606bd6b02d2.png"
+            src="/self-defense-action.png"
             alt="Self defense training session"
             className="w-full h-full object-cover"
           />
@@ -197,7 +208,7 @@ const HomePage = () => {
         <section className="relative h-screen flex items-center overflow-hidden hidden md:flex">
         <div className="absolute inset-0 z-0">
           <img
-            src="/eeb059d7-ab80-43ab-9c6c-2606bd6b02d2.png"
+            src="/self-defense-action.png"
             alt="Self defense training session showing a woman demonstrating a defensive technique"
             className="w-full h-full object-cover"
           />

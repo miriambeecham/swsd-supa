@@ -136,6 +136,17 @@ const TestimonialsPage = () => {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://streetwiseselfdefense.com/testimonials" />
         <link rel="canonical" href="https://streetwiseselfdefense.com/testimonials" />
+        <meta property="og:title" content="Student Success Stories - Streetwise Self Defense" />
+        <meta property="og:description" content="Read real testimonials from our self defense students. See how our training has helped women, families, and organizations build confidence and stay safe." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/testimonials" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Student Success Stories - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Read real testimonials from our self defense students and see the impact of our training." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
 
       {/* Hero Section with Logo Background */}

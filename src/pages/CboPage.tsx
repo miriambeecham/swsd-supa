@@ -4,6 +4,7 @@ import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Heart, Home, Calend
 import { FaGoogle, FaFacebook, FaLinkedin, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { Helmet } from 'react-helmet-async';
 
 interface Testimonial {
   id: string;
@@ -261,6 +262,25 @@ const CboPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+
+      <Helmet>
+        <title>Community Organization Safety Training - Streetwise Self Defense</title>
+        <meta name="description" content="Self defense training for nonprofits, schools, community groups, and organizations in the SF Bay Area. Group programs designed for diverse communities and age ranges." />
+        <meta name="keywords" content="community self defense, nonprofit safety training, school self defense programs, community group training, organization safety, group self defense classes, nonprofit security training, community safety programs, SF Bay Area" />
+
+        <meta property="og:title" content="Community Organization Safety Training - Streetwise Self Defense" />
+        <meta property="og:description" content="Self defense training for nonprofits, schools, community groups, and organizations. Group programs designed for diverse communities and age ranges." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/cbo" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Community Organization Safety Training - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Self defense training for nonprofits, schools, community groups, and organizations." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+      </Helmet>
+      
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 

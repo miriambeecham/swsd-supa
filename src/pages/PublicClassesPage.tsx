@@ -290,6 +290,17 @@ const PublicClassesPage = () => {
           <meta property="og:type" content="website" />
           <meta property="og:url" content="https://streetwiseselfdefense.com/public-classes" />
           <link rel="canonical" href="https://streetwiseselfdefense.com/public-classes" />
+          <meta property="og:title" content="Public Self Defense Classes - Streetwise Self Defense" />
+          <meta property="og:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs. Learn practical safety skills in a supportive environment." />
+          <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+          <meta property="og:url" content="https://www.streetwiseselfdefense.com/public-classes" />
+          <meta property="og:type" content="website" />
+          <meta property="og:site_name" content="Streetwise Self Defense" />
+
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="Public Self Defense Classes - Streetwise Self Defense" />
+          <meta name="twitter:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs." />
+          <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
         </Helmet>
       {/* Header with Background */}
       <section className="relative h-80 lg:h-96 flex items-center">
