@@ -15,23 +15,12 @@ const PrivateClassStaticPage = () => {
       <section className="relative py-16 bg-navy text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-2">Preparing for Your Private</h1>
-            <h1 className="text-4xl font-bold text-accent-primary mb-6">"Individual or Small Group" Self Defense Class</h1>
+            <h1 className="text-4xl font-bold mb-2">Preparing for Your</h1>
+            <h1 className="text-4xl font-bold text-accent-primary mb-6">Private Self Defense Class</h1>
             <p className="text-xl opacity-90">With Streetwise Self Defense</p>
           </div>
 
-          {/* Print Button */}
-          <div className="text-center mt-8 no-print">
-            <button
-              onClick={() => window.print()}
-              className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg font-semibold transition-colors inline-flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print or Save as PDF
-            </button>
-          </div>
+     
         </div>
       </section>
 
@@ -64,24 +53,8 @@ const PrivateClassStaticPage = () => {
                 Please also make sure to take care of the electronic activity waiver (See Link Below). If you are expecting an email from me, 
                 please be sure to check your spam folder if you can't find it, and come prepared to have fun and laugh a lot…
               </p>
-              <div className="mt-3 text-center">
-                <a
-                  href="#"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg inline-block font-semibold transition-colors"
-                >
-                  Complete Electronic Waiver
-                </a>
-              </div>
-              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
-                  <strong>IMPORTANT:</strong> The link above is specific to your class, so it should look like the following example – 
-                  "https://bit.ly/Streetwise-Waiver-CLASSDATE", written in the following format – YYYYMMDD. So, your link might read 
-                  "https://bit.ly/Streetwise-Waiver-20250801", using August 1st, 2025 as an example. If your link doesn't match your class date, 
-                  that means I have made a mistake. Please update your link with your own class date! Thanks!
-                </p>
-              </div>
+             
+           
             </div>
 
             <div className="mt-6 text-center">
@@ -126,7 +99,7 @@ const PrivateClassStaticPage = () => {
                   <img
                     src="/adult-teen.png"
                     alt="Private Self Defense Class"
-                    className="w-full h-48 object-cover rounded-lg shadow-md"
+                    className="w-full h-full object-cover rounded-lg shadow-md"
                   />
                 </div>
               </div>
@@ -144,7 +117,7 @@ const PrivateClassStaticPage = () => {
                 <MapPin className="w-6 h-6 text-yellow-700" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-navy mb-4">Parking</h3>
+                <h3 className="text-xl font-bold text-navy mb-4">Site Logistics</h3>
                 <p className="text-gray-700">
                   If there are any specific parking restrictions, entry codes, or instructions, please give those to me as early as is practical.
                 </p>
@@ -186,7 +159,7 @@ const PrivateClassStaticPage = () => {
                   </li>
                   <li className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-accent-primary rounded-full"></div>
-                    <span><strong>Sense of humor (not optional)</strong></span>
+                    <span><strong>Sense of humor</strong> (not optional)</span>
                   </li>
                 </ul>
               </div>
@@ -296,30 +269,7 @@ const PrivateClassStaticPage = () => {
         </div>
       </section>
 
-      {/* Personal Note */}
-      <section className="py-12 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex items-start gap-4">
-              <div className="bg-accent-primary/20 p-3 rounded-lg flex-shrink-0">
-                <Users className="w-6 h-6 text-accent-primary" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-navy mb-4">Personal Note</h3>
-                <div className="prose prose-gray max-w-none">
-                  <p>
-                    Thanks so much for reading this and for scheduling your class with Streetwise! This type of self defense 
-                    (gender violence toward women especially) can be very personal, and often times women will have prior traumatic 
-                    experience that they are dealing with every day. It is an honor that you have chosen to work with me, and I don't 
-                    take that lightly. I am hoping that this class will become an integral part of your healing process.
-                  </p>
-                  <p className="font-medium">Thank you, ~Jay</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+     
 
       {/* Contact CTA */}
       <section className="py-16 bg-navy text-white print:bg-white print:text-black">

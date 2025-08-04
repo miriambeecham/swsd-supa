@@ -34,9 +34,8 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/city-walnut-creek-prep" element={<CityWalnutCreekPrepPage />} />
-            <Route path="/city-walnut-creek-static" element={<CityWalnutCreekStaticPage />} />
-            <Route path="/private-class-static" element={<PrivateClassStaticPage />} />
+             <Route path="/city-walnut-creek-prep" element={<CityWalnutCreekStaticPage />} />
+            <Route path="/private-class-prep" element={<PrivateClassStaticPage />} />
           </Routes>
         </Layout>
       </Router>
