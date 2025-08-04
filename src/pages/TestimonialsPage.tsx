@@ -315,20 +315,20 @@ const TestimonialsPage = () => {
           {testimonials.filter(testimonial => !testimonial.is_featured).length > 0 ? (
             <Masonry
               breakpointCols={{
-                default: 4,
+                default: 3,
                 1280: 3,
                 1024: 2,
                 768: 1
               }}
-              className="masonry-grid"
-              columnClassName="masonry-grid_column"
+              className="flex -ml-4 w-auto"
+              columnClassName="pl-4 bg-clip-padding"
             >
               {testimonials.filter(testimonial => !testimonial.is_featured).map((testimonial) => {
                 const platformInfo = getPlatformInfo(testimonial.platform);
                 return (
                   <div 
                     key={testimonial.id} 
-                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow break-inside-avoid"
+                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow mb-4 break-inside-avoid"
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
