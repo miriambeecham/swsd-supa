@@ -20,18 +20,7 @@ const CityWalnutCreekStaticPage = () => {
             <p className="text-xl opacity-90">Class Preparation Information</p>
           </div>
 
-          {/* Print Button */}
-          <div className="text-center mt-8 no-print">
-            <button
-              onClick={() => window.print()}
-              className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg font-semibold transition-colors inline-flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print or Save as PDF
-            </button>
-          </div>
+   
         </div>
       </section>
 
@@ -59,22 +48,13 @@ const CityWalnutCreekStaticPage = () => {
                 Please also make sure to <strong>take care of the electronic activity waiver</strong> (link in text message or email I sent you), 
                 and come prepared to have fun and laugh a lot…
               </p>
-              <div className="mt-3 text-center">
-                <a
-                  href="#"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg inline-block font-semibold transition-colors"
-                >
-                  Complete Electronic Waiver
-                </a>
-              </div>
+             
             </div>
 
             <div className="mt-6 text-center">
-              <p className="text-gray-600">Thanks! ~jhb</p>
+              
               <p className="text-sm text-gray-500 mt-2">
-                Any problems? Please call/text 
+                Any problems? Please call/text Jay at
                 <a href="tel:925-532-9953" className="text-accent-primary font-semibold"> 925-532-9953</a>
               </p>
             </div>
@@ -112,7 +92,7 @@ const CityWalnutCreekStaticPage = () => {
                   <img
                     src="/adult-teen.png"
                     alt="Self Defense Class"
-                    className="w-full h-48 object-cover rounded-lg shadow-md"
+                    className="w-full h-full object-cover rounded-lg shadow-md"
                   />
                 </div>
               </div>
@@ -146,10 +126,17 @@ const CityWalnutCreekStaticPage = () => {
             </div>
 
             {/* Map Placeholder */}
-            <div className="mt-6 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">Parking Map</p>
-              <p className="text-sm text-gray-400">Map showing parking area with red arrow will be inserted here</p>
+            <div className="mt-6 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+              <div className="p-4 text-center">
+                <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 font-medium">Parking Map</p>
+              </div>
+
+              <img
+                src="/parking-map.png"
+                alt="Map with parking instructions"
+                className="w-full h-auto object-cover"
+              />
             </div>
           </div>
         </div>
@@ -248,7 +235,7 @@ const CityWalnutCreekStaticPage = () => {
                     <img
                       src="/mothers-daughters.png"
                       alt="Self Defense Training"
-                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                      className="w-full h-full object-cover rounded-lg shadow-md"
                     />
                   </div>
                 </div>

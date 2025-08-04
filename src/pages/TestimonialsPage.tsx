@@ -219,9 +219,7 @@ const TestimonialsPage = () => {
               </div>
               <h3 className="text-lg font-bold text-navy mb-1">Facebook</h3>
               <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
-              <div className="flex justify-center mb-2">
-                {renderStars(5)}
-              </div>
+             
               <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
               <a
                 href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
