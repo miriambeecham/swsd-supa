@@ -34,7 +34,7 @@ localPort = 5173
 externalPort = 80
 
 [workflows]
-runButton = "Run"
+runButton = "Run Both Servers"
 
 [[workflows.workflow]]
 name = "Run"
