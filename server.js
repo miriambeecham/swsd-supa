@@ -424,6 +424,14 @@ app.get('/organizer/venue/forma-igf-studio/', (req, res) => {
   res.redirect(301, '/public-classes');
 });
 
+app.get('//swsd-what-to-expect-private-15-plus/', (req, res) => {
+  res.redirect(301, '/private-class-prep');
+});
+
+app.get('//https://streetwiseselfdefense.com/swsd-what-to-expect-arwc-15-plus/', (req, res) => {
+  res.redirect(301, '/city-walnut-creek-prep');
+});
+
 // Catch-all handler: send back React's index.html file for any non-API routes
 app.get('*', (req, res) => {
   try {
