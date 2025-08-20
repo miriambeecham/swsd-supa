@@ -243,13 +243,33 @@ app.post('/api/form-submissions', async (req, res) => {
 
       if (verifyResponse.ok) {
         const verifyResult = await verifyResponse.json();
+        console.log('reCAPTCHA verification response:', JSON.stringify(verifyResult, null, 2));
+        
         if (!verifyResult.tokenProperties?.valid) {
-          return res.status(400).json({ error: 'Invalid reCAPTCHA token' });
+          console.error('reCAPTCHA token invalid:', {
+            valid: verifyResult.tokenProperties?.valid,
+            invalidReason: verifyResult.tokenProperties?.invalidReason,
+            action: verifyResult.tokenProperties?.action,
+            hostname: verifyResult.tokenProperties?.hostname
+          });
+          return res.status(400).json({ 
+            error: 'Invalid reCAPTCHA token',
+            details: verifyResult.tokenProperties?.invalidReason 
+          });
         }
         console.log('reCAPTCHA verification successful');
       } else {
-        console.error('reCAPTCHA verification failed');
-        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+        const errorText = await verifyResponse.text();
+        console.error('reCAPTCHA verification failed:', {
+          status: verifyResponse.status,
+          statusText: verifyResponse.statusText,
+          error: errorText,
+          requestBody: JSON.stringify(requestBody, null, 2)
+        });
+        return res.status(400).json({ 
+          error: 'reCAPTCHA verification failed',
+          details: errorText
+        });
       }
     }
 
@@ -361,7 +381,12 @@ app.post('/api/form-submissions', async (req, res) => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('reCAPTCHA verification failed:', errorText);
+          console.error('reCAPTCHA verification failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText,
+            requestBody: JSON.stringify(requestBody, null, 2)
+          });
           return res.status(response.status).json({ 
             error: 'reCAPTCHA verification failed',
             details: errorText 
@@ -369,7 +394,17 @@ app.post('/api/form-submissions', async (req, res) => {
         }
 
         const result = await response.json();
-        console.log('reCAPTCHA verification result:', result);
+        console.log('reCAPTCHA verification result:', JSON.stringify(result, null, 2));
+        
+        // Check if the token is valid and log details
+        if (result.tokenProperties) {
+          console.log('Token properties:', {
+            valid: result.tokenProperties.valid,
+            action: result.tokenProperties.action,
+            hostname: result.tokenProperties.hostname,
+            invalidReason: result.tokenProperties.invalidReason
+          });
+        }
 
         res.json(result);
 
