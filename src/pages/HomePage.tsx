@@ -274,7 +274,7 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">1500+</div>
+              <div className="text-4xl md:text-5xl font-bold text-navy mb-2">2500+</div>
               <p className="text-gray-600 font-medium">Students Trained</p>
             </div>
             <div className="text-center">

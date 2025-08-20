@@ -106,7 +106,8 @@ const PrivateClassesPage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Private Training'
+        formType: 'Private Training',
+        recaptchaToken: recaptchaValue
       };
 
       const response = await fetch('/api/form-submissions', {
@@ -201,6 +202,40 @@ const PrivateClassesPage = () => {
           </div>
         </div>
       </section>
+
+    
+
+
+      {/* NEW: Training Categories Section - Gray on gray pills */}
+      <section className="py-4 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Anti-Bullying
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Hate Crime Prevention
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Neurodivergent-Friendly
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Travel Safety
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              College Prep
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Domestic Violence Survivors
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Vulnerable Populations
+            </span>
+          </div>
+        </div>
+      </section>
+
+   
 
       {/* Offering Description */}
       <section className="py-16 bg-white">

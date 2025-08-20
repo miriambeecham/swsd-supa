@@ -284,7 +284,7 @@ const AboutPage = () => {
 
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent-primary mb-2">1,500+</div>
+                <div className="text-4xl font-bold text-accent-primary mb-2">2500+</div>
                 <div className="text-lg font-semibold text-navy mb-2">Students Trained</div>
                 <p className="text-gray-600">Since 2014, including survivors of rape and domestic violence</p>
               </div>
@@ -360,7 +360,7 @@ const AboutPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Start Your Empowerment Journey?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join the 1,500+ students who have gained confidence and life-changing skills through our training.
+            Join the 2500+ students who have gained confidence and life-changing skills through our training.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

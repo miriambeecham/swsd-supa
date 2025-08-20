@@ -140,7 +140,8 @@ const CboPage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Community Organizations'
+        formType: 'Community Organizations',
+        recaptchaToken: recaptchaValue
       };
 
       const response = await fetch('/api/form-submissions', {

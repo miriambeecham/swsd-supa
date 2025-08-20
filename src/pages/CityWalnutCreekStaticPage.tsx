@@ -35,9 +35,7 @@ const CityWalnutCreekStaticPage = () => {
               <div>
                 <h3 className="text-xl font-bold text-navy mb-3">Welcome to Your Self Defense Class!</h3>
                 <p className="text-gray-700 leading-relaxed">
-                  This is an active (interactive) class where you will learn the most effective ways to hurt someone who is trying to hurt you, 
-                  or at a minimum, surprise/hurt them enough to get them to let go of you long enough for you to get away. The primary person 
-                  that gets hit in this class will be me. However, <strong>PLEASE TELL ME</strong> about any injuries or physical restrictions 
+                  This is an active (interactive) class, where you will learn the most effective ways to get away from someone who is trying to hurt you. However, <strong>PLEASE TELL ME</strong> about any injuries or physical restrictions 
                   you are dealing with before class. We can almost always work around them without too many problems.
                 </p>
               </div>

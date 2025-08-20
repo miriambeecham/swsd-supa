@@ -39,9 +39,7 @@ const PrivateClassStaticPage = () => {
                   I will try to keep this short, so here is the bare minimum of things I would like to know before this class:
                 </p>
                 <p className="text-gray-700 leading-relaxed">
-                  This is an active (interactive) class, where you will learn the most effective ways to hurt someone who is trying to hurt you, 
-                  or at a minimum, surprise/hurt them enough to get them to let go of you long enough for you to get away. The primary person 
-                  that gets hit in this class will be me. However, <strong>PLEASE TELL ME</strong> about any injuries or physical restrictions 
+                  This is an active (interactive) class, where you will learn the most effective ways to get away from someone who is trying to hurt you. However, <strong>PLEASE TELL ME</strong> about any injuries or physical restrictions 
                   you are dealing with before class. We can almost always work around them without difficulty, so if something is bothering you, 
                   it is better to know about it ahead of class.
                 </p>

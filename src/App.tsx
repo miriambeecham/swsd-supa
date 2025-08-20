@@ -13,6 +13,8 @@ import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import CityWalnutCreekStaticPage from './pages/CityWalnutCreekStaticPage';
 import PrivateClassStaticPage from './pages/PrivateClassStaticPage';
+import PrivateClassDesiredEffectStaticPage from './pages/PrivateClassDesiredEffectStaticPage';
+import PrivateClassWSECStaticPage from './pages/PrivateClassWSECStaticPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -34,8 +36,10 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-             <Route path="/city-walnut-creek-prep" element={<CityWalnutCreekStaticPage />} />
+             <Route path="/public-cwc-prep" element={<CityWalnutCreekStaticPage />} />
             <Route path="/private-class-prep" element={<PrivateClassStaticPage />} />
+            <Route path="/public-class-desired-effect" element={<PrivateClassDesiredEffectStaticPage />} />
+            <Route path="/private-class-wsec-prep" element={<PrivateClassWSECStaticPage />} />
           </Routes>
         </Layout>
       </Router>

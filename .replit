@@ -5,7 +5,7 @@ run = "npm run dev"
 channel = "stable-25_05"
 
 [deployment]
-run = ["sh", "-c", "PORT=5173 node server.js"]
+run = ["sh", "-c", "node server.js"]
 deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run build"]
 

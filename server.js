@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const RECAPTCHA_API_KEY = process.env.RECAPTCHA_API_KEY;
 
 // Middleware
 app.use(express.json());
@@ -213,12 +214,46 @@ app.get('/api/test-zoho', async (req, res) => {
   }
 });
 
-// Form submission endpoint
+// Form submission endpoint (updated to include reCAPTCHA verification)
 app.post('/api/form-submissions', async (req, res) => {
   try {
-    const formData = req.body;
+    const { recaptchaToken, ...formData } = req.body;
     console.log('=== FORM SUBMISSION START ===');
     console.log('Received form data:', formData);
+    console.log('Has reCAPTCHA token:', !!recaptchaToken);
+
+    // Verify reCAPTCHA first if token provided
+    if (recaptchaToken && RECAPTCHA_API_KEY) {
+      const requestBody = {
+        event: {
+          token: recaptchaToken,
+          expectedAction: 'submit_form',
+          siteKey: "6LCg7JArAAAAAJSqTBmdDCKBVc2dW3UyqQ037CMq"
+        }
+      };
+
+      const verifyResponse = await fetch(
+        `https://recaptchaenterprise.googleapis.com/v1/projects/swsd2-1753648737787/assessments?key=${RECAPTCHA_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }
+      );
+
+      if (verifyResponse.ok) {
+        const verifyResult = await verifyResponse.json();
+        if (!verifyResult.tokenProperties?.valid) {
+          return res.status(400).json({ error: 'Invalid reCAPTCHA token' });
+        }
+        console.log('reCAPTCHA verification successful');
+      } else {
+        console.error('reCAPTCHA verification failed');
+        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+      }
+    }
+
+    // Rest of your existing logic (keep everything else the same)
     console.log('Form type:', formData.formType);
     console.log('Basic fields:', {
       firstName: formData.firstName,
@@ -274,13 +309,76 @@ app.post('/api/form-submissions', async (req, res) => {
     // Return success response
     res.json({
       airtable: airtableResult,
-      zoho: zohoResult ? 'success' : 'failed'
+      zoho: zohoResult ? 'success' : 'failed',
+      recaptcha: recaptchaToken ? 'verified' : 'skipped'
     });
   } catch (error) {
     console.error('Error submitting form:', error.message);
     res.status(500).json({ error: 'Failed to submit form' });
   }
 });
+
+    // Add this new endpoint after your existing endpoints
+    app.post('/api/verify-recaptcha', async (req, res) => {
+      try {
+        const { token, expectedAction = 'submit_form' } = req.body;
+
+        if (!token) {
+          return res.status(400).json({ error: 'Token is required' });
+        }
+
+        if (!RECAPTCHA_API_KEY) {
+          console.error('RECAPTCHA_API_KEY not configured');
+          return res.status(500).json({ error: 'reCAPTCHA not configured' });
+        }
+
+        // Make the exact request Google wants to see
+        const requestBody = {
+          event: {
+            token: token,
+            expectedAction: expectedAction,
+            siteKey: "6LCg7JArAAAAAJSqTBmdDCKBVc2dW3UyqQ037CMq"
+          }
+        };
+
+        console.log('Making reCAPTCHA verification request:', {
+          url: `https://recaptchaenterprise.googleapis.com/v1/projects/swsd2-1753648737787/assessments?key=${RECAPTCHA_API_KEY}`,
+          body: requestBody
+        });
+
+        const response = await fetch(
+          `https://recaptchaenterprise.googleapis.com/v1/projects/swsd2-1753648737787/assessments?key=${RECAPTCHA_API_KEY}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+          }
+        );
+
+        console.log('reCAPTCHA response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('reCAPTCHA verification failed:', errorText);
+          return res.status(response.status).json({ 
+            error: 'reCAPTCHA verification failed',
+            details: errorText 
+          });
+        }
+
+        const result = await response.json();
+        console.log('reCAPTCHA verification result:', result);
+
+        res.json(result);
+
+      } catch (error) {
+        console.error('Error verifying reCAPTCHA:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
 
 // API Routes
 app.get('/api/classes', async (req, res) => {
@@ -394,6 +492,51 @@ app.get('/api/testimonials', async (req, res) => {
   }
 });
 
+app.get('/api/faqs', async (req, res) => {
+  try {
+    const { filter } = req.query;
+
+    // Fetch Categories
+    const categoriesEndpoint = filter 
+      ? `/Categories?filterByFormula=${encodeURIComponent(filter)}`
+      : '/Categories?filterByFormula={Is Active}=1&sort[0][field]=Display Order';
+
+    const categoriesData = await makeAirtableRequest(categoriesEndpoint);
+
+    // Fetch FAQs
+    const faqsEndpoint = filter 
+      ? `/FAQ?filterByFormula=${encodeURIComponent(filter)}`
+      : '/FAQ?filterByFormula={Is Published}=1&sort[0][field]=Question Order';
+
+    const faqsData = await makeAirtableRequest(faqsEndpoint);
+
+    // Map to expected format
+    const categories = categoriesData.records.map((record) => ({
+      id: record.id,
+      name: record.fields['Category Name'] || '',
+      displayOrder: record.fields['Display Order'] || 999,
+      isActive: record.fields['Is Active'] || false,
+      description: record.fields.Description || '',
+    }));
+
+    const faqs = faqsData.records.map((record) => ({
+      id: record.id,
+      question: record.fields.Question || '',
+      answer: record.fields.Answer || '',
+      categoryId: record.fields.Category && Array.isArray(record.fields.Category) 
+        ? record.fields.Category[0] 
+        : 'other',
+      questionOrder: record.fields['Question Order'] || 999,
+      isPublished: record.fields['Is Published'] || false,
+    }));
+
+    res.json({ categories, faqs });
+  } catch (error) {
+    console.error('Error fetching FAQs:', error);
+    res.status(500).json({ error: 'Failed to fetch FAQs' });
+  }
+});
+
 // Add route validation middleware to catch malformed routes early
 app.use((req, res, next) => {
   // Log the incoming route for debugging
@@ -494,6 +637,7 @@ try {
     console.log(`PORT: ${process.env.PORT}`);
     console.log(`AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 10)}...` : 'NOT SET'}`);
     console.log(`AIRTABLE_API_KEY exists: ${!!AIRTABLE_API_KEY}`);
+    console.log(`RECAPTCHA_API_KEY exists: ${!!RECAPTCHA_API_KEY}`);
     console.log(`ZOHO_CLIENT_ID exists: ${!!ZOHO_CLIENT_ID}`);
     console.log(`ZOHO_CLIENT_SECRET exists: ${!!ZOHO_CLIENT_SECRET}`);
     console.log(`ZOHO_REFRESH_TOKEN exists: ${!!ZOHO_REFRESH_TOKEN}`);
