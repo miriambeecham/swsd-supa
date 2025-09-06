@@ -17,7 +17,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'About', href: '/about' },
     { name: 'Testimonials', href: '/testimonials' },
     { name: 'FAQ', href: '/faq' },
-    { name: 'Contact', href: '/contact' },
   ];
 
   const isActive = (href: string) => {
@@ -28,7 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const isAboutActive = () => {
-    return ['/about', '/testimonials', '/faq', '/contact'].some(path =>
+    return ['/about', '/testimonials', '/faq'].some(path =>
       location.pathname.startsWith(path)
     );
   };
@@ -136,6 +135,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </div>
                 )}
               </div>
+
+              <Link 
+                to="/contact" 
+                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                  isActive('/contact') 
+                    ? 'text-accent-primary' 
+                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                }`}
+              >
+                Contact
+              </Link>
             </nav>
 
             {/* Right side spacer to balance logo */}
@@ -255,6 +265,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
                   )}
                 </div>
+
+                <Link
+                  to="/contact"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/contact')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  Contact
+                </Link>
               </div>
             </div>
           )}
