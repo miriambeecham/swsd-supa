@@ -224,52 +224,26 @@ app.post('/api/form-submissions', async (req, res) => {
 
     // Verify reCAPTCHA first if token provided
     if (recaptchaToken && RECAPTCHA_API_KEY) {
-      const requestBody = {
-        event: {
-          token: recaptchaToken,
-          expectedAction: 'submit_form',
-          siteKey: "6LCg7JArAAAAAJSqTBmdDCKBVc2dW3UyqQ037CMq"
-        }
-      };
+      const params = new URLSearchParams({
+        secret: RECAPTCHA_API_KEY,
+        response: recaptchaToken
+      });
 
-      const verifyResponse = await fetch(
-        `https://recaptchaenterprise.googleapis.com/v1/projects/swsd2-1753648737787/assessments?key=${RECAPTCHA_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        }
-      );
+      const verifyResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
+      });
 
       if (verifyResponse.ok) {
         const verifyResult = await verifyResponse.json();
-        console.log('reCAPTCHA verification response:', JSON.stringify(verifyResult, null, 2));
-        
-        if (!verifyResult.tokenProperties?.valid) {
-          console.error('reCAPTCHA token invalid:', {
-            valid: verifyResult.tokenProperties?.valid,
-            invalidReason: verifyResult.tokenProperties?.invalidReason,
-            action: verifyResult.tokenProperties?.action,
-            hostname: verifyResult.tokenProperties?.hostname
-          });
-          return res.status(400).json({ 
-            error: 'Invalid reCAPTCHA token',
-            details: verifyResult.tokenProperties?.invalidReason 
-          });
+        if (!verifyResult.success) {
+          return res.status(400).json({ error: 'Invalid reCAPTCHA token' });
         }
         console.log('reCAPTCHA verification successful');
       } else {
-        const errorText = await verifyResponse.text();
-        console.error('reCAPTCHA verification failed:', {
-          status: verifyResponse.status,
-          statusText: verifyResponse.statusText,
-          error: errorText,
-          requestBody: JSON.stringify(requestBody, null, 2)
-        });
-        return res.status(400).json({ 
-          error: 'reCAPTCHA verification failed',
-          details: errorText
-        });
+        console.error('reCAPTCHA verification failed');
+        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
       }
     }
 
@@ -338,81 +312,49 @@ app.post('/api/form-submissions', async (req, res) => {
   }
 });
 
-    // Add this new endpoint after your existing endpoints
-    app.post('/api/verify-recaptcha', async (req, res) => {
-      try {
-        const { token, expectedAction = 'submit_form' } = req.body;
+   app.post('/api/verify-recaptcha', async (req, res) => {
+     try {
+       const { token } = req.body;
 
-        if (!token) {
-          return res.status(400).json({ error: 'Token is required' });
-        }
+       if (!token) {
+         return res.status(400).json({ error: 'Token is required' });
+       }
 
-        if (!RECAPTCHA_API_KEY) {
-          console.error('RECAPTCHA_API_KEY not configured');
-          return res.status(500).json({ error: 'reCAPTCHA not configured' });
-        }
+       if (!RECAPTCHA_API_KEY) {
+         console.error('RECAPTCHA_API_KEY not configured');
+         return res.status(500).json({ error: 'reCAPTCHA not configured' });
+       }
 
-        // Make the exact request Google wants to see
-        const requestBody = {
-          event: {
-            token: token,
-            expectedAction: expectedAction,
-            siteKey: "6LCg7JArAAAAAJSqTBmdDCKBVc2dW3UyqQ037CMq"
-          }
-        };
+       const params = new URLSearchParams({
+         secret: RECAPTCHA_API_KEY,
+         response: token
+       });
 
-        console.log('Making reCAPTCHA verification request:', {
-          url: `https://recaptchaenterprise.googleapis.com/v1/projects/swsd2-1753648737787/assessments?key=${RECAPTCHA_API_KEY}`,
-          body: requestBody
-        });
+       const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+         body: params
+       });
 
-        const response = await fetch(
-          `https://recaptchaenterprise.googleapis.com/v1/projects/swsd2-1753648737787/assessments?key=${RECAPTCHA_API_KEY}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-          }
-        );
+       if (!response.ok) {
+         const errorText = await response.text();
+         console.error('reCAPTCHA verification failed:', errorText);
+         return res.status(response.status).json({ 
+           error: 'reCAPTCHA verification failed',
+           details: errorText 
+         });
+       }
 
-        console.log('reCAPTCHA response status:', response.status);
+       const result = await response.json();
+       console.log('reCAPTCHA verification result:', result);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('reCAPTCHA verification failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText,
-            requestBody: JSON.stringify(requestBody, null, 2)
-          });
-          return res.status(response.status).json({ 
-            error: 'reCAPTCHA verification failed',
-            details: errorText 
-          });
-        }
+       res.json(result);
 
-        const result = await response.json();
-        console.log('reCAPTCHA verification result:', JSON.stringify(result, null, 2));
-        
-        // Check if the token is valid and log details
-        if (result.tokenProperties) {
-          console.log('Token properties:', {
-            valid: result.tokenProperties.valid,
-            action: result.tokenProperties.action,
-            hostname: result.tokenProperties.hostname,
-            invalidReason: result.tokenProperties.invalidReason
-          });
-        }
-
-        res.json(result);
-
-      } catch (error) {
-        console.error('Error verifying reCAPTCHA:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    });
+     } catch (error) {
+       console.error('Error verifying reCAPTCHA:', error);
+       res.status(500).json({ error: 'Internal server error' });
+     }
+   });
 
 
 // API Routes

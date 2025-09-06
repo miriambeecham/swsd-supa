@@ -159,50 +159,55 @@ const PublicClassesPage = () => {
 
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
-   
-
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          {/* Class Title - Less emphasized */}
+          {/* Class Title */}
           <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
 
-          {/* Partner Organization - If present */}
+          {/* Partner Organization - Always show if present */}
           {classData.partner_organization && (
             <p className="text-sm text-gray-500 mb-2">
               Hosted by {classData.partner_organization}
             </p>
           )}
 
+      
+          {/* Date, Time & Location - All in one container */}
           {/* Date, Time & Location - All in one container */}
           <div className="mb-4 space-y-2">
             <div className="flex items-start gap-2 min-h-[24px]">
-              <Calendar className="w-4 h-4 text-accent-primary mt-0.5 flex-shrink-0" />
-              <span className="text-md font-semibold text-accent-primary leading-tight">
+              <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+              <span className="text-md font-semibold text-gray-700 leading-tight">
                 {formatClassDate(classData.date)}
               </span>
             </div>
             <div className="flex items-start gap-2 min-h-[24px]">
-              <Clock className="w-4 h-4 text-accent-primary mt-0.5 flex-shrink-0" />
-              <span className="text-md font-medium text-accent-primary leading-tight">
+              <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+              <span className="text-md font-medium text-gray-700 leading-tight">
                 {classData.start_time} - {classData.end_time}
               </span>
             </div>
-            <button
-              onClick={() => handleLocationClick(classData.location)}
-              className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
-            >
-              <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span className="text-md font-medium underline leading-tight">{classData.location}</span>
-            </button>
-          </div>
 
-          {/* Special Notes */}
-          {classData.special_notes && (
-            <p className="text-sm text-accent-primary font-medium">
-              Note: {classData.special_notes}
-            </p>
-          )}
-        </div>
+            {classData.location && (
+              <button
+                onClick={() => handleLocationClick(classData.location)}
+                className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
+              >
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span className="text-md font-medium underline leading-tight">{classData.location}</span>
+              </button>
+            )}
+
+            {!classData.location && classData.special_notes && (
+              <div className="flex items-start gap-2 min-h-[24px]">
+                <MapPin className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span className="text-md font-medium text-gray-700 leading-tight">
+                  {classData.special_notes}
+                </span>
+              </div>
+            )}
+          </div>
+      </div> {/* Add this closing div for the flex-1 container */}
 
         {/* Button/Registration Area */}
         <div className="ml-4">
@@ -231,8 +236,21 @@ const PublicClassesPage = () => {
                 </span>
               </div>
             </div>
+          ) : classData.partner_organization === "Streetwise Self Defense" ? (
+            // Streetwise-sponsored class - show phone number
+            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+              <div className="mb-2">
+                Call us to register:
+              </div>
+              <a 
+                href="tel:9255329953"
+                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+              >
+                (925) 532-9953
+              </a>
+            </div>
           ) : (
-            // Fallback contact button for classes without registration date
+            // Fallback contact button for other cases
             <button
               onClick={() => handleBooking(classData)}
               className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"

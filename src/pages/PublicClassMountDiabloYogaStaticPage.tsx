@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { MapPin, Phone, Users, Shield, Clock, Camera, AlertCircle, CheckCircle, Home } from 'lucide-react';
 
 const PrivateClassStaticPage = () => {
-  const address = "B67 Molecular Foundry, 67 Cyclotron Road, Berkeley, CA 94720";
+  const address = "2121 Ygnacio Valley Rd, Suite E207, Walnut Creek, CA 94598";
   const encodedAddress = encodeURIComponent(address);
 
   return (
@@ -19,7 +19,7 @@ const PrivateClassStaticPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-2">Preparing for Your</h1>
-            <h1 className="text-4xl font-bold text-accent-primary mb-6">WSEC Self Defense Class</h1>
+            <h1 className="text-4xl font-bold text-accent-primary mb-6">Public Self Defense Class</h1>
             <p className="text-xl opacity-90">With Streetwise Self Defense</p>
           </div>
         </div>
@@ -82,9 +82,9 @@ const PrivateClassStaticPage = () => {
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
                   <p className="text-gray-700 text-lg mb-4">
-                    <strong>Thursday, August 21, 4 - 7 pm</strong></p> <p> (Please arrive by 3:45 pm to ensure an on-time start.)</p><p></p><br></br>
+                    <strong>Saturday, September 13, 2:30 - 5:30 pm</strong> (Please arrive by 2:15 pm to ensure an on-time start)</p>
                   <p className="text-gray-700 text-lg mb-4">
-                    We will be training on site in <strong>Room 3111</strong>.
+                    We will be training at a yoga studio called <strong>Mount Diablo Yoga</strong> in Walnut Creek.
                   </p>
                   <div className="mb-4">
                     <p className="text-gray-700 mb-2">
@@ -111,7 +111,9 @@ const PrivateClassStaticPage = () => {
                       </a>
                     </div>
                   </div>
-                  
+                  <p className="text-gray-700 mb-4">
+                    Note: No outside food or drink, except water, is allowed in the studio. 
+                  </p>
                   <div className="mt-4 text-sm text-gray-600">
                     <p>Please call/text me (Jay) with updates or questions:</p>
                     <a href="tel:925-532-9953" className="text-accent-primary font-semibold text-lg">925.532.9953</a>
@@ -120,7 +122,7 @@ const PrivateClassStaticPage = () => {
                 <div className="relative">
                   <img
                     src="/adult-teen.png"
-                    alt="Private Self Defense Class"
+                    alt="Public Self Defense Class"
                     className="w-full h-full object-cover rounded-lg shadow-md"
                   />
                 </div>

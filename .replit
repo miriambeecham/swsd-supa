@@ -57,3 +57,6 @@ args = "node server.js"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[agent]
+expertMode = true
