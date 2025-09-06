@@ -9,7 +9,7 @@ const ClassPrepList = () => {
     {
       id: 'city-walnut-creek',
       title: 'Public - City Walnut Creek (Date agnostic)',
-      path: '/city-walnut-creek-static',
+      path: '/public-cwc-prep',
       icon: Building,
       description: 'Preparation information for City of Walnut Creek public classes',
       type: 'Public Class'
@@ -17,7 +17,7 @@ const ClassPrepList = () => {
     {
       id: 'mount-diablo-yoga',
       title: 'Public - Mount Diablo Yoga (Date specific)',
-      path: '/public-class-mount-diablo-yoga-static',
+      path: '/public-class-mdyoga-prep',
       icon: Calendar,
       description: 'Preparation information for Mount Diablo Yoga public class',
       type: 'Public Class'
@@ -25,7 +25,7 @@ const ClassPrepList = () => {
     {
       id: 'desired-effect',
       title: 'Public - Desired Effect (Date specific)',
-      path: '/private-class-desired-effect-static',
+      path: '/public-class-desired-effect',
       icon: Calendar,
       description: 'Preparation information for Desired Effect public class',
       type: 'Public Class'
@@ -33,7 +33,7 @@ const ClassPrepList = () => {
     {
       id: 'private-general',
       title: 'Private (Group and date agnostic)',
-      path: '/private-class-static',
+      path: '/private-class-prep',
       icon: Users,
       description: 'General preparation information for private classes',
       type: 'Private Class'
@@ -41,7 +41,7 @@ const ClassPrepList = () => {
     {
       id: 'private-wsec',
       title: 'Private - WSEC (Group and date specific)',
-      path: '/private-class-wsec-static',
+      path: '/private-class-wsec-prep',
       icon: Calendar,
       description: 'Preparation information for WSEC private class',
       type: 'Private Class'
