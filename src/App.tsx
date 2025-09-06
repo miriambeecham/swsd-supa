@@ -38,12 +38,14 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-             <Route path="/public-cwc-prep" element={<CityWalnutCreekStaticPage />} />
+            <Route path="/class-prep-list" element={<ClassPrepList />} />
+
+            {/* Class Preparation Pages */}
+            <Route path="/public-cwc-prep" element={<CityWalnutCreekStaticPage />} />
             <Route path="/private-class-prep" element={<PrivateClassStaticPage />} />
             <Route path="/public-class-desired-effect" element={<PrivateClassDesiredEffectStaticPage />} />
             <Route path="/private-class-wsec-prep" element={<PrivateClassWSECStaticPage />} />
             <Route path="/public-class-mdyoga-prep" element={<PublicClassMountDiabloYogaStaticPage />} />
-            <Route path="/class-prep-list" element={<ClassPrepList />} />
           </Routes>
         </Layout>
       </Router>
