@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Shield, Phone, Mail, MapPin, Menu, X, ChevronDown } from 'lucide-react';
@@ -8,17 +9,9 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = React.useState(false);
+  const [isAboutDropdownOpen, setIsAboutDropdownOpen] = React.useState(false);
+  const [isMobileAboutDropdownOpen, setIsMobileAboutDropdownOpen] = React.useState(false);
   const location = useLocation();
-
-  const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Public Classes', href: '/public-classes' },
-    { name: 'Private Classes', href: '/private-classes' },
-    { name: 'Workplace Safety', href: '/workplace-safety' },
-    { name: 'Community Programs', href: '/cbo' },
-  ];
 
   const aboutPages = [
     { name: 'About', href: '/about' },
@@ -43,14 +36,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => {
-      setIsDropdownOpen(false);
-      setIsMobileDropdownOpen(false);
+      setIsAboutDropdownOpen(false);
+      setIsMobileAboutDropdownOpen(false);
     };
-    if (isDropdownOpen || isMobileDropdownOpen) {
+    if (isAboutDropdownOpen || isMobileAboutDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isDropdownOpen, isMobileDropdownOpen]);
+  }, [isAboutDropdownOpen, isMobileAboutDropdownOpen]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -117,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsDropdownOpen(!isDropdownOpen);
+                    setIsAboutDropdownOpen(!isAboutDropdownOpen);
                   }}
                   className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium transition-colors ${
                     isAboutActive()
@@ -126,15 +119,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   }`}
                 >
                   About
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isAboutDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {isDropdownOpen && (
+                {isAboutDropdownOpen && (
                   <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-50">
                     {aboutPages.map((item) => (
                       <Link
                         key={item.href}
                         to={item.href}
-                        onClick={() => setIsDropdownOpen(false)}
+                        onClick={() => setIsAboutDropdownOpen(false)}
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
                       >
                         {item.name}
@@ -161,7 +154,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {isMenuOpen && (
             <div className="md:hidden pb-4 pt-2">
               <div className="space-y-1">
-                {/* Regular nav items */}
+                {/* Home */}
                 <Link
                   to="/"
                   onClick={() => setIsMenuOpen(false)}
@@ -174,6 +167,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   Home
                 </Link>
 
+                {/* Program links */}
                 <Link
                   to="/public-classes"
                   onClick={() => setIsMenuOpen(false)}
@@ -227,7 +221,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsMobileDropdownOpen(!isMobileDropdownOpen);
+                      setIsMobileAboutDropdownOpen(!isMobileAboutDropdownOpen);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${
                       isAboutActive()
@@ -236,10 +230,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     }`}
                   >
                     About
-                    <ChevronDown className={`w-4 h-4 transition-transform ${isMobileDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isMobileAboutDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {isMobileDropdownOpen && (
+                  {isMobileAboutDropdownOpen && (
                     <div className="mt-1 ml-4 space-y-1">
                       {aboutPages.map((item) => (
                         <Link
@@ -247,7 +241,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                           to={item.href}
                           onClick={() => {
                             setIsMenuOpen(false);
-                            setIsMobileDropdownOpen(false);
+                            setIsMobileAboutDropdownOpen(false);
                           }}
                           className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                             isActive(item.href)
