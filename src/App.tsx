@@ -18,6 +18,7 @@ import PublicClassMountDiabloYogaStaticPage from './pages/PublicClassMountDiablo
 import PrivateClassWSECStaticPage from './pages/PrivateClassWSECStaticPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ScrollToTop from './components/ScrollToTop';
+import ClassPrepList from './pages/ClassPrepList';
 
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
             <Route path="/public-class-desired-effect" element={<PrivateClassDesiredEffectStaticPage />} />
             <Route path="/private-class-wsec-prep" element={<PrivateClassWSECStaticPage />} />
             <Route path="/public-class-mdyoga-prep" element={<PublicClassMountDiabloYogaStaticPage />} />
+            <Route path="/class-prep-list" element={<ClassPrepList />} />
           </Routes>
         </Layout>
       </Router>
