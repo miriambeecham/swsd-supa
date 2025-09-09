@@ -15,11 +15,7 @@ externalPort = 3003
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
+externalPort = 80
 
 [[ports]]
 localPort = 5002
@@ -34,7 +30,7 @@ localPort = 5173
 externalPort = 80
 
 [workflows]
-runButton = "Run Both Servers"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Run"
@@ -57,6 +53,27 @@ args = "node server.js"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Dev Server"
+
+[[workflows.workflow]]
+name = "Dev Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx vite --host 0.0.0.0 --port 5000"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 expertMode = true
