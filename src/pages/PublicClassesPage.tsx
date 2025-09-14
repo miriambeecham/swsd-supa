@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
+import BookingForm from '../components/BookingForm';
 
 interface ClassSchedule {
   id: string;
@@ -32,11 +33,31 @@ const PublicClassesPage = () => {
   const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
 
   useEffect(() => {
     fetchClassesFromAirtable();
   }, []);
 
+  const openBookingForm = (classData, scheduleData) => {
+    // Combine class and schedule data for the booking form
+    const combinedData = {
+      id: scheduleData.id, // This is the class schedule ID
+      title: classData['Class Name'],
+      date: scheduleData.Date,
+      time: `${scheduleData['Start Time']} - ${scheduleData['End Time']}`,
+      price: classData.Price,
+      type: classData.Type === 'Public' && classData['Age Range'] === '12-15' ? 'mother-daughter' : 'adult',
+      maxParticipants: classData['Max Participants'],
+      availableSpots: scheduleData['Available Spots'] || classData['Max Participants'],
+      bookedSpots: scheduleData['Booked Spots'] || 0
+    };
+
+    setSelectedClass(combinedData);
+    setShowBookingForm(true);
+  };
+  
   const fetchClassesFromAirtable = async () => {
     try {
       setLoading(true);
@@ -59,7 +80,8 @@ const PublicClassesPage = () => {
           if (!classRecord || !classRecord.fields['Is Active'] || scheduleRecord.fields['Is Cancelled']) {
             return null;
           }
-
+          
+          
           return {
             id: scheduleRecord.id,
             class_name: classRecord.fields['Class Name'] || '',
@@ -211,7 +233,16 @@ const PublicClassesPage = () => {
 
         {/* Button/Registration Area */}
         <div className="ml-4">
-          {classData.booking_url ? (
+          {classData.booking_method === 'swsd website' ? (
+            // Direct booking through our system
+            <button
+              onClick={() => openBookingForm(classData, classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+              disabled={classData.availableSpots === 0}
+            >
+              {classData.availableSpots === 0 ? 'Class Full' : `Book Now - $${classData.price}`}
+            </button>
+          ) : classData.booking_url ? (
             // Regular booking button for classes open for registration
             <button
               onClick={() => handleBooking(classData)}
@@ -339,6 +370,7 @@ const PublicClassesPage = () => {
               specialized programs designed for different age groups and relationships.
             </p>
           </div>
+         
         </div>
       </section>
 
@@ -535,6 +567,16 @@ const PublicClassesPage = () => {
           </div>
         </div>
       </section>
+      {/* Booking Form Modal */}
+      {showBookingForm && selectedClass && (
+        <BookingForm 
+          classSchedule={selectedClass}
+          onClose={() => {
+            setShowBookingForm(false);
+            setSelectedClass(null);
+          }}
+        />
+      )}
     </div>
   );
 };

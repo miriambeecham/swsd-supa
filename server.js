@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Stripe from 'stripe';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,6 +9,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 const RECAPTCHA_API_KEY = process.env.RECAPTCHA_API_KEY;
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Middleware
 app.use(express.json());
@@ -194,6 +198,49 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
   }
 };
 
+// BOOKING SYSTEM HELPER FUNCTIONS
+const validateParticipantAges = (participants, classType) => {
+  const ageGroups = participants.map(p => p.ageGroup);
+  const validation = { isValid: true, errors: [], warnings: [] };
+
+  if (classType === 'adult') {
+    participants.forEach((participant) => {
+      if (participant.ageGroup === '12-15') {
+        validation.isValid = false;
+        validation.errors.push(`${participant.firstName}: Adult classes are for ages 16+. Please check our Mother-Daughter classes.`);
+      } else if (participant.ageGroup === 'Under 12') {
+        validation.isValid = false;
+        validation.errors.push(`${participant.firstName}: Please call us at (925) 532-9953 to discuss options for younger participants.`);
+      }
+    });
+  } else if (classType === 'mother-daughter') {
+    const hasAdult = ageGroups.includes('16+');
+    const hasDaughter = ageGroups.includes('12-15');
+    const hasUnder12 = ageGroups.includes('Under 12');
+
+    if (!hasAdult) {
+      validation.isValid = false;
+      validation.errors.push('Mother-Daughter classes require at least one participant age 16+ (mother/guardian).');
+    }
+
+    if (!hasDaughter && !hasUnder12) {
+      validation.isValid = false;
+      validation.errors.push('Mother-Daughter classes require at least one daughter (ages 12-15). For adult-only training, please book our Adult & Teen classes.');
+    }
+
+    if (hasUnder12) {
+      validation.warnings.push('Participants under 12 require special consideration. Please call (925) 532-9953 before proceeding.');
+    }
+  }
+
+  return validation;
+};
+
+const calculateTotalAmount = (classData, participantCount) => {
+  const pricePerParticipant = classData.Price;
+  return pricePerParticipant * participantCount;
+};
+
 // Test endpoint for Zoho integration
 app.get('/api/test-zoho', async (req, res) => {
   try {
@@ -312,50 +359,245 @@ app.post('/api/form-submissions', async (req, res) => {
   }
 });
 
-   app.post('/api/verify-recaptcha', async (req, res) => {
-     try {
-       const { token } = req.body;
+app.post('/api/verify-recaptcha', async (req, res) => {
+  try {
+    const { token } = req.body;
 
-       if (!token) {
-         return res.status(400).json({ error: 'Token is required' });
-       }
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
 
-       if (!RECAPTCHA_API_KEY) {
-         console.error('RECAPTCHA_API_KEY not configured');
-         return res.status(500).json({ error: 'reCAPTCHA not configured' });
-       }
+    if (!RECAPTCHA_API_KEY) {
+      console.error('RECAPTCHA_API_KEY not configured');
+      return res.status(500).json({ error: 'reCAPTCHA not configured' });
+    }
 
-       const params = new URLSearchParams({
-         secret: RECAPTCHA_API_KEY,
-         response: token
-       });
+    const params = new URLSearchParams({
+      secret: RECAPTCHA_API_KEY,
+      response: token
+    });
 
-       const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-         body: params
-       });
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
 
-       if (!response.ok) {
-         const errorText = await response.text();
-         console.error('reCAPTCHA verification failed:', errorText);
-         return res.status(response.status).json({ 
-           error: 'reCAPTCHA verification failed',
-           details: errorText 
-         });
-       }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('reCAPTCHA verification failed:', errorText);
+      return res.status(response.status).json({ 
+        error: 'reCAPTCHA verification failed',
+        details: errorText 
+      });
+    }
 
-       const result = await response.json();
-       console.log('reCAPTCHA verification result:', result);
+    const result = await response.json();
+    console.log('reCAPTCHA verification result:', result);
 
-       res.json(result);
+    res.json(result);
 
-     } catch (error) {
-       console.error('Error verifying reCAPTCHA:', error);
-       res.status(500).json({ error: 'Internal server error' });
-     }
-   });
+  } catch (error) {
+    console.error('Error verifying reCAPTCHA:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
+// BOOKING SYSTEM API ENDPOINTS
+// Check class availability
+app.post('/api/check-availability', async (req, res) => {
+  const { classScheduleId, participantCount } = req.body;
+
+  try {
+    // Get class schedule
+    const scheduleResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${classScheduleId}`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
+    });
+    const schedule = await scheduleResponse.json();
+
+    // Get linked class data
+    const classId = schedule.fields.Class[0];
+    const classResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
+    });
+    const classData = await classResponse.json();
+
+    const maxParticipants = classData.fields['Max Participants'];
+    const availableSpots = schedule.fields['Available Spots'] || maxParticipants;
+    const bookedSpots = schedule.fields['Booked Spots'] || 0;
+    const remainingSpots = availableSpots - bookedSpots;
+
+    res.json({
+      available: remainingSpots >= participantCount,
+      remainingSpots,
+      availableSpots,
+      bookedSpots,
+      classData: classData.fields,
+      scheduleData: schedule.fields
+    });
+  } catch (error) {
+    console.error('Availability check error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create booking
+app.post('/api/create-booking', async (req, res) => {
+  const { classScheduleId, contactInfo, participants, classType } = req.body;
+
+  try {
+    // 1. Validate ages
+    const validation = validateParticipantAges(participants, classType);
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'Age validation failed', details: validation.errors });
+    }
+
+    // 2. Get class and schedule data
+    const scheduleResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${classScheduleId}`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
+    });
+    const schedule = await scheduleResponse.json();
+
+    const classId = schedule.fields.Class[0];
+    const classResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`, {
+      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
+    });
+    const classData = await classResponse.json();
+
+    // 3. Check availability
+    const maxParticipants = classData.fields['Max Participants'];
+    const availableSpots = schedule.fields['Available Spots'] || maxParticipants;
+    const bookedSpots = schedule.fields['Booked Spots'] || 0;
+    const remainingSpots = availableSpots - bookedSpots;
+
+    if (remainingSpots < participants.length) {
+      return res.status(400).json({ error: 'Insufficient spots available' });
+    }
+
+    // 4. Calculate total amount (simple per-participant pricing)
+    const totalAmount = calculateTotalAmount(classData.fields, participants.length);
+
+    // 5. Create booking in Airtable
+    const bookingResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: {
+          'Class Schedule': [classScheduleId],
+          'Booking Date': new Date().toISOString(),
+          'Status': 'Pending Payment',
+          'Contact First Name': contactInfo.firstName,
+          'Contact Last Name': contactInfo.lastName,
+          'Contact Email': contactInfo.email,
+          'Contact Phone': contactInfo.phone,
+          'Contact Is Participant': contactInfo.isParticipating,
+          'Number of Participants': participants.length,
+          'Total Amount': totalAmount,
+          'Payment Status': 'Pending',
+          'Age Validation Status': validation.warnings.length > 0 ? 'Needs Review' : 'Valid',
+          'Validation Notes': validation.warnings.join('; ')
+        }
+      })
+    });
+
+    const booking = await bookingResponse.json();
+    const bookingId = booking.id;
+
+    // 6. Create participant records
+    for (let i = 0; i < participants.length; i++) {
+      const participant = participants[i];
+      await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: {
+            'Booking': [bookingId],
+            'First Name': participant.firstName,
+            'Last Name': participant.lastName,
+            'Age Group': participant.ageGroup,
+            'Participant Number': i + 1
+          }
+        })
+      });
+    }
+
+    // 7. Create Stripe payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(totalAmount * 100), // Stripe uses cents
+      currency: 'usd',
+      metadata: {
+        bookingId: bookingId,
+        classScheduleId: classScheduleId
+      }
+    });
+
+    // 8. Update booking with payment intent ID
+    await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: {
+          'Stripe Payment Intent ID': paymentIntent.id
+        }
+      })
+    });
+
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      bookingId: bookingId,
+      totalAmount: totalAmount
+    });
+
+  } catch (error) {
+    console.error('Booking creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Confirm booking after payment
+app.post('/api/confirm-booking', async (req, res) => {
+  const { bookingId, paymentIntentId } = req.body;
+
+  try {
+    // 1. Verify payment with Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status === 'succeeded') {
+      // 2. Update booking status
+      await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: {
+            'Status': 'Confirmed',
+            'Payment Status': 'Completed',
+            'Payment Date': new Date().toISOString()
+          }
+        })
+      });
+
+      res.json({ success: true, bookingId: bookingId });
+    } else {
+      res.status(400).json({ error: 'Payment not completed' });
+    }
+
+  } catch (error) {
+    console.error('Booking confirmation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // API Routes
 app.get('/api/classes', async (req, res) => {
@@ -414,6 +656,9 @@ app.get('/api/schedules', async (req, res) => {
         'Is Cancelled': record.fields['Is Cancelled'],
         'Special Notes': record.fields['Special Notes'],
         'Pricing Unit': record.fields['Pricing Unit'],
+        'Available Spots': record.fields['Available Spots'],
+        'Booked Spots': record.fields['Booked Spots'],
+        'Remaining Spots': record.fields['Remaining Spots'],
       }
     }));
 
@@ -518,13 +763,13 @@ app.get('/api/faqs', async (req, res) => {
 app.use((req, res, next) => {
   // Log the incoming route for debugging
   console.log('Processing route:', req.path, 'Method:', req.method);
-  
+
   // Check for malformed route patterns that could cause path-to-regexp issues
   if (req.path.includes(':') && !req.path.match(/\/:[a-zA-Z_][a-zA-Z0-9_]*(\?|\/|$)/)) {
     console.error('Potentially malformed route detected:', req.path);
     return res.status(400).json({ error: 'Malformed route pattern' });
   }
-  
+
   next();
 });
 
@@ -615,13 +860,14 @@ try {
     console.log(`AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 10)}...` : 'NOT SET'}`);
     console.log(`AIRTABLE_API_KEY exists: ${!!AIRTABLE_API_KEY}`);
     console.log(`RECAPTCHA_API_KEY exists: ${!!RECAPTCHA_API_KEY}`);
+    console.log(`STRIPE_SECRET_KEY exists: ${!!process.env.STRIPE_SECRET_KEY}`);
     console.log(`ZOHO_CLIENT_ID exists: ${!!ZOHO_CLIENT_ID}`);
     console.log(`ZOHO_CLIENT_SECRET exists: ${!!ZOHO_CLIENT_SECRET}`);
     console.log(`ZOHO_REFRESH_TOKEN exists: ${!!ZOHO_REFRESH_TOKEN}`);
     console.log(`ZOHO_DOMAIN: ${ZOHO_DOMAIN}`);
     console.log('Raw ZOHO_DOMAIN from env:', process.env.ZOHO_DOMAIN);
     console.log('Available env vars:', Object.keys(process.env).filter(key => 
-      key.includes('AIRTABLE') || key.includes('ZOHO')
+      key.includes('AIRTABLE') || key.includes('ZOHO') || key.includes('STRIPE')
     ));
     console.log('=====================================');
   });

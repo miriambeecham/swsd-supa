@@ -8,7 +8,6 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [isAboutDropdownOpen, setIsAboutDropdownOpen] = React.useState(false);
   const [isMobileAboutDropdownOpen, setIsMobileAboutDropdownOpen] = React.useState(false);
   const location = useLocation();
 
@@ -32,12 +31,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return location.pathname.startsWith(href);
   };
 
-  const isAboutActive = () => {
-    return ['/about', '/testimonials', '/faq'].some(path =>
-      location.pathname.startsWith(path)
-    );
-  };
-
   const isProgramActive = () => {
     return ['/public-classes', '/private-classes', '/workplace-safety', '/cbo'].some(path =>
       location.pathname.startsWith(path)
@@ -47,14 +40,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => {
-      setIsAboutDropdownOpen(false);
       setIsMobileAboutDropdownOpen(false);
     };
-    if (isAboutDropdownOpen || isMobileAboutDropdownOpen) {
+    if (isMobileAboutDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isAboutDropdownOpen, isMobileAboutDropdownOpen]);
+  }, [isMobileAboutDropdownOpen]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -74,44 +66,63 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             {/* Primary Navigation - Desktop Only */}
             <nav className="hidden lg:flex items-center space-x-12 flex-1 justify-center">
-              <div className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
-                isProgramActive() 
-                  ? 'text-accent-primary' 
-                  : 'text-navy hover:text-accent-primary'
-              }`}>
+              <Link 
+                to="/public-classes" 
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
+                  isProgramActive() 
+                    ? 'text-accent-primary' 
+                    : 'text-navy hover:text-accent-primary'
+                }`}
+                onMouseEnter={() => {
+                  const target = document.querySelector('.programs-hover-target');
+                  if (target) {
+                    target.classList.add('text-accent-primary', 'bg-accent-light');
+                    target.classList.remove('text-gray-600');
+                  }
+                }}
+                onMouseLeave={() => {
+                  const target = document.querySelector('.programs-hover-target');
+                  if (target && !isActive('/public-classes')) {
+                    target.classList.remove('text-accent-primary', 'bg-accent-light');
+                    target.classList.add('text-gray-600');
+                  }
+                }}
+              >
                 Programs
-              </div>
+              </Link>
 
-              <div className="relative">
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAboutDropdownOpen(!isAboutDropdownOpen);
-                  }}
-                  className={`flex items-center gap-1 px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
-                    isAboutActive()
-                      ? 'text-accent-primary' 
-                      : 'text-navy hover:text-accent-primary'
-                  }`}
-                >
-                  About
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isAboutDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isAboutDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-50">
-                    {aboutPages.map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        onClick={() => setIsAboutDropdownOpen(false)}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-accent-light hover:text-accent-primary"
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <Link 
+                to="/about" 
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
+                  isActive('/about') 
+                    ? 'text-accent-primary' 
+                    : 'text-navy hover:text-accent-primary'
+                }`}
+              >
+                About
+              </Link>
+
+              <Link 
+                to="/testimonials" 
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
+                  isActive('/testimonials') 
+                    ? 'text-accent-primary' 
+                    : 'text-navy hover:text-accent-primary'
+                }`}
+              >
+                Testimonials
+              </Link>
+
+              <Link 
+                to="/faq" 
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
+                  isActive('/faq') 
+                    ? 'text-accent-primary' 
+                    : 'text-navy hover:text-accent-primary'
+                }`}
+              >
+                FAQ
+              </Link>
 
               <Link 
                 to="/contact" 
@@ -144,10 +155,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Link
                   key={program.href}
                   to={program.href}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
                     isActive(program.href)
-                      ? 'text-accent-primary bg-accent-light'
-                      : 'text-gray-600 hover:text-accent-primary hover:bg-accent-light'
+                      ? 'text-accent-primary border-accent-primary'
+                      : 'text-slate-500 border-transparent hover:text-accent-primary hover:border-accent-primary'
+                  } ${
+                    program.href === '/public-classes' ? 'programs-hover-target' : ''
                   }`}
                 >
                   {program.name}
