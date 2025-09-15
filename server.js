@@ -530,6 +530,9 @@ app.post('/api/create-booking', async (req, res) => {
     });
 
     const booking = await bookingResponse.json();
+    console.log('=== BOOKING CREATED ===');
+    console.log('Booking ID:', booking.id);
+    console.log('Booking fields stored:', JSON.stringify(booking.fields, null, 2));
     const bookingId = booking.id;
 
     // 6. Create participant records
@@ -674,6 +677,9 @@ app.post('/api/verify-payment', async (req, res) => {
         }
       });
       const bookingData = await bookingResponse.json();
+      console.log('=== READING BOOKING FOR PAYMENT ===');
+      console.log('Available booking fields:', Object.keys(bookingData.fields));
+      console.log('All booking data:', JSON.stringify(bookingData.fields, null, 2));
 
       // Get class schedule details
       const scheduleId = bookingData.fields['Class Schedule'][0];
