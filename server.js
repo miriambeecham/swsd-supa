@@ -10,6 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const RECAPTCHA_API_KEY = process.env.RECAPTCHA_API_KEY;
 
+
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -446,6 +447,32 @@ app.post('/api/create-booking', async (req, res) => {
   const { classScheduleId, contactInfo, participants, classType } = req.body;
 
   try {
+    // ADD THIS: Verify reCAPTCHA first
+    if (recaptchaToken && RECAPTCHA_API_KEY) {
+      const params = new URLSearchParams({
+        secret: RECAPTCHA_API_KEY,
+        response: recaptchaToken
+      });
+
+      const verifyResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
+      });
+
+      if (verifyResponse.ok) {
+        const verifyResult = await verifyResponse.json();
+        if (!verifyResult.success) {
+          return res.status(400).json({ error: 'Invalid reCAPTCHA token' });
+        }
+      } else {
+        return res.status(400).json({ error: 'reCAPTCHA verification failed' });
+      }
+    } else {
+      return res.status(400).json({ error: 'reCAPTCHA token required' });
+    }
+  
+  try {
     // 1. Validate ages
     const validation = validateParticipantAges(participants, classType);
     if (!validation.isValid) {
@@ -527,17 +554,50 @@ app.post('/api/create-booking', async (req, res) => {
       });
     }
 
-    // 7. Create Stripe payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(totalAmount * 100), // Stripe uses cents
-      currency: 'usd',
+    // 7. Create Stripe checkout session with participant data
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `${classData.fields['Class Name']} - ${schedule.fields.Date}`,
+            description: `Self-defense class for ${participants.length} participant(s)`
+          },
+          unit_amount: Math.round(totalAmount * 100),
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      // Pre-fill customer information
+      customer_email: contactInfo.email,
+      billing_address_collection: 'required',
+      success_url: `${req.headers.origin}/booking-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
+      cancel_url: `${req.headers.origin}/public-classes`,
       metadata: {
         bookingId: bookingId,
-        classScheduleId: classScheduleId
+        classScheduleId: classScheduleId,
+        contactFirstName: contactInfo.firstName,
+        contactLastName: contactInfo.lastName,
+        contactEmail: contactInfo.email,
+        participantCount: participants.length.toString(),
+        // Participants in "Last Name, First Name" format
+        participant1: participants[0] ? `${participants[0].lastName}, ${participants[0].firstName}` : '',
+        participant2: participants[1] ? `${participants[1].lastName}, ${participants[1].firstName}` : '',
+        participant3: participants[2] ? `${participants[2].lastName}, ${participants[2].firstName}` : '',
+        participant4: participants[3] ? `${participants[3].lastName}, ${participants[3].firstName}` : '',
+        participant5: participants[4] ? `${participants[4].lastName}, ${participants[4].firstName}` : '',
+        participant6: participants[5] ? `${participants[5].lastName}, ${participants[5].firstName}` : '',
+        participant7: participants[6] ? `${participants[6].lastName}, ${participants[6].firstName}` : '',
+        participant8: participants[7] ? `${participants[7].lastName}, ${participants[7].firstName}` : '',
+        participant9: participants[8] ? `${participants[8].lastName}, ${participants[8].firstName}` : '',
+        participant10: participants[9] ? `${participants[9].lastName}, ${participants[9].firstName}` : '',
+        // Backup field with all participants
+        allParticipants: participants.map(p => `${p.lastName}, ${p.firstName}`).join(' | ')
       }
     });
 
-    // 8. Update booking with payment intent ID
+    // 8. Update booking with checkout session ID
     await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
       method: 'PATCH',
       headers: {
@@ -546,13 +606,13 @@ app.post('/api/create-booking', async (req, res) => {
       },
       body: JSON.stringify({
         fields: {
-          'Stripe Payment Intent ID': paymentIntent.id
+          'Stripe Payment Intent ID': session.id
         }
       })
     });
 
     res.json({
-      clientSecret: paymentIntent.client_secret,
+      checkoutUrl: session.url,
       bookingId: bookingId,
       totalAmount: totalAmount
     });
@@ -595,6 +655,44 @@ app.post('/api/confirm-booking', async (req, res) => {
 
   } catch (error) {
     console.error('Booking confirmation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Notify Airtable of Payment Status
+app.post('/api/verify-payment', async (req, res) => {
+  const { session_id } = req.body;
+
+  try {
+    // Verify with Stripe
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+
+    if (session.payment_status === 'paid') {
+      const bookingId = session.metadata.bookingId;
+
+      // Just update booking status in Airtable
+      await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: {
+            'Status': 'Confirmed',
+            'Payment Status': 'Completed',
+            'Payment Date': new Date().toISOString()
+          }
+        })
+      });
+
+      res.json({ success: true, bookingId });
+    } else {
+      res.status(400).json({ error: 'Payment not completed' });
+    }
+
+  } catch (error) {
+    console.error('Payment verification error:', error);
     res.status(500).json({ error: error.message });
   }
 });

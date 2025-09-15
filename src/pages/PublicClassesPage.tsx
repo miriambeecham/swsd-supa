@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
-import BookingForm from '../components/BookingForm';
 
 interface ClassSchedule {
   id: string;
@@ -17,47 +16,47 @@ interface ClassSchedule {
   price: number;
   pricing_unit: string;
   partner_organization?: string;
-  booking_method: 'external' | 'contact';
+  booking_method: 'external' | 'contact' | 'swsd website';
   registration_instructions: string;
   date: string;
   start_time: string;
   end_time: string;
   booking_url?: string;
-  registration_opens?: string; // New field for registration opening date/time
+  registration_opens?: string;
   is_cancelled: boolean;
   special_notes?: string;
 }
 
 const PublicClassesPage = () => {
+  const navigate = useNavigate();
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
   const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showBookingForm, setShowBookingForm] = useState(false);
-  const [selectedClass, setSelectedClass] = useState(null);
 
   useEffect(() => {
     fetchClassesFromAirtable();
   }, []);
 
-  const openBookingForm = (classData, scheduleData) => {
-    // Combine class and schedule data for the booking form
-    const combinedData = {
-      id: scheduleData.id, // This is the class schedule ID
-      title: classData['Class Name'],
-      date: scheduleData.Date,
-      time: `${scheduleData['Start Time']} - ${scheduleData['End Time']}`,
-      price: classData.Price,
-      type: classData.Type === 'Public' && classData['Age Range'] === '12-15' ? 'mother-daughter' : 'adult',
-      maxParticipants: classData['Max Participants'],
-      availableSpots: scheduleData['Available Spots'] || classData['Max Participants'],
-      bookedSpots: scheduleData['Booked Spots'] || 0
+  const handleBookNow = (classData: ClassSchedule) => {
+    // Navigate to booking page with class data
+    const bookingData = {
+      id: classData.id,
+      title: classData.class_name,
+      date: classData.date,
+      time: `${classData.start_time} - ${classData.end_time}`,
+      price: classData.price.toString(),
+      pricingUnit: classData.pricing_unit,
+      type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
+      maxParticipants: classData.max_participants,
+      location: classData.location
     };
 
-    setSelectedClass(combinedData);
-    setShowBookingForm(true);
+    
+
+    navigate(`/book-mother-daughter-class/${classData.id}`, { state: { classSchedule: bookingData } });
   };
-  
+
   const fetchClassesFromAirtable = async () => {
     try {
       setLoading(true);
@@ -80,8 +79,7 @@ const PublicClassesPage = () => {
           if (!classRecord || !classRecord.fields['Is Active'] || scheduleRecord.fields['Is Cancelled']) {
             return null;
           }
-          
-          
+
           return {
             id: scheduleRecord.id,
             class_name: classRecord.fields['Class Name'] || '',
@@ -101,7 +99,7 @@ const PublicClassesPage = () => {
             start_time: scheduleRecord.fields['Start Time'] || '',
             end_time: scheduleRecord.fields['End Time'] || '',
             booking_url: scheduleRecord.fields['Booking URL'],
-            registration_opens: scheduleRecord.fields['Registration Opens'], // New field
+            registration_opens: scheduleRecord.fields['Registration Opens'],
             is_cancelled: scheduleRecord.fields['Is Cancelled'] || false,
             special_notes: scheduleRecord.fields['Special Notes']
           };
@@ -137,7 +135,7 @@ const PublicClassesPage = () => {
       hour12: true 
     });
   };
-  
+
   const formatClassDate = (dateString: string) => {
     // Add noon time to prevent timezone issues
     const date = new Date(dateString + 'T12:00:00');
@@ -170,7 +168,6 @@ const PublicClassesPage = () => {
   };
 
   // Filter classes by type for different sections
-  // Filter classes by type for different sections
   const motherDaughterClasses = classSchedules.filter(c => 
     c.type === 'public: mother & daughter'
   );
@@ -193,8 +190,6 @@ const PublicClassesPage = () => {
             </p>
           )}
 
-      
-          {/* Date, Time & Location - All in one container */}
           {/* Date, Time & Location - All in one container */}
           <div className="mb-4 space-y-2">
             <div className="flex items-start gap-2 min-h-[24px]">
@@ -229,18 +224,17 @@ const PublicClassesPage = () => {
               </div>
             )}
           </div>
-      </div> {/* Add this closing div for the flex-1 container */}
+        </div>
 
         {/* Button/Registration Area */}
         <div className="ml-4">
           {classData.booking_method === 'swsd website' ? (
-            // Direct booking through our system
+            // Direct booking through our system - Navigate to BookingPage
             <button
-              onClick={() => openBookingForm(classData, classData)}
+              onClick={() => handleBookNow(classData)}
               className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-              disabled={classData.availableSpots === 0}
             >
-              {classData.availableSpots === 0 ? 'Class Full' : `Book Now - $${classData.price}`}
+              Register
             </button>
           ) : classData.booking_url ? (
             // Regular booking button for classes open for registration
@@ -327,30 +321,30 @@ const PublicClassesPage = () => {
   }
 
   return (
-
     <div className="min-h-screen bg-white">
-       {/*SEO Tags*/}
-        <Helmet>
-          <title>Women's Self Defense Classes | Walnut Creek | East Bay | SF Bay Area</title>
-          <meta name="description" content="Women-only self defense classes in Walnut Creek, CA. Serving East Bay and San Francisco residents including Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, and surrounding areas. Mother-daughter training and adult/teen programs." />
-          <meta name="keywords" content="women's self defense Walnut Creek, East Bay self defense, mother daughter classes, teen self defense, Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, Bay Area women's safety" />
-          <meta property="og:title" content="Women's Self Defense Classes | Walnut Creek | Streetwise Self Defense" />
-          <meta property="og:description" content="Women-only self defense classes in Walnut Creek, serving the East Bay and SF" />
-          <meta property="og:type" content="website" />
-          <meta property="og:url" content="https://streetwiseselfdefense.com/public-classes" />
-          <link rel="canonical" href="https://streetwiseselfdefense.com/public-classes" />
-          <meta property="og:title" content="Public Self Defense Classes - Streetwise Self Defense" />
-          <meta property="og:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs. Learn practical safety skills in a supportive environment." />
-          <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
-          <meta property="og:url" content="https://www.streetwiseselfdefense.com/public-classes" />
-          <meta property="og:type" content="website" />
-          <meta property="og:site_name" content="Streetwise Self Defense" />
+      {/*SEO Tags*/}
+      <Helmet>
+        <title>Women's Self Defense Classes | Walnut Creek | East Bay | SF Bay Area</title>
+        <meta name="description" content="Women-only self defense classes in Walnut Creek, CA. Serving East Bay and San Francisco residents including Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, and surrounding areas. Mother-daughter training and adult/teen programs." />
+        <meta name="keywords" content="women's self defense Walnut Creek, East Bay self defense, mother daughter classes, teen self defense, Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, Bay Area women's safety" />
+        <meta property="og:title" content="Women's Self Defense Classes | Walnut Creek | Streetwise Self Defense" />
+        <meta property="og:description" content="Women-only self defense classes in Walnut Creek, serving the East Bay and SF" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://streetwiseselfdefense.com/public-classes" />
+        <link rel="canonical" href="https://streetwiseselfdefense.com/public-classes" />
+        <meta property="og:title" content="Public Self Defense Classes - Streetwise Self Defense" />
+        <meta property="og:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs. Learn practical safety skills in a supportive environment." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/public-classes" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
 
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content="Public Self Defense Classes - Streetwise Self Defense" />
-          <meta name="twitter:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs." />
-          <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
-        </Helmet>
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Public Self Defense Classes - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+      </Helmet>
+
       {/* Header with Background */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -361,8 +355,6 @@ const PublicClassesPage = () => {
         ></div>
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
             <p className="text-xl text-gray-600 mb-8">
@@ -370,7 +362,6 @@ const PublicClassesPage = () => {
               specialized programs designed for different age groups and relationships.
             </p>
           </div>
-         
         </div>
       </section>
 
@@ -409,6 +400,7 @@ const PublicClassesPage = () => {
               </div>
             </div>
           </div>
+
           {/* Private Classes Call-out */}
           <div className="mb-12 flex justify-center">
             <div className="max-w-2xl px-4">
@@ -424,7 +416,7 @@ const PublicClassesPage = () => {
               </p>
             </div>
           </div>
-          
+
           {/* Tab Content */}
           {activeTab === 'adult-teen' && (
             <div className="mb-12">
@@ -567,16 +559,6 @@ const PublicClassesPage = () => {
           </div>
         </div>
       </section>
-      {/* Booking Form Modal */}
-      {showBookingForm && selectedClass && (
-        <BookingForm 
-          classSchedule={selectedClass}
-          onClose={() => {
-            setShowBookingForm(false);
-            setSelectedClass(null);
-          }}
-        />
-      )}
     </div>
   );
 };

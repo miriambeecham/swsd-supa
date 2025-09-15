@@ -15,25 +15,31 @@ const BookingForm = ({ classSchedule, onClose }) => {
   const [availability, setAvailability] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto-fill first participant if contact is participating
+  // Auto-add/remove contact person from participants list
   useEffect(() => {
-    if (contactInfo.isParticipating && contactInfo.firstName) {
-      setParticipants([{
-        firstName: contactInfo.firstName,
-        lastName: contactInfo.lastName,
-        ageGroup: ''
-      }]);
-    } else if (!contactInfo.isParticipating && participants.length === 0) {
-      setParticipants([{ firstName: '', lastName: '', ageGroup: '' }]);
-    }
-  }, [contactInfo.isParticipating, contactInfo.firstName, contactInfo.lastName]);
+    if (contactInfo.isParticipating && contactInfo.firstName && contactInfo.lastName) {
+      // Check if contact person is already in the list (to avoid duplicates)
+      setParticipants(prev => {
+        const contactAlreadyInList = prev.some(p => 
+          p.firstName === contactInfo.firstName && p.lastName === contactInfo.lastName
+        );
 
-  // Validate ages whenever participants change
-  useEffect(() => {
-    if (participants.length > 0) {
-      validateAges();
+        if (!contactAlreadyInList) {
+          return [{
+            firstName: contactInfo.firstName,
+            lastName: contactInfo.lastName,
+            ageGroup: ''
+          }, ...prev];
+        }
+        return prev; // Return unchanged if already in list
+      });
+    } else if (!contactInfo.isParticipating) {
+      // Remove contact person from participants list
+      setParticipants(prev => prev.filter(p => 
+        !(p.firstName === contactInfo.firstName && p.lastName === contactInfo.lastName)
+      ));
     }
-  }, [participants]);
+  }, [contactInfo.isParticipating, contactInfo.firstName, contactInfo.lastName]); // Remove 'participants' from dependencies
 
   const validateAges = () => {
     const ageGroups = participants.map(p => p.ageGroup).filter(Boolean);
@@ -139,7 +145,7 @@ const BookingForm = ({ classSchedule, onClose }) => {
       }
 
       // Redirect to Stripe checkout (you'll need to implement this)
-      window.location.href = `/checkout?payment_intent=${result.clientSecret}&booking_id=${result.bookingId}`;
+      window.location.href = result.checkoutUrl;
 
     } catch (error) {
       console.error('Booking error:', error);
