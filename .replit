@@ -10,20 +10,12 @@ deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run build"]
 
 [[ports]]
-localPort = 3001
-externalPort = 3001
-
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 5003
-externalPort = 3002
-
-[[ports]]
 localPort = 5173
 externalPort = 80
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
 
 [workflows]
 runButton = "Development"
