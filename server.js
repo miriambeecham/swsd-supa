@@ -902,40 +902,66 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from the built Vite app
-app.use(express.static(path.join(__dirname, 'dist')));
+// In development, only serve API routes - Vite dev server handles React
+const isProduction = process.env.NODE_ENV === 'production';
 
-//Redirects for legacy site pages
-app.get('/organizer/city-of-walnut-creek-arts-recreation-program/', (req, res) => {
-  res.redirect(301, '/public-classes');
-});
+if (isProduction) {
+  // Serve static files from the built Vite app
+  app.use(express.static(path.join(__dirname, 'dist')));
 
-app.get('/organizer/forma-gym-walnut-creek/', (req, res) => {
-  res.redirect(301, '/public-classes');
-});
+  //Redirects for legacy site pages
+  app.get('/organizer/city-of-walnut-creek-arts-recreation-program/', (req, res) => {
+    res.redirect(301, '/public-classes');
+  });
 
-app.get('/organizer/venue/forma-igf-studio/', (req, res) => {
-  res.redirect(301, '/public-classes');
-});
+  app.get('/organizer/forma-gym-walnut-creek/', (req, res) => {
+    res.redirect(301, '/public-classes');
+  });
 
-app.get('//swsd-what-to-expect-private-15-plus/', (req, res) => {
-  res.redirect(301, '/private-class-prep');
-});
+  app.get('/organizer/venue/forma-igf-studio/', (req, res) => {
+    res.redirect(301, '/public-classes');
+  });
 
-app.get('//https://streetwiseselfdefense.com/swsd-what-to-expect-arwc-15-plus/', (req, res) => {
-  res.redirect(301, '/city-walnut-creek-prep');
-});
+  app.get('//swsd-what-to-expect-private-15-plus/', (req, res) => {
+    res.redirect(301, '/private-class-prep');
+  });
 
-// Catch-all handler: send back React's index.html file for any non-API routes
-app.get('*', (req, res) => {
-  try {
-    console.log('Serving index.html for route:', req.path);
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  } catch (error) {
-    console.error('Error serving index.html:', error);
-    res.status(500).send('Server Error');
-  }
-});
+  app.get('//https://streetwiseselfdefense.com/swsd-what-to-expect-arwc-15-plus/', (req, res) => {
+    res.redirect(301, '/city-walnut-creek-prep');
+  });
+
+  // Catch-all handler: send back React's index.html file for any non-API routes
+  app.get('*', (req, res) => {
+    try {
+      console.log('Serving index.html for route:', req.path);
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    } catch (error) {
+      console.error('Error serving index.html:', error);
+      res.status(500).send('Server Error');
+    }
+  });
+} else {
+  // Development mode - only handle redirects, let Vite handle everything else
+  app.get('/organizer/city-of-walnut-creek-arts-recreation-program/', (req, res) => {
+    res.redirect(301, '/public-classes');
+  });
+
+  app.get('/organizer/forma-gym-walnut-creek/', (req, res) => {
+    res.redirect(301, '/public-classes');
+  });
+
+  app.get('/organizer/venue/forma-igf-studio/', (req, res) => {
+    res.redirect(301, '/public-classes');
+  });
+
+  app.get('//swsd-what-to-expect-private-15-plus/', (req, res) => {
+    res.redirect(301, '/private-class-prep');
+  });
+
+  app.get('//https://streetwiseselfdefense.com/swsd-what-to-expect-arwc-15-plus/', (req, res) => {
+    res.redirect(301, '/city-walnut-creek-prep');
+  });
+}
 
 // Add error handling middleware
 app.use((error, req, res, next) => {
