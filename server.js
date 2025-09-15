@@ -903,7 +903,7 @@ app.use((req, res, next) => {
 });
 
 // In development, only serve API routes - Vite dev server handles React
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === 'true';
 
 if (isProduction) {
   // Serve static files from the built Vite app
