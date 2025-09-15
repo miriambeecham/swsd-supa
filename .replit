@@ -26,7 +26,7 @@ localPort = 5173
 externalPort = 80
 
 [workflows]
-runButton = "Project"
+runButton = "Development"
 
 [[workflows.workflow]]
 name = "Run"
@@ -70,6 +70,19 @@ outputType = "webview"
 task = "shell.exec"
 args = "node server.js & npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Development"
+author = 38791700
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
 
 [agent]
 expertMode = true
