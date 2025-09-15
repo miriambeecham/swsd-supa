@@ -18,8 +18,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5002
-externalPort = 3001
+localPort = 5001
+externalPort = 3000
 
 [[ports]]
 localPort = 5003
@@ -28,10 +28,6 @@ externalPort = 3002
 [[ports]]
 localPort = 5173
 externalPort = 80
-
-[[ports]]
-localPort = 37479
-externalPort = 3000
 
 [workflows]
 runButton = "Project"
@@ -65,23 +61,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "API Server"
+args = "Dev Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Dev Server"
-
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js"
-waitForPort = 3001
-
-[workflows.workflow.metadata]
-outputType = "console"
+args = "Full Stack App"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -90,6 +74,18 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Full Stack App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js & npm run dev"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
