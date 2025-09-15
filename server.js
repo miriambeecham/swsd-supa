@@ -444,10 +444,10 @@ app.post('/api/check-availability', async (req, res) => {
 
 // Create booking
 app.post('/api/create-booking', async (req, res) => {
-  const { classScheduleId, contactInfo, participants, classType } = req.body;
+  const { classScheduleId, contactInfo, participants, classType, recaptchaToken } = req.body;
 
   try {
-    // ADD THIS: Verify reCAPTCHA first
+    // Verify reCAPTCHA first
     if (recaptchaToken && RECAPTCHA_API_KEY) {
       const params = new URLSearchParams({
         secret: RECAPTCHA_API_KEY,
@@ -471,8 +471,7 @@ app.post('/api/create-booking', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'reCAPTCHA token required' });
     }
-  
-  try {
+
     // 1. Validate ages
     const validation = validateParticipantAges(participants, classType);
     if (!validation.isValid) {
@@ -659,18 +658,33 @@ app.post('/api/confirm-booking', async (req, res) => {
   }
 });
 
-// Notify Airtable of Payment Status
+//Verify payment and get booking details
 app.post('/api/verify-payment', async (req, res) => {
   const { session_id } = req.body;
-
   try {
     // Verify with Stripe
     const session = await stripe.checkout.sessions.retrieve(session_id);
-
     if (session.payment_status === 'paid') {
       const bookingId = session.metadata.bookingId;
 
-      // Just update booking status in Airtable
+      // Get booking details from Airtable
+      const bookingResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        }
+      });
+      const bookingData = await bookingResponse.json();
+
+      // Get class schedule details
+      const scheduleId = bookingData.fields['Class Schedule ID'];
+      const scheduleResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class Schedule/${scheduleId}`, {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+        }
+      });
+      const scheduleData = await scheduleResponse.json();
+
+      // Update booking status
       await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
         method: 'PATCH',
         headers: {
@@ -686,11 +700,22 @@ app.post('/api/verify-payment', async (req, res) => {
         })
       });
 
-      res.json({ success: true, bookingId });
+      // Return booking details including class info
+      res.json({ 
+        success: true, 
+        booking: {
+          className: scheduleData.fields['Class Name'],
+          classDate: scheduleData.fields.Date,
+          startTime: scheduleData.fields['Start Time'],
+          endTime: scheduleData.fields['End Time'],
+          location: scheduleData.fields.Location,
+          participantCount: bookingData.fields['Total Participants'],
+          totalAmount: bookingData.fields['Total Amount']
+        }
+      });
     } else {
       res.status(400).json({ error: 'Payment not completed' });
     }
-
   } catch (error) {
     console.error('Payment verification error:', error);
     res.status(500).json({ error: error.message });

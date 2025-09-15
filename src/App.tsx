@@ -44,6 +44,8 @@ function App() {
             <Route path="/class-prep-list" element={<ClassPrepList />} />
             <Route path="/book-class/:classId" element={<BookingPage />} />
             <Route path="/book-mother-daughter-class/:classId" element={<MotherDaughterBookingPage />} />
+            <Route path="booking-success" element={<StripeSuccess />} />
+            <Route path="booking-failure" element={<StripeError />} />""
            
 
             {/* Class Preparation Pages */}

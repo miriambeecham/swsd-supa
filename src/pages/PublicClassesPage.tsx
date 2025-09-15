@@ -38,24 +38,29 @@ const PublicClassesPage = () => {
     fetchClassesFromAirtable();
   }, []);
 
-  const handleBookNow = (classData: ClassSchedule) => {
-    // Navigate to booking page with class data
-    const bookingData = {
-      id: classData.id,
-      title: classData.class_name,
-      date: classData.date,
-      time: `${classData.start_time} - ${classData.end_time}`,
-      price: classData.price.toString(),
-      pricingUnit: classData.pricing_unit,
-      type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
-      maxParticipants: classData.max_participants,
-      location: classData.location
-    };
+    const handleBookNow = (classData: ClassSchedule) => {
+      const bookingData = {
+        id: classData.id,
+        class_name: classData.class_name,
+        description: classData.description,
+        type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
+        date: classData.date,
+        start_time: classData.start_time,
+        end_time: classData.end_time,
+        price: classData.price,
+        pricing_unit: classData.pricing_unit,
+        max_participants: classData.max_participants,
+        location: classData.location
+      };
+
+      navigate(`/book-mother-daughter-class/${classData.id}`, { 
+        state: { classSchedule: bookingData } 
+      });
+    }; // ← Make sure this closing brace and semicolon are there
 
     
 
-    navigate(`/book-mother-daughter-class/${classData.id}`, { state: { classSchedule: bookingData } });
-  };
+   
 
   const fetchClassesFromAirtable = async () => {
     try {
