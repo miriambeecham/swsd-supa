@@ -676,7 +676,7 @@ app.post('/api/verify-payment', async (req, res) => {
       const bookingData = await bookingResponse.json();
 
       // Get class schedule details
-      const scheduleId = bookingData.fields['Class Schedule ID'];
+      const scheduleId = bookingData.fields['Class Schedule'][0];
       const scheduleResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class Schedule/${scheduleId}`, {
         headers: {
           'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
