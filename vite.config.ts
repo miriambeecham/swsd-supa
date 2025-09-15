@@ -8,6 +8,11 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     allowedHosts: 'all',
+    strictPort: true,
+    hmr: {
+      port: 5173,
+      host: '0.0.0.0'
+    },
     proxy: {
       '/api': {
         target: 'http://0.0.0.0:3001',
@@ -19,6 +24,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     allowedHosts: 'all',
+    strictPort: true,
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
