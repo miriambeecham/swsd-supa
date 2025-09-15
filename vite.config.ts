@@ -9,10 +9,7 @@ export default defineConfig({
     port: 5173,
     allowedHosts: 'all',
     strictPort: true,
-    hmr: {
-      port: 5173,
-      host: '0.0.0.0'
-    },
+    hmr: false,
     proxy: {
       '/api': {
         target: 'http://0.0.0.0:3001',
