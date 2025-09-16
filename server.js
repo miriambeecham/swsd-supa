@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 // Middleware
-app.use(express.json());
+
 const isProduction =
   process.env.NODE_ENV === 'production' ||
   process.env.REPLIT_DEPLOYMENT === 'true';
