@@ -14,14 +14,17 @@ build = ["sh", "-c", "npm ci && npm run build"]
 run   = ["sh", "-c", "node server.js"]
 deploymentTarget = "cloudrun"
 
-# Port mappings (dev)
-[[ports]]
-localPort = 5173
-externalPort = 80
-
 [[ports]]
 localPort = 3001
 externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 5173
+externalPort = 80
 
 # Minimal Workflows block so the UI has a "Run Button" target
 [workflows]
