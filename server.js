@@ -1022,17 +1022,9 @@ app.get('/api/faqs', async (req, res) => {
   }
 });
 
-// Add route validation middleware to catch malformed routes early
+// Route processing middleware (simplified for production)
 app.use((req, res, next) => {
-  // Log the incoming route for debugging
   console.log('Processing route:', req.path, 'Method:', req.method);
-
-  // Check for malformed route patterns that could cause path-to-regexp issues
-  if (req.path.includes(':') && !req.path.match(/\/:[a-zA-Z_][a-zA-Z0-9_]*(\?|\/|$)/)) {
-    console.error('Potentially malformed route detected:', req.path);
-    return res.status(400).json({ error: 'Malformed route pattern' });
-  }
-
   next();
 });
 
@@ -1110,17 +1102,36 @@ if (suspiciousEnvVars.length > 0) {
 // Add production static file serving
 if (isProduction) {
   const distPath = path.resolve(__dirname, 'dist');
+  
+  console.log('Production mode - checking dist path:', distPath);
+  console.log('Dist path exists:', fs.existsSync(distPath));
 
   if (fs.existsSync(distPath)) {
-    // 1) Serve built assets
-    app.use(express.static(distPath));
+    // 1) Serve built assets with proper headers
+    app.use(express.static(distPath, {
+      maxAge: '1d',
+      etag: false
+    }));
 
     // 2) SPA fallback for all non-API paths
     app.get(/^(?!\/api).*/, (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      try {
+        res.sendFile(path.join(distPath, 'index.html'));
+      } catch (error) {
+        console.error('Error serving index.html:', error);
+        res.status(500).send('Server Error');
+      }
     });
   } else {
-    console.warn('[WARN] dist folder not found at', distPath);
+    console.error('[ERROR] dist folder not found at', distPath);
+    
+    // Fallback error response for missing dist folder
+    app.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.status(500).send('Application not built properly. Missing dist folder.');
+    });
   }
 }
 
