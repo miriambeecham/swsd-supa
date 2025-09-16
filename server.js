@@ -158,7 +158,7 @@ const createZohoRecord = async (formData, recordType = 'Leads') => {
       Web_Lead_Specific_Interests: formData.webRequestDetails || ''
     };
 
-    // Add organization and title fields for Community Organizations and Workplace Safety
+    // Add organization and title for Community Organizations and Workplace Safety
     if (formData.formType === 'Community Organizations' || formData.formType === 'Workplace Safety') {
       if (formData.organization) customFields.Organization_Name = formData.organization;
       if (formData.title) customFields.Job_Title = formData.title;
@@ -615,9 +615,9 @@ app.post('/api/create-booking', async (req, res) => {
         remaining
       });
     }
-    
+
     // --- Create Booking (Status: Pending Payment) ---
-   
+
     const bookingCreate = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings`, {
       method: 'POST',
       headers: {
@@ -678,7 +678,7 @@ app.post('/api/create-booking', async (req, res) => {
         // Do not fail entire request—booking exists; Stripe can still proceed.
       }
     }
-   
+
     // --- proceed to create the Stripe session ---
 
 
@@ -1059,7 +1059,7 @@ app.use((req, res, next) => {
     res.redirect(301, '/city-walnut-creek-prep');
   });
 
-  
+
 
 
 
@@ -1107,8 +1107,7 @@ if (suspiciousEnvVars.length > 0) {
 
 
 // ===== PRODUCTION STATIC HOSTING (PLACE RIGHT ABOVE app.listen) =====
-
-
+// Add production static file serving
 if (isProduction) {
   const distPath = path.resolve(__dirname, 'dist');
 
