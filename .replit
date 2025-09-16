@@ -10,7 +10,7 @@ channel = "stable-25_05"
 
 # Optional deployment settings (fine to keep)
 [deployment]
-build = ["sh", "-c", "npm run build"]
+build = ["sh", "-c", "npm ci && npm run build"]
 run   = ["sh", "-c", "node server.js"]
 deploymentTarget = "cloudrun"
 

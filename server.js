@@ -12,7 +12,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 // Middleware
 app.use(express.json());
-const PORT = process.env.PORT || 3001;
 const isProduction =
   process.env.NODE_ENV === 'production' ||
   process.env.REPLIT_DEPLOYMENT === 'true';
@@ -508,42 +507,7 @@ app.post('/api/verify-recaptcha', async (req, res) => {
 });
 
 // BOOKING SYSTEM API ENDPOINTS
-// Check class availability
-app.post('/api/check-availability', async (req, res) => {
-  const { classScheduleId, participantCount } = req.body;
 
-  try {
-    // Get class schedule
-    const scheduleResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${classScheduleId}`, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
-    });
-    const schedule = await scheduleResponse.json();
-
-    // Get linked class data
-    const classId = schedule.fields.Class[0];
-    const classResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` }
-    });
-    const classData = await classResponse.json();
-
-    const maxParticipants = classData.fields['Max Participants'];
-    const availableSpots = schedule.fields['Available Spots'] || maxParticipants;
-    const bookedSpots = schedule.fields['Booked Spots'] || 0;
-    const remainingSpots = availableSpots - bookedSpots;
-
-    res.json({
-      available: remainingSpots >= participantCount,
-      remainingSpots,
-      availableSpots,
-      bookedSpots,
-      classData: classData.fields,
-      scheduleData: schedule.fields
-    });
-  } catch (error) {
-    console.error('Availability check error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 // POST /api/check-availability { classScheduleId, requestedSeats }
 app.post('/api/check-availability', async (req, res) => {
   try {
@@ -738,7 +702,7 @@ app.post('/api/create-booking', async (req, res) => {
       customer_email: contactInfo.email,
       billing_address_collection: 'required',
       success_url: `${baseUrl}/booking-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
-        cancel_url:  `${baseUrl}/public-classes`,      cancel_url: `${req.headers.origin}/public-classes`,
+        cancel_url:  `${baseUrl}/public-classes`,     
       metadata: {
         bookingId,
         classScheduleId,
@@ -1097,26 +1061,6 @@ app.use((req, res, next) => {
 
   
 
-  // Development mode - only handle redirects, let Vite handle everything else
-  app.get('/organizer/city-of-walnut-creek-arts-recreation-program/', (req, res) => {
-    res.redirect(301, '/public-classes');
-  });
-
-  app.get('/organizer/forma-gym-walnut-creek/', (req, res) => {
-    res.redirect(301, '/public-classes');
-  });
-
-  app.get('/organizer/venue/forma-igf-studio/', (req, res) => {
-    res.redirect(301, '/public-classes');
-  });
-
-  app.get('//swsd-what-to-expect-private-15-plus/', (req, res) => {
-    res.redirect(301, '/private-class-prep');
-  });
-
-  app.get('//https://streetwiseselfdefense.com/swsd-what-to-expect-arwc-15-plus/', (req, res) => {
-    res.redirect(301, '/city-walnut-creek-prep');
-  });
 
 
 // Add error handling middleware
@@ -1161,47 +1105,29 @@ if (suspiciousEnvVars.length > 0) {
   console.log('=====================================');
 }
 
-try {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Express API server running on http://0.0.0.0:${PORT}`);
-    console.log(`API server listening on http://0.0.0.0:${PORT}`);
-    console.log('=== SERVER STARTUP SUCCESSFUL ===');
-    console.log('=== ENVIRONMENT VARIABLES DEBUG ===');
-    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-    console.log(`PORT: ${process.env.PORT}`);
-    console.log(`AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID ? `${AIRTABLE_BASE_ID.substring(0, 10)}...` : 'NOT SET'}`);
-    console.log(`AIRTABLE_API_KEY exists: ${!!AIRTABLE_API_KEY}`);
-    console.log(`RECAPTCHA_API_KEY exists: ${!!RECAPTCHA_API_KEY}`);
-    console.log(`STRIPE_SECRET_KEY exists: ${!!process.env.STRIPE_SECRET_KEY}`);
-    console.log(`ZOHO_CLIENT_ID exists: ${!!ZOHO_CLIENT_ID}`);
-    console.log(`ZOHO_CLIENT_SECRET exists: ${!!ZOHO_CLIENT_SECRET}`);
-    console.log(`ZOHO_REFRESH_TOKEN exists: ${!!ZOHO_REFRESH_TOKEN}`);
-    console.log(`ZOHO_DOMAIN: ${ZOHO_DOMAIN}`);
-    console.log('Raw ZOHO_DOMAIN from env:', process.env.ZOHO_DOMAIN);
-    console.log('Available env vars:', Object.keys(process.env).filter(key => 
-      key.includes('AIRTABLE') || key.includes('ZOHO') || key.includes('STRIPE')
-    ));
-    console.log('=====================================');
-  });
-} catch (error) {
-  console.error('Failed to start server:', error);
-  console.error('Error stack:', error.stack);
-  process.exit(1);
-}
-// ===== PRODUCTION STATIC HOSTING (PLACE AT VERY BOTTOM) =====
+
+// ===== PRODUCTION STATIC HOSTING (PLACE RIGHT ABOVE app.listen) =====
+
 
 if (isProduction) {
   const distPath = path.resolve(__dirname, 'dist');
-  if (!fs.existsSync(distPath)) {
-    console.warn('[WARN] dist folder not found at', distPath, '- skipping static hosting');
-  } else {
-    // Serve the built Vite app
+
+  if (fs.existsSync(distPath)) {
+    // 1) Serve built assets
     app.use(express.static(distPath));
 
-    // SPA fallback
-    app.get('*', (_req, res) => {
+    // 2) SPA fallback for all non-API paths
+    app.get(/^(?!\/api).*/, (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
+  } else {
+    console.warn('[WARN] dist folder not found at', distPath);
   }
 }
-// ===== END PRODUCTION STATIC HOSTING =====
+
+
+// ...then your app.listen(...)
+const PORT = Number(process.env.PORT) || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server listening on http://0.0.0.0:${PORT}`);
+});
