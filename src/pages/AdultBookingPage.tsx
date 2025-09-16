@@ -1,34 +1,32 @@
-// src/pages/MotherDaughterBookingPage.tsx
-import React, { useState, useEffect } from 'react';
+// src/pages/AdultBookingPage.tsx
+import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 
-type AgeGroup = '' | 'Under 12' | '12-15' | '16+';
+type AdditionalAdult = { firstName: string; lastName: string };
 
-const MotherDaughterBookingPage = () => {
+const AdultBookingPage: React.FC = () => {
   const location = useLocation();
   const classSchedule = location.state?.classSchedule;
 
-  // Contact (mother/guardian)
+  // Contact (primary attendee – assumed adult)
   const [contactInfo, setContactInfo] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    phone: ''
+    phone: '',
   });
 
-  // Daughters
-  const [additionalParticipants, setAdditionalParticipants] = useState<
-    { firstName: string; lastName: string; ageGroup: AgeGroup }[]
-  >([{ firstName: '', lastName: '', ageGroup: '' }]);
+  // Optional additional adult participants
+  const [additionalAdults, setAdditionalAdults] = useState<AdditionalAdult[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
-  const [hardErrors, setHardErrors] = useState<string[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
 
+  // If user navigates here without state, bounce back to classes
   if (!classSchedule) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -46,61 +44,23 @@ const MotherDaughterBookingPage = () => {
     );
   }
 
-  const totalParticipants = 1 + additionalParticipants.length; // mother + daughters
-  const totalPrice = Number(classSchedule.price) * totalParticipants;
+  const pricePerPerson = Number(classSchedule.price) || 0;
+  const totalParticipants = 1 + additionalAdults.length;
+  const totalPrice = pricePerPerson * totalParticipants;
 
-  const handleRecaptchaChange = (value: string | null) => setRecaptchaValue(value);
+  // ---------- helpers ----------
+  const updateContactInfo = (field: 'firstName' | 'lastName' | 'email' | 'phone', value: string) =>
+    setContactInfo((prev) => ({ ...prev, [field]: value }));
 
-  // -------- HARD RULES (no warnings) --------
-  // 1) Must include at least one daughter participant.
-  // 2) Every daughter must be in age range 12–15 (no Under 12, no 16+).
-  const computeHardErrors = (): string[] => {
-    const errs: string[] = [];
-
-    if (additionalParticipants.length === 0) {
-      errs.push('Mother–Daughter classes require at least one daughter participant.');
-    }
-
-    // Field-level completion (names + ageGroup)
-    additionalParticipants.forEach((p, i) => {
-      if (!p.firstName.trim()) errs.push(`Participant ${i + 2} first name is required`);
-      if (!p.lastName.trim()) errs.push(`Participant ${i + 2} last name is required`);
-      if (!p.ageGroup) errs.push(`Participant ${i + 2} age group is required`);
-    });
-
-    // Age range enforcement
-    const outOfRange = additionalParticipants.some((p) => p.ageGroup !== '12-15');
-    if (additionalParticipants.length > 0 && outOfRange) {
-      errs.push('Mother–Daughter classes are for daughters ages 12–15 only.');
-    }
-
-    return errs;
-  };
-
-  useEffect(() => {
-    if (showValidation) setHardErrors(computeHardErrors());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [additionalParticipants, contactInfo, recaptchaValue, showValidation]);
-
-  const addParticipant = () => {
-    setAdditionalParticipants((prev) => [...prev, { firstName: '', lastName: '', ageGroup: '' }]);
-  };
-
-  const removeParticipant = (index: number) => {
-    setAdditionalParticipants((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateParticipant = (index: number, field: 'firstName' | 'lastName' | 'ageGroup', value: string) => {
-    setAdditionalParticipants((prev) => {
+  const addAdult = () => setAdditionalAdults((prev) => [...prev, { firstName: '', lastName: '' }]);
+  const removeAdult = (index: number) =>
+    setAdditionalAdults((prev) => prev.filter((_, i) => i !== index));
+  const updateAdult = (index: number, field: 'firstName' | 'lastName', value: string) =>
+    setAdditionalAdults((prev) => {
       const next = [...prev];
       (next[index] as any)[field] = value;
       return next;
     });
-  };
-
-  const updateContactInfo = (field: 'firstName' | 'lastName' | 'email' | 'phone', value: string) => {
-    setContactInfo((prev) => ({ ...prev, [field]: value }));
-  };
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validatePhone = (phone: string) => {
@@ -108,61 +68,70 @@ const MotherDaughterBookingPage = () => {
     return /^[\+]?[1-9][\d]{0,15}$/.test(digits);
   };
 
-  // Generic form checks (contact + recaptcha)
-  const formErrors = (): string[] => {
+  const collectErrors = (): string[] => {
     const errs: string[] = [];
+
+    // Contact required fields
     if (!contactInfo.firstName.trim()) errs.push('Contact first name is required');
     if (!contactInfo.lastName.trim()) errs.push('Contact last name is required');
     if (!contactInfo.email.trim()) errs.push('Email is required');
     if (!contactInfo.phone.trim()) errs.push('Phone number is required');
+
     if (contactInfo.email && !validateEmail(contactInfo.email)) errs.push('Please enter a valid email address');
     if (contactInfo.phone && !validatePhone(contactInfo.phone)) errs.push('Please enter a valid phone number');
-    if (!recaptchaValue) errs.push('Please complete the reCAPTCHA verification');
-    return errs;
-  };
 
-  const collectErrors = () => {
-    const errs = [...formErrors(), ...computeHardErrors()];
-    setHardErrors(errs);
+    // reCAPTCHA
+    if (!recaptchaValue) errs.push('Please complete the reCAPTCHA verification');
+
+    // Additional adult rows: if present, both names required
+    additionalAdults.forEach((p, i) => {
+      if (!p.firstName.trim()) errs.push(`Participant ${i + 2} first name is required`);
+      if (!p.lastName.trim()) errs.push(`Participant ${i + 2} last name is required`);
+    });
+
     return errs;
   };
 
   const handleSubmit = async () => {
     setPageError(null);
     setShowValidation(true);
-
     const errs = collectErrors();
     if (errs.length > 0) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    // Build participants array: adult (16+) + all daughters (12–15)
-    const participants = [
-      {
-        firstName: contactInfo.firstName,
-        lastName: contactInfo.lastName,
-        ageGroup: '16+' as AgeGroup
-      },
-      ...additionalParticipants
-    ];
-
     setIsSubmitting(true);
     try {
+      // Build participants: primary adult + any additional adults
+      const participants = [
+        {
+          firstName: contactInfo.firstName,
+          lastName: contactInfo.lastName,
+          ageGroup: '16+', // align with server's adult validation
+          participantNumber: 1,
+        },
+        ...additionalAdults.map((p, idx) => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          ageGroup: '16+',
+          participantNumber: idx + 2,
+        })),
+      ];
+
       // 1) Preflight availability
       const pre = await fetch('/api/check-availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classScheduleId: classSchedule.id,
-          requestedSpots: totalParticipants,   // primary
-          requestedSeats: totalParticipants    // (send both just in case)
-        })
+          requestedSpots: totalParticipants,  // primary key server expects
+          requestedSeats: totalParticipants,  // send both for safety
+        }),
       });
 
       if (!pre.ok) {
         if (pre.status === 409) {
-          // Class full / not enough seats
           const j = await pre.json().catch(() => ({}));
           const remaining = typeof j?.remaining === 'number' ? j.remaining : 0;
           const msg =
@@ -171,61 +140,63 @@ const MotherDaughterBookingPage = () => {
               : `This class is almost full. Only ${remaining} spot(s) remain.`;
           setPageError(msg);
           setIsSubmitting(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
         throw new Error(`Preflight failed (${pre.status})`);
       }
 
-      // 2) Proceed with booking (Stripe checkout session)
-      const bookingData = {
+      // 2) Proceed with booking
+      const payload = {
         classScheduleId: classSchedule.id,
         contactInfo,
         participants,
-        participantCount: totalParticipants,
+        totalParticipants,
+        participantCount: totalParticipants, // add alt name for compatibility
         totalAmount: totalPrice,
         recaptchaToken: recaptchaValue,
-        classType: 'mother-daughter'
+        classType: 'adult',
       };
 
-      const response = await fetch('/api/create-booking', {
+      const res = await fetch('/api/create-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingData)
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        if (response.status === 409) {
-          const errJson = await response.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 409) {
+          const errJson = await res.json().catch(() => ({}));
           const remaining = errJson.remaining ?? 0;
-          throw new Error(
+          const msg =
             remaining > 0
-              ? `This class is almost full. Only ${remaining} spots remain.`
-              : 'Sorry, this class is already full.'
-          );
+              ? `This class is almost full. Only ${remaining} spot(s) remain.`
+              : 'Sorry, this class is already full.';
+          throw new Error(msg);
         }
-        throw new Error(`Unexpected booking error (${response.status})`);
+        throw new Error(`Unexpected booking error (${res.status})`);
       }
 
-      const json = await response.json();
+      const json = await res.json();
       if (!json?.checkoutUrl) throw new Error('No checkout URL received');
       window.location.href = json.checkoutUrl;
-
     } catch (err: any) {
       console.error('Booking error:', err);
-      const msg = err?.message || 'There was an error processing your booking.';
-      setPageError(msg);
-      
+      setPageError(err?.message || 'There was an error processing your booking.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleRecaptchaChange = (v: string | null) => setRecaptchaValue(v);
 
   const formatClassDate = (dateString: string) => {
     const d = new Date(dateString + 'T12:00:00');
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
-  const allErrors = showValidation ? [...formErrors(), ...hardErrors] : [];
+  const errorsToShow = showValidation ? collectErrors() : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -241,14 +212,18 @@ const MotherDaughterBookingPage = () => {
               Back to Classes
             </Link>
           </div>
-          <h1 className="text-3xl font-bold text-navy">Book: {classSchedule.class_name}</h1>
+          <h1 className="text-3xl font-bold text-navy">
+            Book: {classSchedule.class_name || 'Adult Self-Defense'}
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">This class is intended for ages <strong>15+</strong>.</p>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
+          {/* Error banner */}
           {pageError && (
-            <div className="lg:col-span-3 bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-6">
+            <div className="lg:col-span-3 bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 -mt-2">
               <div className="font-medium">We couldn’t complete your booking:</div>
               <div className="text-sm mt-1">{pageError}</div>
             </div>
@@ -258,22 +233,25 @@ const MotherDaughterBookingPage = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 space-y-8">
               {/* Errors summary */}
-              {allErrors.length > 0 && (
+              {errorsToShow.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <h4 className="font-medium text-red-800 mb-2">Please fix these issues:</h4>
                   <ul className="list-disc list-inside text-red-700 text-sm space-y-1">
-                    {allErrors.map((e, i) => <li key={i}>{e}</li>)}
+                    {errorsToShow.map((e, i) => <li key={i}>{e}</li>)}
                   </ul>
                 </div>
               )}
 
               {/* Contact Information */}
               <div>
-                <h3 className="text-xl font-semibold text-navy mb-2">Mother/Guardian</h3>
-                <p className="text-gray-600 mb-6">Enter the information for the mother or female guardian who will attend the class.</p>
+                <h3 className="text-xl font-semibold text-navy mb-2">Primary Attendee</h3>
+                <p className="text-gray-600 mb-6">Enter the information for the person who will attend the class.</p>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={contactInfo.firstName}
@@ -285,7 +263,9 @@ const MotherDaughterBookingPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={contactInfo.lastName}
@@ -297,7 +277,9 @@ const MotherDaughterBookingPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       value={contactInfo.email}
@@ -309,7 +291,9 @@ const MotherDaughterBookingPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="tel"
                       value={contactInfo.phone}
@@ -323,117 +307,59 @@ const MotherDaughterBookingPage = () => {
                 </div>
               </div>
 
-              {/* Daughter Participants */}
+              {/* Additional Adult Participants (optional) */}
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-navy">Daughter(s)</h3>
-                  <button onClick={addParticipant} className="text-accent-primary hover:text-accent-dark font-medium transition-colors">
-                    + Add Additional Daughter
+                  <h3 className="text-xl font-semibold text-navy">Additional Participants (optional)</h3>
+                  <button
+                    onClick={addAdult}
+                    className="text-accent-primary hover:text-accent-dark font-medium transition-colors"
+                  >
+                    + Add Adult
                   </button>
                 </div>
 
-                {/* First daughter */}
-                <div className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">First Name <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={additionalParticipants[0]?.firstName || ''}
-                        onChange={(e) => {
-                          if (additionalParticipants.length === 0) {
-                            setAdditionalParticipants([{ firstName: e.target.value, lastName: '', ageGroup: '' }]);
-                          } else {
-                            updateParticipant(0, 'firstName', e.target.value);
-                          }
-                        }}
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent ${
-                          showValidation && !additionalParticipants[0]?.firstName?.trim() ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Last Name <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={additionalParticipants[0]?.lastName || ''}
-                        onChange={(e) => {
-                          if (additionalParticipants.length === 0) {
-                            setAdditionalParticipants([{ firstName: '', lastName: e.target.value, ageGroup: '' }]);
-                          } else {
-                            updateParticipant(0, 'lastName', e.target.value);
-                          }
-                        }}
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent ${
-                          showValidation && !additionalParticipants[0]?.lastName?.trim() ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Age Group <span className="text-red-500">*</span></label>
-                      <select
-                        value={additionalParticipants[0]?.ageGroup || ''}
-                        onChange={(e) => updateParticipant(0, 'ageGroup', e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent ${
-                          showValidation && !additionalParticipants[0]?.ageGroup ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        required
-                      >
-                        <option value="">Select Age</option>
-                        <option value="Under 12">Under 12</option>
-                        <option value="12-15">12-15</option>
-                        <option value="16+">16+</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                {additionalAdults.length === 0 && (
+                  <p className="text-sm text-gray-600">
+                    You can add more adult participants if you’re booking for a group.
+                  </p>
+                )}
 
-                {/* Additional daughters */}
-                {additionalParticipants.length > 1 && (
+                {additionalAdults.length > 0 && (
                   <div className="space-y-6">
-                    {additionalParticipants.slice(1).map((p, idx) => (
-                      <div key={idx + 1} className="border border-gray-200 rounded-lg p-4 sm:p-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    {additionalAdults.map((p, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 sm:p-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">First Name <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              First Name <span className="text-red-500">*</span>
+                            </label>
                             <input
                               type="text"
                               value={p.firstName}
-                              onChange={(e) => updateParticipant(idx + 1, 'firstName', e.target.value)}
+                              onChange={(e) => updateAdult(index, 'firstName', e.target.value)}
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
                               required
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Last Name <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Last Name <span className="text-red-500">*</span>
+                            </label>
                             <input
                               type="text"
                               value={p.lastName}
-                              onChange={(e) => updateParticipant(idx + 1, 'lastName', e.target.value)}
+                              onChange={(e) => updateAdult(index, 'lastName', e.target.value)}
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
                               required
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Age Group <span className="text-red-500">*</span></label>
-                            <select
-                              value={p.ageGroup}
-                              onChange={(e) => updateParticipant(idx + 1, 'ageGroup', e.target.value)}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-                              required
-                            >
-                              <option value="">Select Age</option>
-                              <option value="Under 12">Under 12</option>
-                              <option value="12-15">12-15</option>
-                              <option value="16+">16+</option>
-                            </select>
-                          </div>
                         </div>
-
                         <div className="flex justify-end">
-                          <button onClick={() => removeParticipant(idx + 1)} className="text-red-600 hover:text-red-800 text-sm font-medium">
+                          <button
+                            onClick={() => removeAdult(index)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
                             Remove
                           </button>
                         </div>
@@ -453,11 +379,13 @@ const MotherDaughterBookingPage = () => {
                       (process.env as any).REACT_APP_RECAPTCHA_SITE_KEY ||
                       '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
                     }
-                    onChange={handleRecaptchaChange}
+                    onChange={setRecaptchaValue}
                   />
                 </div>
                 {showValidation && !recaptchaValue && (
-                  <p className="text-red-500 text-sm mt-2 text-center">Please complete the reCAPTCHA verification</p>
+                  <p className="text-red-500 text-sm mt-2 text-center">
+                    Please complete the reCAPTCHA verification
+                  </p>
                 )}
               </div>
 
@@ -465,7 +393,12 @@ const MotherDaughterBookingPage = () => {
               <div className="mb-8 text-center">
                 <p className="text-sm text-gray-600">
                   By proceeding with your booking, you agree to our{' '}
-                  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                  <a
+                    href="/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-primary hover:text-accent-dark underline"
+                  >
                     Privacy Policy
                   </a>.
                 </p>
@@ -476,6 +409,7 @@ const MotherDaughterBookingPage = () => {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
+              {/* Class Details */}
               <div className="mb-6">
                 <h3 className="font-semibold text-navy mb-4">Class Details</h3>
                 <div className="space-y-3">
@@ -498,18 +432,17 @@ const MotherDaughterBookingPage = () => {
                 </div>
               </div>
 
+              {/* Pricing Summary */}
               <div className="border-t pt-6">
                 <h3 className="font-semibold text-navy mb-4">Booking Summary</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Participants: </span>
-                    <span className="text-gray-900">
-                      {totalParticipants} (Mother + {totalParticipants - 1} daughter{totalParticipants > 2 ? 's' : ''})
-                    </span>
+                    <span className="text-gray-900">{totalParticipants}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Price per person:</span>
-                    <span className="text-gray-900">${classSchedule.price}</span>
+                    <span className="text-gray-900">${pricePerPerson}</span>
                   </div>
                   <div className="border-t pt-2 mt-3">
                     <div className="flex justify-between font-semibold text-lg">
@@ -517,12 +450,13 @@ const MotherDaughterBookingPage = () => {
                       <span className="text-accent-primary">${totalPrice}</span>
                     </div>
                   </div>
-                  {totalParticipants === 2 && (
-                    <p className="text-xs text-gray-500 mt-2">Minimum booking: 1 mother + 1 daughter</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Adult classes are designed for ages <strong>15+</strong>.
+                  </p>
                 </div>
               </div>
 
+              {/* Submit */}
               <div className="mt-8 space-y-3">
                 <button
                   onClick={handleSubmit}
@@ -531,7 +465,10 @@ const MotherDaughterBookingPage = () => {
                 >
                   {isSubmitting ? 'Processing...' : 'Proceed to Payment'}
                 </button>
-                <Link to="/public-classes" className="block text-center text-gray-600 hover:text-accent-primary transition-colors text-sm">
+                <Link
+                  to="/public-classes"
+                  className="block text-center text-gray-600 hover:text-accent-primary transition-colors text-sm"
+                >
                   Back to Classes
                 </Link>
               </div>
@@ -543,4 +480,4 @@ const MotherDaughterBookingPage = () => {
   );
 };
 
-export default MotherDaughterBookingPage;
+export default AdultBookingPage;

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
 
+
 interface ClassSchedule {
   id: string;
   class_name: string;
@@ -38,25 +39,39 @@ const PublicClassesPage = () => {
     fetchClassesFromAirtable();
   }, []);
 
-    const handleBookNow = (classData: ClassSchedule) => {
-      const bookingData = {
-        id: classData.id,
-        class_name: classData.class_name,
-        description: classData.description,
-        type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
-        date: classData.date,
-        start_time: classData.start_time,
-        end_time: classData.end_time,
-        price: classData.price,
-        pricing_unit: classData.pricing_unit,
-        max_participants: classData.max_participants,
-        location: classData.location
-      };
+  const handleBookNow = (classData: ClassSchedule) => {
+    if (!classData?.id) {
+      console.error('Missing class id for booking');
+      return;
+    }
 
-      navigate(`/book-mother-daughter-class/${classData.id}`, { 
-        state: { classSchedule: bookingData } 
-      });
-    }; // ← Make sure this closing brace and semicolon are there
+    const bookingData = {
+      id: classData.id,
+      class_name: classData.class_name,
+      description: classData.description,
+      type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
+      date: classData.date,
+      start_time: classData.start_time,
+      end_time: classData.end_time,
+      price: classData.price,
+      pricing_unit: classData.pricing_unit,
+      max_participants: classData.max_participants,
+      location: classData.location
+    };
+
+    const isMotherDaughter = classData.type === 'public: mother & daughter';
+    const path = isMotherDaughter
+      ? `/book-mother-daughter-class/${classData.id}`
+      : `/book-adult-class/${classData.id}`;
+
+    console.log('Navigating to:', path, bookingData);
+    navigate(path, { state: { classSchedule: bookingData } });
+  };
+
+ 
+
+      
+
 
     
 
@@ -232,29 +247,35 @@ const PublicClassesPage = () => {
         </div>
 
         {/* Button/Registration Area */}
+        {/* Button/Registration Area */}
         <div className="ml-4">
-          {classData.booking_method === 'swsd website' ? (
-            // Direct booking through our system - Navigate to BookingPage
+          {(classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+            classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+            // ✅ SWSD internal booking — route to our booking pages
             <button
               onClick={() => handleBookNow(classData)}
               className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
             >
               Register
             </button>
-          ) : classData.booking_url ? (
-            // Regular booking button for classes open for registration
+          ) : (classData.booking_method === 'external' && classData.booking_url) ? (
+            // External partner registration
             <button
               onClick={() => handleBooking(classData)}
               className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
             >
-              {classData.booking_method === 'contact' ? 'Contact Us' : 'Register'}
-              {classData.booking_method === 'external' ? 
-                <ExternalLink className="w-4 h-4" /> : 
-                <Mail className="w-4 h-4" />
-              }
+              Register <ExternalLink className="w-4 h-4" />
+            </button>
+          ) : classData.booking_method === 'contact' ? (
+            // Contact us flow
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Contact Us <Mail className="w-4 h-4" />
             </button>
           ) : classData.registration_opens ? (
-            // Registration opens text with inline badge
+            // “Coming soon”
             <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
               <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
                 Coming Soon
@@ -266,13 +287,11 @@ const PublicClassesPage = () => {
                 </span>
               </div>
             </div>
-          ) : classData.partner_organization === "Streetwise Self Defense" ? (
-            // Streetwise-sponsored class - show phone number
+          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+            // SWSD class without website booking — show phone
             <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-              <div className="mb-2">
-                Call us to register:
-              </div>
-              <a 
+              <div className="mb-2">Call us to register:</div>
+              <a
                 href="tel:9255329953"
                 className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
               >
@@ -280,18 +299,18 @@ const PublicClassesPage = () => {
               </a>
             </div>
           ) : (
-            // Fallback contact button for other cases
+            // Fallback
             <button
               onClick={() => handleBooking(classData)}
               className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
             >
-              Contact Us
-              <Mail className="w-4 h-4" />
+              Contact Us <Mail className="w-4 h-4" />
             </button>
           )}
-        </div>
+        </div>  
+       </div>
       </div>
-    </div>
+    
   );
 
   if (loading) {

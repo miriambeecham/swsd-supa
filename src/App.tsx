@@ -22,6 +22,7 @@ import BookingPage from './pages/BookingPage';
 import StripeSuccess from './pages/StripeSuccessPage';
 import StripeError from './pages/StripeErrorPage';
 import MotherDaughterBookingPage from './pages/MotherDaughterBookingPage';
+import AdultBookingPage from './pages/AdultBookingPage';
 
 
 function App() {
@@ -43,12 +44,14 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/class-prep-list" element={<ClassPrepList />} />
             <Route path="/book-class/:classId" element={<BookingPage />} />
-            <Route path="/book-mother-daughter-class/:classId" element={<MotherDaughterBookingPage />} />
             <Route path="booking-success" element={<StripeSuccess />} />
-            <Route path="booking-failure" element={<StripeError />} />""
-           
+            <Route path="booking-failure" element={<StripeError />} />
+            <Route path="/book-adult-class" element={AdultBookingPage} />
+            <Route path="/book-mother-daughter-class/:id" element={<MotherDaughterBookingPage />} />
+            <Route path="/book-adult-class/:id" element={<AdultBookingPage />} />
+          
 
-            {/* Class Preparation Pages */}
+           // {/* Class Preparation Pages */}
             <Route path="/public-cwc-prep" element={<CityWalnutCreekStaticPage />} />
             <Route path="/private-class-prep" element={<PrivateClassStaticPage />} />
             <Route path="/public-class-desired-effect" element={<PrivateClassDesiredEffectStaticPage />} />
@@ -56,6 +59,7 @@ function App() {
             <Route path="/public-class-mdyoga-prep" element={<PublicClassMountDiabloYogaStaticPage />} />
             <Route path="/stripe-success" element={<StripeSuccess />} />
             <Route path="/stripe-error" element={<StripeError />} />
+            
           </Routes>
         </Layout>
       </Router>

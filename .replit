@@ -1,14 +1,20 @@
+# .replit — minimal + works with the Run button
+
 modules = ["nodejs-20", "web"]
+
+# Legacy runner fallback (some workspaces still use this)
 run = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
 
+# Optional deployment settings (fine to keep)
 [deployment]
-run = ["sh", "-c", "node server.js"]
-deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run build"]
+run   = ["sh", "-c", "node server.js"]
+deploymentTarget = "cloudrun"
 
+# Port mappings (dev)
 [[ports]]
 localPort = 5173
 externalPort = 80
@@ -17,60 +23,13 @@ externalPort = 80
 localPort = 3001
 externalPort = 3001
 
+# Minimal Workflows block so the UI has a "Run Button" target
 [workflows]
 runButton = "Development"
 
 [[workflows.workflow]]
-name = "Run"
-author = 38791700
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[[workflows.workflow]]
-name = "Run Both Servers"
-author = 38791700
-mode = "parallel"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Full Stack App"
-
-[[workflows.workflow]]
-name = "Full Stack App"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js & npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow]]
 name = "Development"
-author = 38791700
 mode = "parallel"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
