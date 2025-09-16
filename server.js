@@ -1095,16 +1095,7 @@ app.use((req, res, next) => {
     res.redirect(301, '/city-walnut-creek-prep');
   });
 
-  // Catch-all handler: send back React's index.html file for any non-API routes
-  app.get('*', (req, res) => {
-    try {
-      console.log('Serving index.html for route:', req.path);
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    } catch (error) {
-      console.error('Error serving index.html:', error);
-      res.status(500).send('Server Error');
-    }
-  });
+  
 
   // Development mode - only handle redirects, let Vite handle everything else
   app.get('/organizer/city-of-walnut-creek-arts-recreation-program/', (req, res) => {
