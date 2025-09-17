@@ -615,6 +615,123 @@ async function verifyPaymentHandler(req, res) {
 app.post('/api/verify-payment', verifyPaymentHandler);
 app.get('/api/verify-payment', verifyPaymentHandler);
 
+// ===== Airtable-backed READ endpoints your frontend expects =====
+
+// GET /api/classes?filter=...
+app.get('/api/classes', async (req, res) => {
+  try {
+    const { filter } = req.query;
+    const endpoint = filter
+      ? `/Classes?filterByFormula=${encodeURIComponent(filter)}`
+      : '/Classes';
+
+    const data = await makeAirtableRequest(endpoint);
+
+    const classes = (data.records || []).map((record) => ({
+      id: record.id,
+      fields: {
+        'Class Name': record.fields['Class Name'] || record.fields.Title,
+        'Description': record.fields.Description,
+        'Type': record.fields.Type,
+        'Age Range': record.fields['Age Range'],
+        'Duration': record.fields.Duration,
+        'Max Participants': record.fields['Max Participants'],
+        'Location': record.fields.Location,
+        'Instructor': record.fields.Instructor,
+        'Price': record.fields.Price,
+        'Partner Organization': record.fields['Partner Organization'],
+        'Booking Method': record.fields['Booking Method'],
+        'Registration Instructions': record.fields['Registration Instructions'],
+        'Is Active': record.fields['Is Active'],
+      }
+    }));
+
+    res.json({ records: classes });
+  } catch (error) {
+    console.error('Error fetching classes:', error);
+    res.status(500).json({ error: 'Failed to fetch classes' });
+  }
+});
+
+// GET /api/schedules?filter=...
+app.get('/api/schedules', async (req, res) => {
+  try {
+    const { filter } = req.query;
+    const endpoint = filter
+      ? `/Class%20Schedules?filterByFormula=${encodeURIComponent(filter)}`
+      : '/Class%20Schedules';
+
+    const data = await makeAirtableRequest(endpoint);
+
+    const schedules = (data.records || []).map((record) => ({
+      id: record.id,
+      fields: {
+        'Class': record.fields.Class,
+        'Date': record.fields.Date,
+        'Start Time': record.fields['Start Time'],
+        'End Time': record.fields['End Time'],
+        'Booking URL': record.fields['Booking URL'],
+        'Registration Opens': record.fields['Registration Opens'],
+        'Is Cancelled': record.fields['Is Cancelled'],
+        'Special Notes': record.fields['Special Notes'],
+        'Pricing Unit': record.fields['Pricing Unit'],
+        'Available Spots': record.fields['Available Spots'],
+        'Booked Spots': record.fields['Booked Spots'],
+        'Remaining Spots': record.fields['Remaining Spots'],
+      }
+    }));
+
+    res.json({ records: schedules });
+  } catch (error) {
+    console.error('Error fetching schedules:', error);
+    res.status(500).json({ error: 'Failed to fetch schedules' });
+  }
+});
+
+// GET /api/testimonials?filter=...
+app.get('/api/testimonials', async (req, res) => {
+  try {
+    const { filter } = req.query;
+    const endpoint = filter
+      ? `/Testimonials?filterByFormula=${encodeURIComponent(filter)}`
+      : '/Testimonials';
+
+    const data = await makeAirtableRequest(endpoint);
+
+    // Map to the format your homepage expects
+    const testimonials = (data.records || []).map((record) => {
+      // Profile image may be a direct URL string OR an Airtable attachment array
+      let profileImageUrl = null;
+      const profileField = record.fields['Profile Image URL'];
+      if (typeof profileField === 'string') {
+        profileImageUrl = profileField;
+      } else if (Array.isArray(profileField) && profileField.length > 0) {
+        profileImageUrl = profileField[0]?.url || null;
+      }
+
+      return {
+        id: record.id,
+        name: record.fields.Name || '',
+        content: record.fields.Content || '',
+        rating: parseInt(record.fields.Rating) || 5,
+        class_type: record.fields['Class Type'] || '',
+        platform: record.fields.Platform?.toLowerCase(),
+        profile_image_url: profileImageUrl,
+        review_url: record.fields['Original Review URL'],
+        homepage_position: record.fields['Homepage position'],
+        is_featured: !!record.fields['Is Featured'],
+        is_published: !!record.fields['Is Published'],
+      };
+    });
+
+    res.json(testimonials);
+  } catch (error) {
+    console.error('Error fetching testimonials:', error);
+    res.status(500).json({ error: 'Failed to fetch testimonials' });
+  }
+});
+
+
 // ---- Static hosting / health-check friendly root ----
 const distPath = path.join(__dirname, 'dist');
 const hasDist  = fs.existsSync(distPath);
