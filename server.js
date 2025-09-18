@@ -731,6 +731,20 @@ app.get('/api/testimonials', async (req, res) => {
   }
 });
 
+// ===== Legacy URL Redirects =====
+const redirects = {
+  '/swsd-about': '/about',
+  '/swsd-about-mission': '/about',
+  '/swsd-contact': '/contact',
+  '/organizer/city-of-walnut-creek-arts-recreation-program': '/public-classes',
+  '/organizer/forma-gym-walnut-creek/': '/public-classes',
+  '/organizer/diablo-valley-college/': '/public-classes',
+  '/organizer/venue/forma-igf-studio/': '/public-classes',
+  '/organizer/venue/forma-gym-walnut-creek/': '/public-classes',
+    
+};
+
+
 
 // ---- Static hosting / health-check friendly root ----
 const distPath = path.join(__dirname, 'dist');
