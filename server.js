@@ -744,13 +744,22 @@ const redirects = {
     
 };
 
+
+// Normalize path, preserve query, skip APIs
 app.use((req, res, next) => {
   if (req.path.startsWith('/api')) return next();
 
-  const target = redirects[req.path];
-  if (target) {
-    return res.redirect(301, target);
+  // strip trailing slash (except root) to match keys like "/classes"
+  const base = req.path !== '/' ? req.path.replace(/\/+$/, '') : '/';
+
+  const to = redirects[base] || redirects[base.toLowerCase()];
+  if (to) {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    // 301 for GET/HEAD, 308 for others (preserve method/body)
+    const status = (req.method === 'GET' || req.method === 'HEAD') ? 301 : 308;
+    return res.redirect(status, to + qs);
   }
+
   next();
 });
 
