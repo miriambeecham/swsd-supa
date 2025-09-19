@@ -744,7 +744,15 @@ const redirects = {
     
 };
 
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
 
+  const target = redirects[req.path];
+  if (target) {
+    return res.redirect(301, target);
+  }
+  next();
+});
 
 // ---- Static hosting / health-check friendly root ----
 const distPath = path.join(__dirname, 'dist');
