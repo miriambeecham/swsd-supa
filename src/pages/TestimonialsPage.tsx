@@ -38,15 +38,9 @@ const TestimonialsPage = () => {
     default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
   };
 
-  const fetchTestimonialsFromAirtable = async () => {
-    try {
-      setLoading(true);
-
-      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="",{Homepage position}="None"))');
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch testimonials: ${response.status}`);
-      }
+  const response = await fetch('/api/testimonials', {
+    method: 'GET',
+  });
 
       const data = await response.json();
 
