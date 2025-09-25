@@ -25,10 +25,10 @@ const TestimonialsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Platform configurations with React Icons - brand colors for icon+name, teal for CTAs
+  // Platform configurations...
   const platformConfig = {
     google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
-    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' }, // Yelp brand red
+    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' },
     facebook: { name: 'Facebook', icon: FaFacebook, color: 'text-blue-700' },
     trustpilot: { name: 'Trustpilot', icon: SiTrustpilot, color: 'text-green-600' },
     linkedin: { name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-800' },
@@ -38,9 +38,17 @@ const TestimonialsPage = () => {
     default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
   };
 
-  const response = await fetch('/api/testimonials', {
-    method: 'GET',
-  });
+  const fetchTestimonialsFromAirtable = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch('/api/testimonials', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch testimonials: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -71,6 +79,7 @@ const TestimonialsPage = () => {
     }
   };
 
+  // Rest of your component...
   useEffect(() => {
     document.title = 'Student Success Stories - Streetwise Self Defense';
     fetchTestimonialsFromAirtable();
