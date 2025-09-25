@@ -34,10 +34,16 @@ const PublicClassesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+   useEffect(() => {
     fetchClassesFromAirtable();
+    
+    // Cleanup expired bookings occasionally
+    if (Math.random() < 0.1) {
+      fetch('/api/cleanup-expired-bookings', { method: 'POST' }).catch(() => {});
+    }
   }, []);
 
+  
   const handleBookNow = (classData: ClassSchedule) => {
     if (!classData?.id) {
       console.error('Missing class id for booking');
