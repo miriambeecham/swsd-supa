@@ -44,8 +44,7 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/class-prep-list" element={<ClassPrepList />} />
             <Route path="/book-class/:classId" element={<BookingPage />} />
-            <Route path="booking-success" element={<StripeSuccess />} />
-            <Route path="booking-failure" element={<StripeError />} />
+       
             <Route path="/book-adult-class" element={AdultBookingPage} />
             <Route path="/book-mother-daughter-class/:id" element={<MotherDaughterBookingPage />} />
             <Route path="/book-adult-class/:id" element={<AdultBookingPage />} />
