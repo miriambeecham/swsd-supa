@@ -267,33 +267,37 @@ export default async function handler(req, res) {
     
     const baseUrl = req.headers.origin || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`;
     
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `${classData.fields['Class Name'] || classData.fields['Title'] || 'Self-Defense Class'} - ${schedule.fields.Date}`,
-            description: `Self-defense class for ${requestedSeats} participant(s)`
-          },
-          unit_amount: unitAmountCents
-        },
-        quantity: 1
-      }],
-      customer_email: contactInfo.email,
-      billing_address_collection: 'required',
-      success_url: `${baseUrl}/stripe-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
-      cancel_url: `${baseUrl}/public-classes`,
-      metadata: {
-        bookingId,
-        classScheduleId,
-        contactFirstName: contactInfo.firstName,
-        contactLastName: contactInfo.lastName,
-        contactEmail: contactInfo.email,
-        participantCount: String(requestedSeats)
-      }
-    });
+// Replace the Stripe session creation in your /api/create-booking.js with this:
+
+const session = await stripe.checkout.sessions.create({
+  mode: 'payment',
+  payment_method_types: ['card'],
+  line_items: [{
+    price_data: {
+      currency: 'usd',
+      product_data: {
+        name: `${classData.fields['Class Name'] || classData.fields['Title'] || 'Self-Defense Class'} - ${schedule.fields.Date}`,
+        description: `Self-defense class for ${requestedSeats} participant(s)`
+      },
+      unit_amount: unitAmountCents
+    },
+    quantity: 1
+  }],
+  customer_email: contactInfo.email,
+  billing_address_collection: 'required',
+  // Set 30-minute expiration
+  expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes from now
+  success_url: `${baseUrl}/stripe-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
+  cancel_url: `${baseUrl}/public-classes`,
+  metadata: {
+    bookingId,
+    classScheduleId,
+    contactFirstName: contactInfo.firstName,
+    contactLastName: contactInfo.lastName,
+    contactEmail: contactInfo.email,
+    participantCount: String(requestedSeats)
+  }
+});
 
     // Save session ID to booking record (best effort)
     fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`, {
