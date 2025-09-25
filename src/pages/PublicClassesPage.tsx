@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
 
-
 interface ClassSchedule {
   id: string;
   class_name: string;
@@ -68,26 +67,24 @@ const PublicClassesPage = () => {
     navigate(path, { state: { classSchedule: bookingData } });
   };
 
- 
-
-      
-
-
-    
-
-   
-
   const fetchClassesFromAirtable = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Import API functions directly from lib
-      const { getClasses, getSchedules } = await import('../lib/api');
+      // Fetch classes and schedules from our API endpoints
+      const [classesResponse, schedulesResponse] = await Promise.all([
+        fetch('/api/classes'),
+        fetch('/api/schedules')
+      ]);
+
+      if (!classesResponse.ok || !schedulesResponse.ok) {
+        throw new Error('Failed to fetch class data');
+      }
 
       const [classesData, schedulesData] = await Promise.all([
-        getClasses(),
-        getSchedules()
+        classesResponse.json(),
+        schedulesResponse.json()
       ]);
 
       // Combine classes with their schedules
@@ -247,7 +244,6 @@ const PublicClassesPage = () => {
         </div>
 
         {/* Button/Registration Area */}
-        {/* Button/Registration Area */}
         <div className="ml-4">
           {(classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
             classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
@@ -275,7 +271,7 @@ const PublicClassesPage = () => {
               Contact Us <Mail className="w-4 h-4" />
             </button>
           ) : classData.registration_opens ? (
-            // “Coming soon”
+            // "Coming soon"
             <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
               <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
                 Coming Soon
@@ -310,7 +306,6 @@ const PublicClassesPage = () => {
         </div>  
        </div>
       </div>
-    
   );
 
   if (loading) {
