@@ -19,7 +19,7 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ScrollToTop from './components/ScrollToTop';
 import ClassPrepList from './pages/ClassPrepList';
 import BookingPage from './pages/BookingPage';
-import StripeSuccess from './pages/StripeSuccessPage';
+import StripeSuccessPage from './pages/StripeSuccessPage';
 import StripeError from './pages/StripeErrorPage';
 import MotherDaughterBookingPage from './pages/MotherDaughterBookingPage';
 import AdultBookingPage from './pages/AdultBookingPage';
@@ -56,7 +56,7 @@ function App() {
             <Route path="/public-class-desired-effect" element={<PrivateClassDesiredEffectStaticPage />} />
             <Route path="/private-class-wsec-prep" element={<PrivateClassWSECStaticPage />} />
             <Route path="/public-class-mdyoga-prep" element={<PublicClassMountDiabloYogaStaticPage />} />
-            <Route path="/stripe-success" element={<StripeSuccess />} />
+            <Route path="/stripe-success" element={<StripeSuccessPage />} />
             <Route path="/stripe-error" element={<StripeError />} />
             
           </Routes>
