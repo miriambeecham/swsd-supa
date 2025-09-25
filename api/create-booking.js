@@ -283,7 +283,7 @@ export default async function handler(req, res) {
       }],
       customer_email: contactInfo.email,
       billing_address_collection: 'required',
-      success_url: `${baseUrl}/booking-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
+      success_url: `${baseUrl}/stripe-success?session_id={CHECKOUT_SESSION_ID}&booking_id=${bookingId}`,
       cancel_url: `${baseUrl}/public-classes`,
       metadata: {
         bookingId,
