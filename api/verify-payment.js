@@ -38,7 +38,7 @@ export default async function handler(req, res) {
           fields: {
             'Status': 'Confirmed',
             'Payment Status': 'Completed', // or 'Paid' - check your Airtable
-            'Stripe Checkout Session ID': session.id, // Not payment_intent
+            'Stripe Payment Intent ID': session.id, // Not payment_intent
             'Payment Date': new Date().toISOString()
           }
         })
