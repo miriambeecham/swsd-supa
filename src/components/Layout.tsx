@@ -8,22 +8,18 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = React.useState(false);
+  const [isMobileAboutDropdownOpen, setIsMobileAboutDropdownOpen] = React.useState(false);
   const location = useLocation();
 
-  const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Public Classes', href: '/public-classes' },
+  const aboutPages = [
     { name: 'About', href: '/about' },
     { name: 'Testimonials', href: '/testimonials' },
     { name: 'FAQ', href: '/faq' },
-    { name: 'Contact', href: '/contact' },
   ];
 
   const programPages = [
     { name: 'Public Classes', href: '/public-classes' },
-    { name: 'Private Classes', href: '/private-classes' },
+    { name: 'Private Training', href: '/private-classes' },
     { name: 'Workplace Safety', href: '/workplace-safety' },
     { name: 'Community Groups', href: '/cbo' },
   ];
@@ -44,23 +40,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => {
-      setIsDropdownOpen(false);
-      setIsMobileDropdownOpen(false);
+      setIsMobileAboutDropdownOpen(false);
     };
-    if (isDropdownOpen || isMobileDropdownOpen) {
+    if (isMobileAboutDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
-  }, [isDropdownOpen, isMobileDropdownOpen]);
+  }, [isMobileAboutDropdownOpen]);
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Top Tier Navigation */}
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center flex-shrink-0">
               <img
                 src="/swsd-logo-official.png"
                 alt="Streetwise Self Defense"
@@ -68,56 +64,39 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               />
             </Link>
 
-            {/* Centered Navigation - Desktop Only */}
-            <nav className="hidden md:flex items-center space-x-6 flex-1 justify-center">
+            {/* Primary Navigation - Desktop Only */}
+            <nav className="hidden lg:flex items-center space-x-12 flex-1 justify-center">
               <Link 
                 to="/public-classes" 
-                className={`px-3 py-2 rounded-md font-medium transition-colors ${
-                  isActive('/public-classes') 
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
+                  isProgramActive() 
                     ? 'text-accent-primary' 
-                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                    : 'text-navy hover:text-accent-primary'
                 }`}
+                onMouseEnter={() => {
+                  const target = document.querySelector('.programs-hover-target');
+                  if (target) {
+                    target.classList.add('text-accent-primary', 'bg-accent-light');
+                    target.classList.remove('text-gray-600');
+                  }
+                }}
+                onMouseLeave={() => {
+                  const target = document.querySelector('.programs-hover-target');
+                  if (target && !isActive('/public-classes')) {
+                    target.classList.remove('text-accent-primary', 'bg-accent-light');
+                    target.classList.add('text-gray-600');
+                  }
+                }}
               >
-                Public Classes
+                Programs
               </Link>
-
-              <div className="relative">
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDropdownOpen(!isDropdownOpen);
-                  }}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium transition-colors ${
-                    isProgramActive() && !isActive('/public-classes')
-                      ? 'text-accent-primary' 
-                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
-                  }`}
-                >
-                  All Programs
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-50">
-                    {programPages.map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-navy"
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               <Link 
                 to="/about" 
-                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
                   isActive('/about') 
                     ? 'text-accent-primary' 
-                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                    : 'text-navy hover:text-accent-primary'
                 }`}
               >
                 About
@@ -125,10 +104,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <Link 
                 to="/testimonials" 
-                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
                   isActive('/testimonials') 
                     ? 'text-accent-primary' 
-                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                    : 'text-navy hover:text-accent-primary'
                 }`}
               >
                 Testimonials
@@ -136,10 +115,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <Link 
                 to="/faq" 
-                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
                   isActive('/faq') 
                     ? 'text-accent-primary' 
-                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                    : 'text-navy hover:text-accent-primary'
                 }`}
               >
                 FAQ
@@ -147,10 +126,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <Link 
                 to="/contact" 
-                className={`px-3 py-2 rounded-md font-medium transition-colors ${
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
                   isActive('/contact') 
                     ? 'text-accent-primary' 
-                    : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                    : 'text-navy hover:text-accent-primary'
                 }`}
               >
                 Contact
@@ -158,22 +137,43 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </nav>
 
             {/* Right side spacer to balance logo */}
-            <div className="hidden md:block w-32"></div>
+            <div className="hidden lg:block flex-shrink-0 w-32"></div>
 
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-md text-gray-600 hover:text-navy hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-md text-gray-600 hover:text-navy hover:bg-gray-100"
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
 
+          {/* Second Tier Navigation - Desktop Only */}
+          <div className="hidden lg:block border-t border-gray-100">
+            <div className="flex justify-center items-center h-12 space-x-8">
+              {programPages.map((program) => (
+                <Link
+                  key={program.href}
+                  to={program.href}
+                  className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
+                    isActive(program.href)
+                      ? 'text-accent-primary border-accent-primary'
+                      : 'text-slate-500 border-transparent hover:text-accent-primary hover:border-accent-primary'
+                  } ${
+                    program.href === '/public-classes' ? 'programs-hover-target' : ''
+                  }`}
+                >
+                  {program.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="md:hidden pb-4 pt-2">
+            <div className="lg:hidden pb-4 pt-2 border-t border-gray-100">
               <div className="space-y-1">
-                {/* Regular nav items */}
+                {/* Home */}
                 <Link
                   to="/"
                   onClick={() => setIsMenuOpen(false)}
@@ -186,71 +186,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   Home
                 </Link>
 
-                <Link
-                  to="/public-classes"
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                    isActive('/public-classes')
-                      ? 'text-accent-primary bg-accent-light'
-                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
-                  }`}
-                >
-                  Public Classes
-                </Link>
-
-                {/* All Programs with mobile dropdown */}
-                <div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMobileDropdownOpen(!isMobileDropdownOpen);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                      isProgramActive()
-                        ? 'text-accent-primary bg-accent-light'
-                        : 'text-gray-600 hover:text-navy hover:bg-gray-100'
-                    }`}
-                  >
-                    All Programs
-                    <ChevronDown className={`w-4 h-4 transition-transform ${isMobileDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isMobileDropdownOpen && (
-                    <div className="mt-1 ml-4 space-y-1">
-                      {programPages.map((item) => (
-                        <Link
-                          key={item.href}
-                          to={item.href}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            setIsMobileDropdownOpen(false);
-                          }}
-                          className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                            isActive(item.href)
-                              ? 'text-accent-primary bg-accent-light'
-                              : 'text-gray-500 hover:text-navy hover:bg-gray-100'
-                          }`}
-                        >
-                          {item.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                {/* Programs Section */}
+                <div className="py-2">
+                  <div className="px-3 py-1 text-sm font-semibold text-navy uppercase tracking-wider">
+                    Programs
+                  </div>
+                  {programPages.map((program) => (
+                    <Link
+                      key={program.href}
+                      to={program.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`block px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isActive(program.href)
+                          ? 'text-accent-primary bg-accent-light'
+                          : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                      }`}
+                    >
+                      {program.name}
+                    </Link>
+                  ))}
                 </div>
 
-                {/* Rest of nav items */}
-                <Link
-                  to="/about"
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                    isActive('/about')
-                      ? 'text-accent-primary bg-accent-light'
-                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
-                  }`}
-                >
-                  About
-                </Link>
-
+                {/* Main nav items */}
                 <Link
                   to="/testimonials"
                   onClick={() => setIsMenuOpen(false)}
@@ -273,6 +230,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   }`}
                 >
                   FAQ
+                </Link>
+
+                <Link
+                  to="/about"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/about')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  About
                 </Link>
 
                 <Link
@@ -345,7 +314,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </li>
                 <li>
                   <Link to="/cbo" className="hover:text-white transition-colors">
-                    Community Outreach
+                    Community Groups
                   </Link>
                 </li>
               </ul>

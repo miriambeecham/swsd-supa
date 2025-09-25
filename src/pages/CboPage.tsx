@@ -4,6 +4,7 @@ import { Shield, Users, Clock, CheckCircle, ArrowLeft, Star, Heart, Home, Calend
 import { FaGoogle, FaFacebook, FaLinkedin, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { Helmet } from 'react-helmet-async';
 
 interface Testimonial {
   id: string;
@@ -139,7 +140,8 @@ const CboPage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Community Organizations'
+        formType: 'Community Organizations',
+        recaptchaToken: recaptchaValue
       };
 
       const response = await fetch('/api/form-submissions', {
@@ -185,7 +187,7 @@ const CboPage = () => {
     try {
       setLoading(true);
 
-      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="cbo1",{Homepage position}="cbo2"))');
+      const response = await fetch('/zog/testimonials?filter=AND({Is published}=1,OR({Homepage position}="cbo1",{Homepage position}="cbo2"))');
 
       if (!response.ok) {
         throw new Error(`Failed to fetch testimonials: ${response.status}`);
@@ -261,6 +263,25 @@ const CboPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+
+      <Helmet>
+        <title>Community Organization Safety Training - Streetwise Self Defense</title>
+        <meta name="description" content="Self defense training for nonprofits, schools, community groups, and organizations in the SF Bay Area. Group programs designed for diverse communities and age ranges." />
+        <meta name="keywords" content="community self defense, nonprofit safety training, school self defense programs, community group training, organization safety, group self defense classes, nonprofit security training, community safety programs, SF Bay Area" />
+
+        <meta property="og:title" content="Community Organization Safety Training - Streetwise Self Defense" />
+        <meta property="og:description" content="Self defense training for nonprofits, schools, community groups, and organizations. Group programs designed for diverse communities and age ranges." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/cbo" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Community Organization Safety Training - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Self defense training for nonprofits, schools, community groups, and organizations." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+      </Helmet>
+      
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -709,7 +730,7 @@ const CboPage = () => {
                       name="webRequestDetails"
                       value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Tell us about your community organization's specific training needs, number of participants, age groups, any trauma considerations or cultural sensitivities, preferred timeline, and location details. Include any special circumstances we should be aware of to create the most effective and appropriate program for your community..."
+                      placeholder="Tell us about your community organization's specific training needs, number of participants, age groups, any trauma considerations or cultural sensitivities, preferred timeline, and location details."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
                       required
@@ -774,18 +795,9 @@ const CboPage = () => {
                   </div>
                   <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
                   <p className="text-gray-600 mb-6">
-                    We've received your organization details and will contact you within 24 hours to discuss how we can create a specialized training program for your community.
+                    We've received your organization details and will contact you within 1-2 business days to discuss how we can create a specialized training program for your community.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a
-                      href="https://calendly.com/streetwisewomen/question-answer"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Schedule Call Now
-                    </a>
                     <button
                       onClick={() => {
                         setShowContactForm(false);

@@ -31,6 +31,58 @@
 .border-accent-primary { border-color: var(--accent-primary); }
 .hover\:bg-accent-dark:hover { background-color: var(--accent-dark); }
 
+/* Masonry Layout Fixes */
+.masonry-container {
+  -webkit-columns: 1;
+  -moz-columns: 1;
+  columns: 1;
+}
+
+@media (min-width: 768px) {
+  .masonry-container {
+    -webkit-columns: 2;
+    -moz-columns: 2;
+    columns: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry-container {
+    -webkit-columns: 3;
+    -moz-columns: 3;
+    columns: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .masonry-container {
+    -webkit-columns: 4;
+    -moz-columns: 4;
+    columns: 4;
+  }
+}
+/* Masonry Grid Styles */
+.masonry-grid {
+  display: flex;
+  margin-left: -16px; /* gutter size offset */
+  width: auto;
+}
+
+.masonry-grid_column {
+  padding-left: 16px; /* gutter size */
+  background-clip: padding-box;
+}
+
+.my-masonry-grid {
+  display: flex;
+  margin-left: -30px; /* gutter size offset */
+  width: auto;
+}
+.my-masonry-grid_column {
+  padding-left: 30px; /* gutter size */
+  background-clip: padding-box;
+}
+
 .bg-navy { background-color: var(--navy); }
 .bg-yellow { background-color: var(--yellow); }
 .bg-yellow-light { background-color: var(--yellow-light); }

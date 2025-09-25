@@ -1,13 +1,22 @@
+# .replit — minimal + works with the Run button
+
 modules = ["nodejs-20", "web"]
+
+# Legacy runner fallback (some workspaces still use this)
 run = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
 
+# Optional deployment settings (fine to keep)
 [deployment]
-run = ["sh", "-c", "npm run preview"]
+build = ["sh", "-c", "npm ci && npm run build"]
+run   = ["sh", "-c", "node server.js"]
 deploymentTarget = "cloudrun"
-build = ["sh", "-c", "npm run build"]
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
 
 [[ports]]
 localPort = 3001
@@ -21,27 +30,17 @@ externalPort = 5000
 localPort = 5173
 externalPort = 80
 
+# Minimal Workflows block so the UI has a "Run Button" target
 [workflows]
-runButton = "Run Both Servers"
+runButton = "Development"
 
 [[workflows.workflow]]
-name = "Run"
-author = 38791700
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[[workflows.workflow]]
-name = "Run Both Servers"
-author = 38791700
+name = "Development"
 mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node server.js"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
 args = "npm run dev"
+
+[agent]
+expertMode = true

@@ -106,7 +106,8 @@ const PrivateClassesPage = () => {
     try {
       const submissionData = {
         ...formData,
-        formType: 'Private Classes'
+        formType: 'Private Training',
+        recaptchaToken: recaptchaValue
       };
 
       const response = await fetch('/api/form-submissions', {
@@ -201,6 +202,40 @@ const PrivateClassesPage = () => {
           </div>
         </div>
       </section>
+
+    
+
+
+      {/* NEW: Training Categories Section - Gray on gray pills */}
+      <section className="py-4 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="flex flex-wrap justify-center gap-2">
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Anti-Bullying
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Hate Crime Prevention
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Neurodivergent-Friendly
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Travel Safety
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              College Prep
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Domestic Violence Survivors
+            </span>
+            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+              Vulnerable Populations
+            </span>
+          </div>
+        </div>
+      </section>
+
+   
 
       {/* Offering Description */}
       <section className="py-16 bg-white">
@@ -475,7 +510,7 @@ const PrivateClassesPage = () => {
                       name="webRequestDetails"
                       value={formData.webRequestDetails}
                       onChange={handleInputChange}
-                      placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Tell us about your training goals, group size, preferred schedule, accessibility needs, or any specific concerns you'd like us to address in your customized program..."
+                      placeholder="Tell us about your training goals; number, age, and gender of trainee(s); preferred schedule, and any specific concerns you'd like us to address in your customized program."
                       rows={4}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
                       required
@@ -538,19 +573,10 @@ const PrivateClassesPage = () => {
                   </div>
                   <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
                   <p className="text-gray-600 mb-6">
-                    We've received your training request and will contact you within 24 hours to discuss your customized program.
+                    We've received your training request and will contact you within 1-2 business days to discuss your customized program.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a
-                      href="https://calendly.com/streetwisewomen/question-answer"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-accent-primary hover:bg-accent-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Schedule Call Now
-                    </a>
-                    <button
+                     <button
                       onClick={() => {
                         setShowContactForm(false);
                         resetForm();

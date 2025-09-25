@@ -4,6 +4,7 @@ import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } 
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Masonry from 'react-masonry-css';
 
 interface Testimonial {
   id: string;
@@ -37,15 +38,9 @@ const TestimonialsPage = () => {
     default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
   };
 
-  const fetchTestimonialsFromAirtable = async () => {
-    try {
-      setLoading(true);
-
-      const response = await fetch('/api/testimonials?filter=AND({Is published}=1,OR({Homepage position}="",{Homepage position}="None"))');
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch testimonials: ${response.status}`);
-      }
+  const response = await fetch('/api/testimonials', {
+    method: 'GET',
+  });
 
       const data = await response.json();
 
@@ -135,7 +130,19 @@ const TestimonialsPage = () => {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://streetwiseselfdefense.com/testimonials" />
         <link rel="canonical" href="https://streetwiseselfdefense.com/testimonials" />
+        <meta property="og:title" content="Student Success Stories - Streetwise Self Defense" />
+        <meta property="og:description" content="Read real testimonials from our self defense students. See how our training has helped women, families, and organizations build confidence and stay safe." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/testimonials" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Student Success Stories - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Read real testimonials from our self defense students and see the impact of our training." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
+
       {/* Hero Section with Logo Background */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -217,9 +224,7 @@ const TestimonialsPage = () => {
               </div>
               <h3 className="text-lg font-bold text-navy mb-1">Facebook</h3>
               <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
-              <div className="flex justify-center mb-2">
-                {renderStars(5)}
-              </div>
+             
               <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
               <a
                 href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
@@ -304,17 +309,30 @@ const TestimonialsPage = () => {
         </section>
       )}
 
-      {/* All Testimonials Grid (Excluding Featured) */}
+      {/* All Testimonials Masonry Layout (Excluding Featured) */}
+      {/* All Testimonials Masonry Layout (Excluding Featured) */}
       <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-navy text-center mb-12">All Reviews</h2>
 
-          {testimonials.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {testimonials.filter(testimonial => !testimonial.is_featured).length > 0 ? (
+            <Masonry
+              breakpointCols={{
+                default: 3,
+                1280: 3,
+                1024: 2,
+                768: 1
+              }}
+              className="flex -ml-4 w-auto"
+              columnClassName="pl-4 bg-clip-padding"
+            >
               {testimonials.filter(testimonial => !testimonial.is_featured).map((testimonial) => {
                 const platformInfo = getPlatformInfo(testimonial.platform);
                 return (
-                  <div key={testimonial.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                  <div 
+                    key={testimonial.id} 
+                    className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow mb-4 break-inside-avoid"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
                         {renderStars(testimonial.rating)}
@@ -350,7 +368,10 @@ const TestimonialsPage = () => {
                             }}
                           />
                         ) : null}
-                        <div className="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{ display: testimonial.profile_image_url ? 'none' : 'flex' }}>
+                        <div 
+                          className="w-10 h-10 bg-accent-primary rounded-full flex items-center justify-center text-white text-sm font-semibold" 
+                          style={{ display: testimonial.profile_image_url ? 'none' : 'flex' }}
+                        >
                           {testimonial.name.charAt(0)}
                         </div>
                         <div className="flex-1">
@@ -362,8 +383,8 @@ const TestimonialsPage = () => {
                       </div>
 
                       {testimonial.review_url && testimonial.platform !== 'survey' && (
-                        <a
-                          href={testimonial.review_url}
+
+                          <a href={testimonial.review_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-accent-primary hover:text-accent-primary-dark"
@@ -375,7 +396,7 @@ const TestimonialsPage = () => {
                   </div>
                 );
               })}
-            </div>
+            </Masonry>
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-600">No testimonials available at this time.</p>
@@ -383,7 +404,7 @@ const TestimonialsPage = () => {
           )}
         </div>
       </section>
-
+      
       {/* CTA Section */}
       <section className="py-16 bg-navy">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

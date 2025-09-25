@@ -86,6 +86,25 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+
+      <Helmet>
+        <title>About Streetwise Self Defense - Professional Self Defense Training Since 2014</title>
+        <meta name="description" content="Learn about Streetwise Self Defense's mission to empower women and communities through practical self defense training. Serving the SF Bay Area since 2014 with expert instruction." />
+        <meta name="keywords" content="about streetwise self defense, professional self defense instructor, women's safety training expert, self defense experience, SF Bay Area instructor, self defense background, safety training credentials, community empowerment" />
+
+        <meta property="og:title" content="About Streetwise Self Defense - Professional Self Defense Training" />
+        <meta property="og:description" content="Learn about our mission to empower women and communities through practical self defense training. Serving the SF Bay Area since 2014." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/about" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About Streetwise Self Defense - Professional Self Defense Training" />
+        <meta name="twitter:description" content="Learn about our mission to empower women and communities through practical self defense training." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+      </Helmet>
+
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
@@ -265,7 +284,7 @@ const AboutPage = () => {
 
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="text-center">
-                <div className="text-4xl font-bold text-accent-primary mb-2">1,500+</div>
+                <div className="text-4xl font-bold text-accent-primary mb-2">2500+</div>
                 <div className="text-lg font-semibold text-navy mb-2">Students Trained</div>
                 <p className="text-gray-600">Since 2014, including survivors of rape and domestic violence</p>
               </div>
@@ -341,7 +360,7 @@ const AboutPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Start Your Empowerment Journey?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Join the 1,500+ students who have gained confidence and life-changing skills through our training.
+            Join the 2500+ students who have gained confidence and life-changing skills through our training.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

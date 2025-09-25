@@ -106,41 +106,25 @@ const FAQPage = () => {
     try {
       setLoading(true);
 
-      const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
-      const apiKey = import.meta.env.VITE_AIRTABLE_API_KEY;
-
-      if (!baseId || !apiKey) {
-        throw new Error('Missing Airtable configuration');
+      // Fetch from backend API
+      const response = await fetch('/api/faqs');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch FAQs: ${response.status}`);
       }
 
-      // Fetch Categories
-      const categoriesResponse = await fetch(
-        `https://api.airtable.com/v0/${baseId}/Categories?filterByFormula={Is Active}=1&sort[0][field]=Display Order`,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!categoriesResponse.ok) {
-        throw new Error(`Failed to fetch categories: ${categoriesResponse.status}`);
-      }
-
-      const categoriesData = await categoriesResponse.json();
+      const { categories, faqs } = await response.json();
 
       // Transform categories data
-      const categories: Map<string, Category> = new Map();
-      categoriesData.records.forEach((record: any) => {
-        const category: Category = {
-          id: record.id,
-          name: record.fields['Category Name'] || '',
-          displayOrder: record.fields['Display Order'] || 999,
-          isActive: record.fields['Is Active'] || false,
-          description: record.fields.Description || undefined,
+      const categoryMap: Map<string, Category> = new Map();
+      categories.forEach((category: any) => {
+        const cat: Category = {
+          id: category.id,
+          name: category.name || '',
+          displayOrder: category.displayOrder || 999,
+          isActive: category.isActive || false,
+          description: category.description || undefined,
         };
-        categories.set(record.id, category);
+        categoryMap.set(category.id, cat);
       });
 
       // Add "Other" category for uncategorized FAQs
@@ -151,56 +135,29 @@ const FAQPage = () => {
         isActive: true,
         description: 'General questions'
       };
-      categories.set('other', otherCategory);
+      categoryMap.set('other', otherCategory);
 
-      // Fetch FAQs
-      const faqsResponse = await fetch(
-        `https://api.airtable.com/v0/${baseId}/FAQ?filterByFormula={Is Published}=1&sort[0][field]=Question Order`,
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!faqsResponse.ok) {
-        throw new Error(`Failed to fetch FAQs: ${faqsResponse.status}`);
-      }
-
-      const faqsData = await faqsResponse.json();
-
-      // Transform FAQs data and link to categories
-      const faqs: FAQ[] = faqsData.records.map((record: any) => {
-        // Handle linked category field - Airtable returns array of record IDs
-        let categoryId = 'other'; // Default to "Other"
-        if (record.fields.Category && Array.isArray(record.fields.Category) && record.fields.Category.length > 0) {
-          categoryId = record.fields.Category[0]; // Take first linked category
-        }
-
-        return {
-          id: record.id,
-          question: record.fields.Question || '',
-          answer: record.fields.Answer || '',
-          categoryId: categoryId,
-          questionOrder: record.fields['Question Order'] || 999,
-          isPublished: record.fields['Is Published'] || false,
-        };
-      });
+      // Transform FAQs data
+      const transformedFaqs: FAQ[] = faqs.map((faq: any) => ({
+        id: faq.id,
+        question: faq.question || '',
+        answer: faq.answer || '',
+        categoryId: faq.categoryId || 'other',
+        questionOrder: faq.questionOrder || 999,
+        isPublished: faq.isPublished || false,
+      }));
 
       // Group FAQs by category
       const categoryGroups: CategoryGroup[] = [];
-
-      // Create groups for each category that has FAQs
       const usedCategories = new Set<string>();
 
-      faqs.forEach(faq => {
+      transformedFaqs.forEach(faq => {
         if (!usedCategories.has(faq.categoryId)) {
-          const category = categories.get(faq.categoryId);
+          const category = categoryMap.get(faq.categoryId);
           if (category) {
             categoryGroups.push({
               category,
-              faqs: faqs
+              faqs: transformedFaqs
                 .filter(f => f.categoryId === faq.categoryId)
                 .sort((a, b) => a.questionOrder - b.questionOrder)
             });
