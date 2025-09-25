@@ -34,10 +34,12 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+         
           fields: {
             'Status': 'Confirmed',
-            'Payment Status': 'Paid',
-            'Stripe Payment Intent ID': session.payment_intent
+            'Payment Status': 'Completed', // or 'Paid' - check your Airtable
+            'Stripe Checkout Session ID': session.id, // Not payment_intent
+            'Payment Date': new Date().toISOString()
           }
         })
       });
