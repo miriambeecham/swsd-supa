@@ -38,7 +38,17 @@ const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_
     fields: {
       'Status': 'Confirmed',
       'Payment Status': 'Completed',
-      'Stripe Payment Intent ID': session.id
+      'Stripe Payment Intent ID': session.id,
+       'Payment Date': new Date().toLocaleString('en-US', { 
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit', 
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).replace(/(\d+)\/(\d+)\/(\d+),\s*(.+)/, '$3-$1-$2 $4')
     
     }
   })
