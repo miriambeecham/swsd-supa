@@ -30,6 +30,16 @@ export default async function handler(req, res) {
     }
 
     const schedule = await scheduleResponse.json();
+
+    // Add this booking cutoff check here:
+if (isBookingTooLate(schedule.fields?.['Start Time New'])) {
+  return res.status(409).json({ 
+    ok: false, 
+    remaining: 0, 
+    message: 'Registration has closed for this class. Bookings must be made at least 4 hours in advance.' 
+  });
+}
+
     const fields = schedule.fields || {};
 
     // Helper function to safely convert to number
@@ -38,6 +48,20 @@ export default async function handler(req, res) {
       const n = Number(v);
       return Number.isFinite(n) ? n : null;
     };
+
+    function isBookingTooLate(startDateTime) {
+  if (!startDateTime) return false;
+  
+  try {
+    const classDateTime = new Date(startDateTime);
+    const now = new Date();
+    const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+    return classDateTime <= fourHoursFromNow;
+  } catch (error) {
+    console.error('Date parsing error:', error);
+    return false;
+  }
+}
 
     // Calculate remaining spots using priority logic:
     // 1) Remaining Spots field (if set)
