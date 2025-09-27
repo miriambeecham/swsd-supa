@@ -25,6 +25,8 @@ interface ClassSchedule {
   registration_opens?: string;
   is_cancelled: boolean;
   special_notes?: string;
+   start_time_new?: string;
+  end_time_new?: string;
 }
 
 const PublicClassesPage = () => {
@@ -277,43 +279,8 @@ const isRegistrationClosed = (startTimeNew: string) => {
           </div>
         </div>
 
-        {/* Button/Registration Area */}
-        <div className="ml-4">
-          {(classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-            classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // ✅ SWSD internal booking — route to our booking pages
-            <button
-              onClick={() => handleBookNow(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-            >
-              Register
-            </button>
-          ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-            // External partner registration
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Register <ExternalLink className="w-4 h-4" />
-            </button>
-          ) : classData.booking_method === 'contact' ? (
-            // Contact us flow
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Contact Us <Mail className="w-4 h-4" />
-            </button>
-          ) : classData.registration_opens ? (
-   
-    // ✅ SWSD internal booking — route to our booking pages
-    <button
-      onClick={() => handleBookNow(classData)}
-      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-    >
-      Register
-    </button>     
-    <div className="ml-4">
+{/* Button/Registration Area */}
+<div className="ml-4">
   {isRegistrationClosed(classData.start_time_new) ? (
     // Registration closed - within 4 hours
     <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
@@ -326,47 +293,63 @@ const isRegistrationClosed = (startTimeNew: string) => {
     </div>
   ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
     classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-    // ✅ SWSD internal booking — route to our booking pages
+    // SWSD internal booking
     <button
       onClick={() => handleBookNow(classData)}
       className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
     >
       Register
-    </button>  
+    </button>
+  ) : (classData.booking_method === 'external' && classData.booking_url) ? (
+    // External partner registration
+    <button
+      onClick={() => handleBooking(classData)}
+      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+    >
+      Register <ExternalLink className="w-4 h-4" />
+    </button>
+  ) : classData.booking_method === 'contact' ? (
+    // Contact us flow
+    <button
+      onClick={() => handleBooking(classData)}
+      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+    >
+      Contact Us <Mail className="w-4 h-4" />
+    </button>
+  ) : classData.registration_opens ? (
+    // Coming soon
+    <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+      <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+        Coming Soon
+      </div>
+      <div>
+        Registration opens<br />
+        <span className="font-medium">
+          {formatRegistrationDate(classData.registration_opens)}
+        </span>
+      </div>
+    </div>
+  ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+    // SWSD class without website booking — show phone
+    <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+      <div className="mb-2">Call us to register:</div>
       
-      // "Coming soon"
-            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
-                Coming Soon
-              </div>
-              <div>
-                Registration opens<br />
-                <span className="font-medium">
-                  {formatRegistrationDate(classData.registration_opens)}
-                </span>
-              </div>
-            </div>
-          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // SWSD class without website booking — show phone
-            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-              <div className="mb-2">Call us to register:</div>
-              <a
-                href="tel:9255329953"
-                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-              >
-                (925) 532-9953
-              </a>
-            </div>
-          ) : (
-            // Fallback
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Contact Us <Mail className="w-4 h-4" />
-            </button>
-          )}
-        </div>  
+        href="tel:9255329953"
+        className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+      >
+        (925) 532-9953
+      </a>
+    </div>
+  ) : (
+    // Fallback
+    <button
+      onClick={() => handleBooking(classData)}
+      className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+    >
+      Contact Us <Mail className="w-4 h-4" />
+    </button>
+  )}
+</div>
        </div>
       </div>
   );
