@@ -19,6 +19,20 @@ export default async function handler(req, res) {
 
     const { classScheduleId, contactInfo, participants, classType, recaptchaToken } = req.body || {};
 
+    function isBookingTooLate(startDateTime) {
+  if (!startDateTime) return false;
+  
+  try {
+    const classDateTime = new Date(startDateTime);
+    const now = new Date();
+    const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+    return classDateTime <= fourHoursFromNow;
+  } catch (error) {
+    console.error('Date parsing error:', error);
+    return false;
+  }
+}
+
     // Validation
     if (!classScheduleId || typeof classScheduleId !== 'string') {
       return res.status(400).json({ error: 'classScheduleId is required' });
@@ -59,6 +73,12 @@ export default async function handler(req, res) {
     if (!classId) {
       return res.status(400).json({ error: 'Schedule has no linked Class' });
     }
+
+    if (isBookingTooLate(schedule.fields?.['Start Time New'])) {
+  return res.status(400).json({ 
+    error: 'Registration has closed for this class. Bookings must be made at least 4 hours in advance.' 
+  });
+}
 
     const classResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`, {
       headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
