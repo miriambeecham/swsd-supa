@@ -34,6 +34,21 @@ const PublicClassesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+const isRegistrationClosed = (startTimeNew: string) => {
+  if (!startTimeNew) return false;
+  
+  try {
+    const classDateTime = new Date(startTimeNew);
+    const now = new Date();
+    const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+    
+    return classDateTime <= fourHoursFromNow;
+  } catch (error) {
+    console.error('Date parsing error:', error);
+    return false;
+  }
+};
+  
    useEffect(() => {
     fetchClassesFromAirtable();
     
@@ -290,7 +305,29 @@ const PublicClassesPage = () => {
               Contact Us <Mail className="w-4 h-4" />
             </button>
           ) : classData.registration_opens ? (
-            // "Coming soon"
+      <div className="ml-4">
+  {isRegistrationClosed(classData.start_time_new) ? (
+    // Registration closed - within 4 hours
+    <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+      <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+        Registration Closed
+      </div>
+      <div>
+        Registration has closed for this class
+      </div>
+    </div>
+  ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+    classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+    // ✅ SWSD internal booking — route to our booking pages
+    <button
+      onClick={() => handleBookNow(classData)}
+      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+    >
+      Register
+    </button>     
+      
+      
+      // "Coming soon"
             <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
               <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
                 Coming Soon
