@@ -38,8 +38,8 @@ const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_
     fields: {
       'Status': 'Confirmed',
       'Payment Status': 'Completed',
-      'Stripe Payment Intent ID': session.id,
-      'Payment Date': new Date().toISOString()
+      'Stripe Payment Intent ID': session.id
+    
     }
   })
 });
