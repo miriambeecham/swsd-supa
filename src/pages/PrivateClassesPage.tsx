@@ -335,7 +335,7 @@ const PublicClassesPage = () => {
     
      <a> href="tel:9255329953"
       className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-    >
+    
       (925) 532-9953
     </a>
   </div>
