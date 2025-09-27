@@ -305,7 +305,15 @@ const isRegistrationClosed = (startTimeNew: string) => {
               Contact Us <Mail className="w-4 h-4" />
             </button>
           ) : classData.registration_opens ? (
-      <div className="ml-4">
+   
+    // ✅ SWSD internal booking — route to our booking pages
+    <button
+      onClick={() => handleBookNow(classData)}
+      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+    >
+      Register
+    </button>     
+    <div className="ml-4">
   {isRegistrationClosed(classData.start_time_new) ? (
     // Registration closed - within 4 hours
     <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
@@ -324,8 +332,7 @@ const isRegistrationClosed = (startTimeNew: string) => {
       className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
     >
       Register
-    </button>     
-      
+    </button>  
       
       // "Coming soon"
             <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
