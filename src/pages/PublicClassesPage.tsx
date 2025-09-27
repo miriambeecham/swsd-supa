@@ -42,6 +42,11 @@ const isRegistrationClosed = (startTimeNew: string) => {
   try {
     const classDateTime = new Date(startTimeNew);
     const now = new Date();
+       // Get current time in Pacific timezone
+    const nowPacific = new Date().toLocaleString("en-US", {
+      timeZone: "America/Los_Angeles"
+    });
+    const now = new Date(nowPacific);
     const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
     
     return classDateTime <= fourHoursFromNow;
