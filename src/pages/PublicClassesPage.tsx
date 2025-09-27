@@ -182,7 +182,8 @@ const isRegistrationClosed = (startTimeNew: string) => {
     }) + ' at ' + date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
-      hour12: true 
+      hour12: true,
+      timeZone: 'America/Los_Angeles'  // Force Pacific time
     });
   };
 
