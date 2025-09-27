@@ -1,166 +1,415 @@
-
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Users, Clock, CheckCircle, ArrowLeft, Star, Shield, ChevronDown, Calendar, Mail, X } from 'lucide-react';
-import ReCAPTCHA from 'react-google-recaptcha';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
 
-const US_STATES = [
-  { value: 'Alabama', label: 'Alabama' },
-  { value: 'Alaska', label: 'Alaska' },
-  { value: 'Arizona', label: 'Arizona' },
-  { value: 'Arkansas', label: 'Arkansas' },
-  { value: 'California', label: 'California' },
-  { value: 'Colorado', label: 'Colorado' },
-  { value: 'Connecticut', label: 'Connecticut' },
-  { value: 'Delaware', label: 'Delaware' },
-  { value: 'Florida', label: 'Florida' },
-  { value: 'Georgia', label: 'Georgia' },
-  { value: 'Hawaii', label: 'Hawaii' },
-  { value: 'Idaho', label: 'Idaho' },
-  { value: 'Illinois', label: 'Illinois' },
-  { value: 'Indiana', label: 'Indiana' },
-  { value: 'Iowa', label: 'Iowa' },
-  { value: 'Kansas', label: 'Kansas' },
-  { value: 'Kentucky', label: 'Kentucky' },
-  { value: 'Louisiana', label: 'Louisiana' },
-  { value: 'Maine', label: 'Maine' },
-  { value: 'Maryland', label: 'Maryland' },
-  { value: 'Massachusetts', label: 'Massachusetts' },
-  { value: 'Michigan', label: 'Michigan' },
-  { value: 'Minnesota', label: 'Minnesota' },
-  { value: 'Mississippi', label: 'Mississippi' },
-  { value: 'Missouri', label: 'Missouri' },
-  { value: 'Montana', label: 'Montana' },
-  { value: 'Nebraska', label: 'Nebraska' },
-  { value: 'Nevada', label: 'Nevada' },
-  { value: 'New Hampshire', label: 'New Hampshire' },
-  { value: 'New Jersey', label: 'New Jersey' },
-  { value: 'New Mexico', label: 'New Mexico' },
-  { value: 'New York', label: 'New York' },
-  { value: 'North Carolina', label: 'North Carolina' },
-  { value: 'North Dakota', label: 'North Dakota' },
-  { value: 'Ohio', label: 'Ohio' },
-  { value: 'Oklahoma', label: 'Oklahoma' },
-  { value: 'Oregon', label: 'Oregon' },
-  { value: 'Pennsylvania', label: 'Pennsylvania' },
-  { value: 'Rhode Island', label: 'Rhode Island' },
-  { value: 'South Carolina', label: 'South Carolina' },
-  { value: 'South Dakota', label: 'South Dakota' },
-  { value: 'Tennessee', label: 'Tennessee' },
-  { value: 'Texas', label: 'Texas' },
-  { value: 'Utah', label: 'Utah' },
-  { value: 'Vermont', label: 'Vermont' },
-  { value: 'Virginia', label: 'Virginia' },
-  { value: 'Washington', label: 'Washington' },
-  { value: 'West Virginia', label: 'West Virginia' },
-  { value: 'Wisconsin', label: 'Wisconsin' },
-  { value: 'Wyoming', label: 'Wyoming' }
-];
+interface ClassSchedule {
+  id: string;
+  class_name: string;
+  description: string;
+  type: string;
+  age_range: string;
+  duration: number;
+  max_participants?: number;
+  location: string;
+  instructor: string;
+  price: number;
+  pricing_unit: string;
+  partner_organization?: string;
+  booking_method: 'external' | 'contact' | 'swsd website';
+  registration_instructions: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  start_time_new?: string;
+  end_time_new?: string;
+  booking_url?: string;
+  registration_opens?: string;
+  is_cancelled: boolean;
+  special_notes?: string;
+}
 
-const PrivateClassesPage = () => {
-  const [showContactForm, setShowContactForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    city: '',
-    state: '',
-    webRequestDetails: '',
-    newsletter: false
-  });
+const PublicClassesPage = () => {
+  const navigate = useNavigate();
+  const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
+  const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }));
+  const isRegistrationClosed = (startTimeNew: string) => {
+    if (!startTimeNew) return false;
+    
+    try {
+      const classDateTime = new Date(startTimeNew);
+      const now = new Date();
+      const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+      
+      return classDateTime <= fourHoursFromNow;
+    } catch (error) {
+      console.error('Date parsing error:', error);
+      return false;
+    }
   };
+  
+  useEffect(() => {
+    fetchClassesFromAirtable();
+    
+    // Cleanup expired bookings occasionally
+    if (Math.random() < 0.1) {
+      fetch('/api/cleanup-expired-bookings', { method: 'POST' }).catch(() => {});
+    }
+  }, []);
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleRecaptchaChange = (value: string | null) => {
-    setRecaptchaValue(value);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!recaptchaValue) {
-      alert('Please complete the reCAPTCHA verification');
+  const handleBookNow = (classData: ClassSchedule) => {
+    if (!classData?.id) {
+      console.error('Missing class id for booking');
       return;
     }
 
-    setIsSubmitting(true);
+    const bookingData = {
+      id: classData.id,
+      class_name: classData.class_name,
+      description: classData.description,
+      type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
+      date: classData.date,
+      start_time: classData.start_time,
+      end_time: classData.end_time,
+      price: classData.price,
+      pricing_unit: classData.pricing_unit,
+      max_participants: classData.max_participants,
+      location: classData.location
+    };
 
-    try {
-      const submissionData = {
-        ...formData,
-        formType: 'Private Training',
-        recaptchaToken: recaptchaValue
-      };
+    const isMotherDaughter = classData.type === 'public: mother & daughter';
+    const path = isMotherDaughter
+      ? `/book-mother-daughter-class/${classData.id}`
+      : `/book-adult-class/${classData.id}`;
 
-      const response = await fetch('/api/form-submissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to submit: ${response.status}`);
-      }
-
-      setIsSubmitted(true);
-      setRecaptchaValue(null);
-
-    } catch (error) {
-      console.error('Form submission error:', error);
-      alert('There was an error submitting your form. Please try again.');
-    }
-
-    setIsSubmitting(false);
+    console.log('Navigating to:', path, bookingData);
+    navigate(path, { state: { classSchedule: bookingData } });
   };
 
-  const resetForm = () => {
-    setIsSubmitted(false);
-    setRecaptchaValue(null);
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      city: '',
-      state: '',
-      webRequestDetails: '',
-      newsletter: false
+  const fetchClassesFromAirtable = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch classes and schedules from our API endpoints
+      const [classesResponse, schedulesResponse] = await Promise.all([
+        fetch('/api/classes'),
+        fetch('/api/schedules')
+      ]);
+
+      if (!classesResponse.ok || !schedulesResponse.ok) {
+        throw new Error('Failed to fetch class data');
+      }
+
+      const [classesData, schedulesData] = await Promise.all([
+        classesResponse.json(),
+        schedulesResponse.json()
+      ]);
+
+      // Combine classes with their schedules
+      const combinedData: ClassSchedule[] = schedulesData.records
+        .map(scheduleRecord => {
+          const classId = scheduleRecord.fields['Class']?.[0];
+          const classRecord = classesData.records.find(c => c.id === classId);
+
+          if (!classRecord || !classRecord.fields['Is Active'] || scheduleRecord.fields['Is Cancelled']) {
+            return null;
+          }
+
+          return {
+            id: scheduleRecord.id,
+            class_name: classRecord.fields['Class Name'] || '',
+            description: classRecord.fields['Description'] || '',
+            type: classRecord.fields['Type']?.toLowerCase() || 'public',
+            age_range: classRecord.fields['Age Range'] || '',
+            duration: classRecord.fields['Duration'] || 60,
+            max_participants: classRecord.fields['Max Participants'],
+            location: classRecord.fields['Location'] || '',
+            instructor: classRecord.fields['Instructor'] || '',
+            price: classRecord.fields['Price'] || 0,
+            pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
+            partner_organization: classRecord.fields['Partner Organization'],
+            booking_method: classRecord.fields['Booking Method']?.toLowerCase() || 'contact',
+            registration_instructions: classRecord.fields['Registration Instructions'] || '',
+            date: scheduleRecord.fields['Date'] || '',
+            start_time: scheduleRecord.fields['Start Time'] || '',
+            end_time: scheduleRecord.fields['End Time'] || '',
+            start_time_new: scheduleRecord.fields['Start Time New'],
+            end_time_new: scheduleRecord.fields['End Time New'],
+            booking_url: scheduleRecord.fields['Booking URL'],
+            registration_opens: scheduleRecord.fields['Registration Opens'],
+            is_cancelled: scheduleRecord.fields['Is Cancelled'] || false,
+            special_notes: scheduleRecord.fields['Special Notes']
+          };
+        })
+        .filter(Boolean)
+        .filter(classData => {
+          // Show classes until their actual start time (not just date)
+          if (classData.start_time_new) {
+            // Use the new datetime field
+            const classDateTime = new Date(classData.start_time_new);
+            const now = new Date();
+            return classDateTime > now;
+          } else {
+            // Fallback to date-only filtering for old data
+            const classDate = new Date(classData.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return classDate >= today;
+          }
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      setClassSchedules(combinedData);
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+      setError('Failed to load class schedule. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatRegistrationDate = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
     });
   };
 
+  const formatClassDate = (dateString: string) => {
+    // Add noon time to prevent timezone issues
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const handleBooking = (classSchedule: ClassSchedule) => {
+    switch (classSchedule.booking_method) {
+      case 'external':
+        if (classSchedule.booking_url) {
+          window.open(classSchedule.booking_url, '_blank');
+        } else {
+          window.location.href = `mailto:info@streetwiseselfdefense.com?subject=Registration Inquiry - ${classSchedule.class_name}&body=Hi, I'm interested in registering for ${classSchedule.class_name} on ${new Date(classSchedule.date).toLocaleDateString()}.`;
+        }
+        break;
+      case 'contact':
+      default:
+        window.location.href = `mailto:info@streetwiseselfdefense.com?subject=Class Registration Inquiry - ${classSchedule.class_name}&body=Hi, I'm interested in registering for ${classSchedule.class_name} on ${new Date(classSchedule.date).toLocaleDateString()}.`;
+        break;
+    }
+  };
+
+  const handleLocationClick = (location: string) => {
+    const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(location)}`;
+    window.open(mapUrl, '_blank');
+  };
+
+  // Filter classes by type for different sections
+  const motherDaughterClasses = classSchedules.filter(c => 
+    c.type === 'public: mother & daughter'
+  );
+
+  const adultTeenClasses = classSchedules.filter(c => 
+    c.type === 'public: adult & teen'
+  );
+
+  const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          {/* Class Title */}
+          <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
+
+          {/* Partner Organization - Always show if present */}
+          {classData.partner_organization && (
+            <p className="text-sm text-gray-500 mb-2">
+              Hosted by {classData.partner_organization}
+            </p>
+          )}
+
+          {/* Date, Time & Location - All in one container */}
+          <div className="mb-4 space-y-2">
+            <div className="flex items-start gap-2 min-h-[24px]">
+              <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+              <span className="text-md font-semibold text-gray-700 leading-tight">
+                {formatClassDate(classData.date)}
+              </span>
+            </div>
+            <div className="flex items-start gap-2 min-h-[24px]">
+              <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+              <span className="text-md font-medium text-gray-700 leading-tight">
+                {classData.start_time_new ? 
+                  `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
+                  `${classData.start_time} - ${classData.end_time}`
+                }
+              </span>
+            </div>
+
+            {classData.location && (
+              <button
+                onClick={() => handleLocationClick(classData.location)}
+                className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
+              >
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span className="text-md font-medium underline leading-tight">{classData.location}</span>
+              </button>
+            )}
+
+            {!classData.location && classData.special_notes && (
+              <div className="flex items-start gap-2 min-h-[24px]">
+                <MapPin className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span className="text-md font-medium text-gray-700 leading-tight">
+                  {classData.special_notes}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Button/Registration Area */}
+        <div className="ml-4">
+          {isRegistrationClosed(classData.start_time_new) ? (
+            // Registration closed - within 4 hours
+            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+              <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                Registration Closed
+              </div>
+              <div>
+                Registration has closed for this class
+              </div>
+            </div>
+          ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+            classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+            // SWSD internal booking
+            <button
+              onClick={() => handleBookNow(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+            >
+              Register
+            </button>
+          ) : (classData.booking_method === 'external' && classData.booking_url) ? (
+            // External partner registration
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Register <ExternalLink className="w-4 h-4" />
+            </button>
+          ) : classData.booking_method === 'contact' ? (
+            // Contact us flow
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Contact Us <Mail className="w-4 h-4" />
+            </button>
+          ) : classData.registration_opens ? (
+            // Coming soon
+            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                Coming Soon
+              </div>
+              <div>
+                Registration opens<br />
+                <span className="font-medium">
+                  {formatRegistrationDate(classData.registration_opens)}
+                </span>
+              </div>
+            </div>
+          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+            // SWSD class without website booking — show phone
+            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+              <div className="mb-2">Call us to register:</div>
+              <a
+                href="tel:9255329953"
+                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+              >
+                (925) 532-9953
+              </a>
+            </div>
+          ) : (
+            // Fallback
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Contact Us <Mail className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading class schedule...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-red-500 mb-4">
+            <ExternalLink className="w-16 h-16 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Unable to Load Schedule</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={fetchClassesFromAirtable}
+            className="bg-accent-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors duration-300"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
+      {/*SEO Tags*/}
       <Helmet>
-        <title>Private Self Defense Training | Mobile Service | East Bay & SF Bay Area</title>
-        <meta name="description" content="Private self defense training at your location in Oakland, San Francisco, Berkeley, Lafayette, Pleasant Hill, Orinda, Pleasanton, Dublin, and throughout the East Bay. Customized for individuals and families. We come to you." />
-        <meta name="keywords" content="private self defense East Bay, mobile training Oakland, San Francisco self defense, Berkeley, Lafayette, Pleasant Hill, Orinda, Moraga, Pleasanton, Dublin, San Ramon, individual training, family self defense" />
-        <meta property="og:title" content="Private Self Defense Training | Mobile Service | Streetwise Self Defense" />
-        <meta property="og:description" content="Private self defense training at your location anywhere in the SF Bay Area" />
+        <title>Women's Self Defense Classes | Walnut Creek | East Bay | SF Bay Area</title>
+        <meta name="description" content="Women-only self defense classes in Walnut Creek, CA. Serving East Bay and San Francisco residents including Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, and surrounding areas. Mother-daughter training and adult/teen programs." />
+        <meta name="keywords" content="women's self defense Walnut Creek, East Bay self defense, mother daughter classes, teen self defense, Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, Bay Area women's safety" />
+        <meta property="og:title" content="Women's Self Defense Classes | Walnut Creek | Streetwise Self Defense" />
+        <meta property="og:description" content="Women-only self defense classes in Walnut Creek, serving the East Bay and SF" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://streetwiseselfdefense.com/private-classes" />
-        <link rel="canonical" href="https://streetwiseselfdefense.com/private-classes" />
+        <meta property="og:url" content="https://streetwiseselfdefense.com/public-classes" />
+        <link rel="canonical" href="https://streetwiseselfdefense.com/public-classes" />
+        <meta property="og:title" content="Public Self Defense Classes - Streetwise Self Defense" />
+        <meta property="og:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs. Learn practical safety skills in a supportive environment." />
+        <meta property="og:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
+        <meta property="og:url" content="https://www.streetwiseselfdefense.com/public-classes" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Streetwise Self Defense" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Public Self Defense Classes - Streetwise Self Defense" />
+        <meta name="twitter:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs." />
+        <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
-      {/* Header */}
+
+      {/* Header with Background */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
           className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
@@ -171,452 +420,206 @@ const PrivateClassesPage = () => {
         <div className="absolute inset-0 bg-white/95"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-3xl md:text-5xl font-bold text-navy mb-4 md:mb-6">Private Training</h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-6 md:mb-8">
-              Personalized self-defense training tailored to your specific needs, schedule, and comfort level. 
-            </p>
-
-            {/* Dual CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
-              <a
-                href="https://calendly.com/streetwisewomen/question-answer"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent-primary hover:bg-accent-dark text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <Calendar className="w-5 h-5" />
-                Schedule Free Consultation
-              </a>
-              <button
-                onClick={() => setShowContactForm(true)}
-                className="bg-white border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white text-sm md:text-lg px-4 md:px-8 py-2 md:py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-              >
-                <Mail className="w-5 h-5" />
-                Send Us Details
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-500 mt-3 md:mt-4">
-              Prefer to talk first? Schedule a 15-minute consultation • Want to share details first? Fill out our form
+            <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
+            <p className="text-xl text-gray-600 mb-8">
+              Join our empowering self-defense classes in a supportive, women-only environment. Choose from our
+              specialized programs designed for different age groups and relationships.
             </p>
           </div>
         </div>
       </section>
 
-    
-
-
-      {/* NEW: Training Categories Section - Gray on gray pills */}
-      <section className="py-4 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex flex-wrap justify-center gap-2">
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              Anti-Bullying
-            </span>
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              Hate Crime Prevention
-            </span>
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              Neurodivergent-Friendly
-            </span>
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              Travel Safety
-            </span>
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              College Prep
-            </span>
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              Domestic Violence Survivors
-            </span>
-            <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
-              Vulnerable Populations
-            </span>
-          </div>
-        </div>
-      </section>
-
-   
-
-      {/* Offering Description */}
-      <section className="py-16 bg-white">
+      {/* Tabbed Class Sections */}
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-navy mb-6">Customized Training Solutions</h2>
-              <p className="text-lg text-gray-600 mb-6">
-                Our private training programs are designed to meet your unique needs and circumstances. Whether you're looking for individual instruction, family training, or specialized support, we create a program that works for you.
-              </p>
-              <ul className="space-y-3 text-gray-600">
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span>One-on-one or small group instruction tailored to your specific goals and concerns</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span>Co-ed training options for couples, families, or mixed-gender groups</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span>Neurodivergent-friendly instruction with adapted teaching methods and pacing</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span>Specialized bullying prevention programs for children and teens</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-accent-primary mt-0.5 flex-shrink-0" />
-                  <span>Flexible scheduling including evenings, weekends, and in-home sessions</span>
-                </li>
-              </ul>
+          {/* Tab Navigation */}
+          <div className="mb-12">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-medium text-gray-700">Choose Your Program:</h3>
             </div>
-            <div className="relative h-96">
-              <img
-                src="/private-classes.png"
-                alt="Private training session"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy mb-4">What Our Clients Say</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "Jay customized a mother/daughter class for 3 families in our neighborhood who have girls under the 12+ age limit that is the standard for the community center classes. He did a wonderful job of adapting to a younger age group and addressing both the mothers and their daughters in a way that was age appropriate but also direct about the topic.
-"
-              </blockquote>
-              <div>
-                <p className="font-medium text-navy">— Bronwyn S.</p>
-                <p className="text-sm text-gray-600">Group Private Training</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "I highly recommend streetwise for all ages and abilities!!
-                We participated last night with my daughters, 12 and 16. The girls were so nervous to go initially but within the first 30 minutes they were bringing it and by the end we all felt empowered, strong and confident, I could see it in my girls as they both walked a bit taller to the car!!"
-              </blockquote>
-              <div>
-                <p className="font-medium text-navy">— Teri K.</p>
-                <p className="text-sm text-gray-600">Family Private Training</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-              <div className="flex mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow fill-current" />
-                ))}
-              </div>
-              <blockquote className="text-gray-700 mb-4">
-                "
-                This class was very empowering and made me feel much more confident. I know when and when not to use certain moves, and how to make it possible to get out of something bad. Jay is respectful and elegant with his work. I was impressed and intrigued by his skills."
-              </blockquote>
-              <div>
-                <p className="font-medium text-navy">— Cassidy C.</p>
-                <p className="text-sm text-gray-600"> Private Training</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Info */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-navy mb-4">Why Choose Private Training</h2>
-          </div>
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-accent-primary" />
-              </div>
-              <h3 className="font-bold text-navy mb-2">Personalized Attention</h3>
-              <p className="text-gray-600 text-sm">One-on-one or small group focus ensures maximum learning</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-accent-primary" />
-              </div>
-              <h3 className="font-bold text-navy mb-2">Flexible Scheduling</h3>
-              <p className="text-gray-600 text-sm">Training sessions that fit your busy lifestyle</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-accent-primary" />
-              </div>
-              <h3 className="font-bold text-navy mb-2">Comfortable Environment</h3>
-              <p className="text-gray-600 text-sm">Learn at your own pace in a judgment-free setting</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-accent-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-accent-primary" />
-              </div>
-              <h3 className="font-bold text-navy mb-2">Customized Content</h3>
-              <p className="text-gray-600 text-sm">Training tailored to your specific goals and needs</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Form Modal */}
-      {showContactForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-navy">Private Training Request</h2>
+            <div className="flex justify-center">
+              <div className="bg-white rounded-lg p-1 border-2 border-gray-200 shadow-sm w-full max-w-2xl flex flex-col md:flex-row">
                 <button
-                  onClick={() => setShowContactForm(false)}
-                  className="text-gray-500 hover:text-gray-700 p-1"
+                  onClick={() => setActiveTab('adult-teen')}
+                  className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
+                    activeTab === 'adult-teen'
+                      ? 'bg-accent-primary text-white shadow-md'
+                      : 'text-navy hover:text-accent-primary hover:bg-accent-light'
+                  }`}
                 >
-                  <X className="w-6 h-6" />
+                  Adult & Teen Classes
+                  <div className="text-sm opacity-80">Ages 15+</div>
+                </button>
+                <button
+                  onClick={() => setActiveTab('mother-daughter')}
+                  className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
+                    activeTab === 'mother-daughter'
+                      ? 'bg-accent-primary text-white shadow-md'
+                      : 'text-navy hover:text-accent-primary hover:bg-accent-light'
+                  }`}
+                >
+                  Mother & Daughter Classes
+                  <div className="text-sm opacity-80">Ages 12-15</div>
                 </button>
               </div>
-              <p className="text-gray-600 mt-2">Tell us about your training needs and we'll create a customized program for you.</p>
             </div>
+          </div>
 
-            <div className="p-6">
-              {!isSubmitted ? (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                        First Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        placeholder="Your first name"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="lastName"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        placeholder="Your last name"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      />
-                    </div>
-                  </div>
+          {/* Private Classes Call-out */}
+          <div className="mb-12 flex justify-center">
+            <div className="max-w-2xl px-4">
+              <p className="text-gray-600 text-center">
+                Looking for co-ed classes, training for boys/men, or other specialized instruction? We offer{' '}
+                <Link 
+                  to="/private-classes" 
+                  className="text-accent-primary hover:text-accent-dark font-medium underline"
+                >
+                  Private Classes
+                </Link>
+                {' '}tailored to your specific needs.
+              </p>
+            </div>
+          </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="your.email@example.com"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="(555) 123-4567"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                        City *
-                      </label>
-                      <input
-                        type="text"
-                        id="city"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        placeholder="Your city"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                        State *
-                      </label>
-                      <select
-                        id="state"
-                        name="state"
-                        value={formData.state}
-                        onChange={(e) => handleSelectChange('state', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                        required
-                      >
-                        <option value="">Select your state</option>
-                        {US_STATES.map((state) => (
-                          <option key={state.value} value={state.value}>
-                            {state.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="webRequestDetails" className="block text-sm font-medium text-gray-700 mb-2">
-                      How can we help? *
-                    </label>
-                    <textarea
-                      id="webRequestDetails"
-                      name="webRequestDetails"
-                      value={formData.webRequestDetails}
-                      onChange={handleInputChange}
-                      placeholder="Tell us about your training goals; number, age, and gender of trainee(s); preferred schedule, and any specific concerns you'd like us to address in your customized program."
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-colors"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="newsletter"
-                      name="newsletter"
-                      checked={formData.newsletter}
-                      onChange={handleInputChange}
-                      className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
-                    />
-                    <label htmlFor="newsletter" className="text-sm text-gray-700">
-                      I'd like to receive updates about classes and safety tips
-                    </label>
-                  </div>
-
-                  <div className="flex justify-center mb-6">
-                    <ReCAPTCHA
-                      sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
-                      onChange={handleRecaptchaChange}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    By submitting this form, you agree to our{' '}
-                    <a 
-                      href="/privacy-policy" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-accent-primary hover:underline"
-                    > 
-                      Privacy Policy
-                    </a>.
+          {/* Tab Content */}
+          {activeTab === 'adult-teen' && (
+            <div className="mb-12">
+              <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
+                <div className="relative w-full md:w-64 h-auto md:h-48 rounded-lg overflow-hidden md:flex-shrink-0">
+                  <img
+                    src="/adult-teen.png"
+                    alt="Adult & Teen Classes"
+                    className="w-full h-auto md:h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Women's Adult & Teen Classes (Ages 15+)</h2>
+                  <p className="text-gray-600 text-base md:text-lg mb-4">
+                    Comprehensive self-defense training for teens and adults in a women-only environment. Learn practical
+                    techniques, situational awareness, and confidence-building strategies. Our classes combine physical
+                    techniques with mental preparedness to help you feel safe and empowered. Classes are led by experienced 
+                    instructors and cost $75 per person.
                   </p>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !recaptchaValue}
-                    className="w-full bg-accent-primary hover:bg-accent-dark disabled:opacity-50 text-white py-4 px-6 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-5 h-5" />
-                        Send Details
-                      </>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-navy mb-2">Thank You!</h3>
-                  <p className="text-gray-600 mb-6">
-                    We've received your training request and will contact you within 1-2 business days to discuss your customized program.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                     <button
-                      onClick={() => {
-                        setShowContactForm(false);
-                        resetForm();
-                      }}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      Close
-                    </button>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
+                    <span>• 3-hour sessions</span>
+                    <span>• Maximum 10 participants per class</span>
+                    <span>• Beginner to advanced levels</span>
                   </div>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
+                {adultTeenClasses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No upcoming Adults & Teens classes scheduled.</p>
+                  </div>
+                ) : (
+                  adultTeenClasses.map((classData) => (
+                    <ClassCard key={classData.id} classData={classData} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'mother-daughter' && (
+            <div className="mb-12">
+              <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
+                <div className="relative w-full md:w-64 h-auto md:h-48 rounded-lg overflow-hidden md:flex-shrink-0">
+                  <img
+                    src="/mothers-daughters.png"
+                    alt="Mother & Daughter Classes"
+                    className="w-full h-auto md:h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Mother & Daughter Classes (Ages 12-15)</h2>
+                  <p className="text-gray-600 text-base md:text-lg mb-4">
+                    A unique bonding experience that empowers both mothers and daughters with essential self-defense
+                    skills. These classes focus on building confidence, communication, and practical techniques in a fun,
+                    supportive environment. Perfect for strengthening your relationship while learning to protect
+                    yourselves. Classes are led by experienced instructors. The cost is $139 per mother-daughter pair for a 3-hour class sponsored by the City of Walnut Creek, or $99 per pair for a 2-hour class sponsored by Diablo Valley College.
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
+                    <span>• 2-3-hour sessions</span>
+                    <span>• Maximum 5 pairs per class</span>
+                    <span>• All skill levels welcome</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
+                {motherDaughterClasses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No upcoming Mother & Daughter Classes scheduled.</p>
+                  </div>
+                ) : (
+                  motherDaughterClasses.map((classData) => (
+                    <ClassCard key={classData.id} classData={classData} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* What to Expect Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <h3 className="text-2xl font-bold text-navy mb-6 text-center">What to Expect</h3>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="bg-accent-primary/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-6 h-6 text-accent-primary" />
+                </div>
+                <h4 className="font-semibold text-navy mb-2">Supportive Environment</h4>
+                <p className="text-gray-600 text-sm">
+                  Women-only classes create a comfortable, judgment-free space for learning
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="bg-accent-primary/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-6 h-6 text-accent-primary" />
+                </div>
+                <h4 className="font-semibold text-navy mb-2">Flexible Scheduling</h4>
+                <p className="text-gray-600 text-sm">Multiple class times throughout the year to fit your schedule</p>
+              </div>
+              <div className="text-center">
+                <div className="bg-accent-primary/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-6 h-6 text-accent-primary" />
+                </div>
+                <h4 className="font-semibold text-navy mb-2">Immediate Skills</h4>
+                <p className="text-gray-600 text-sm">Learn practical techniques you can use right away to stay safe</p>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </section>
 
       {/* CTA Section */}
       <section className="py-16 bg-navy text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Start Your Personal Training Journey?</h2>
+          <h2 className="text-3xl font-bold mb-4">Questions About Our Classes?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Get personalized training that fits your needs, schedule, and goals.
+            We're here to help you find the perfect class for your needs and schedule.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="https://calendly.com/streetwisewomen/question-answer"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-accent-primary hover:bg-accent-dark text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            <Link
+              to="/contact"
+              className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
             >
-              <Calendar className="w-5 h-5" />
-              Schedule Free Consultation
-            </a>
-            <button
-              onClick={() => setShowContactForm(true)}
-              className="border-2 border-white text-white hover:bg-white hover:text-navy text-lg px-8 py-4 rounded-lg font-semibold transition-colors bg-transparent flex items-center justify-center gap-2"
+              Contact Us
+            </Link>
+            <Link
+              to="/faq"
+              className="border-2 border-white text-white hover:bg-white hover:text-navy px-8 py-4 rounded-lg font-semibold text-lg transition-colors bg-transparent"
             >
-              <Mail className="w-5 h-5" />
-              Send Details First
-            </button>
+              View FAQ
+            </Link>
           </div>
         </div>
       </section>
@@ -624,4 +627,4 @@ const PrivateClassesPage = () => {
   );
 };
 
-export default PrivateClassesPage;
+export default PublicClassesPage;
