@@ -328,17 +328,17 @@ const PublicClassesPage = () => {
                 </span>
               </div>
             </div>
-          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // SWSD class without website booking — show phone
-            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-              <div className="mb-2">Call us to register:</div>
-              <a
-                href="tel:9255329953"
-                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-              >
-                (925) 532-9953
-              </a>
-            </div>
+     ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+  // SWSD class without website booking — show phone
+  <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+    <div className="mb-2">Call us to register:</div>
+    
+      href="tel:9255329953"
+      className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+    >
+      (925) 532-9953
+    </a>
+  </div>
           ) : (
             // Fallback
             <button
