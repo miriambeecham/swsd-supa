@@ -333,7 +333,7 @@ const PublicClassesPage = () => {
   <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
     <div className="mb-2">Call us to register:</div>
     
-      href="tel:9255329953"
+     <a> href="tel:9255329953"
       className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
     >
       (925) 532-9953
