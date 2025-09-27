@@ -37,6 +37,8 @@ export default async function handler(req, res) {
         'Date': record.fields.Date,
         'Start Time': record.fields['Start Time'],
         'End Time': record.fields['End Time'],
+        'Start Time New': record.fields['Start Time New'],  // Add this line
+        'End Time New': record.fields['End Time New'],   
         'Booking URL': record.fields['Booking URL'],
         'Registration Opens': record.fields['Registration Opens'],
         'Is Cancelled': record.fields['Is Cancelled'],
@@ -55,3 +57,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Failed to fetch schedules' });
   }
 }
+
