@@ -27,27 +27,36 @@ export default async function handler(req, res) {
 
     if (session.payment_status === 'paid') {
       // Payment successful - update booking status
-      const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-         
-          fields: {
-            'Status': 'Confirmed',
-            'Payment Status': 'Completed', // or 'Paid' - check your Airtable
-            'Stripe Payment Intent ID': session.id, // Not payment_intent
-            'Payment Date': new Date().toISOString()
-          }
-        })
-      });
+     // Payment successful - update booking status
+const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
+  method: 'PATCH',
+  headers: {
+    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    fields: {
+      'Status': 'Confirmed',
+      'Payment Status': 'Completed',
+      'Stripe Payment Intent ID': session.id,
+      'Payment Date': new Date().toISOString()
+    }
+  })
+});
 
-      if (!updateResponse.ok) {
-        console.error('Failed to update booking status:', await updateResponse.text());
-        return res.status(500).json({ error: 'Failed to confirm booking' });
-      }
+if (!updateResponse.ok) {
+  const errorText = await updateResponse.text();
+  console.error('Airtable update failed:', {
+    status: updateResponse.status,
+    statusText: updateResponse.statusText,
+    error: errorText,
+    bookingId: booking_id
+  });
+  return res.status(500).json({ 
+    error: 'Failed to confirm booking',
+    details: `HTTP ${updateResponse.status}: ${errorText}`
+  });
+}
 
       // Get booking details for response
       const bookingResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
