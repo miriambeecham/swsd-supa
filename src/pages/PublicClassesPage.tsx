@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
@@ -121,6 +121,8 @@ const PublicClassesPage = () => {
             date: scheduleRecord.fields['Date'] || '',
             start_time: scheduleRecord.fields['Start Time'] || '',
             end_time: scheduleRecord.fields['End Time'] || '',
+            start_time_new: scheduleRecord.fields['Start Time New'],
+            end_time_new: scheduleRecord.fields['End Time New'],
             booking_url: scheduleRecord.fields['Booking URL'],
             registration_opens: scheduleRecord.fields['Registration Opens'],
             is_cancelled: scheduleRecord.fields['Is Cancelled'] || false,
@@ -128,13 +130,21 @@ const PublicClassesPage = () => {
           };
         })
         .filter(Boolean)
-        .filter(classData => {
-          // Only show future classes (including today)
-          const classDate = new Date(classData.date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0); // Start of today
-          return classDate >= today;
-        })
+         .filter(classData => {
+  // Show classes until their actual start time (not just date)
+  if (classData.start_time_new) {
+    // Use the new datetime field
+    const classDateTime = new Date(classData.start_time_new);
+    const now = new Date();
+    return classDateTime > now;
+  } else {
+    // Fallback to date-only filtering for old data
+    const classDate = new Date(classData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return classDate >= today;
+  }
+})
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       setClassSchedules(combinedData);
@@ -223,9 +233,12 @@ const PublicClassesPage = () => {
             </div>
             <div className="flex items-start gap-2 min-h-[24px]">
               <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-              <span className="text-md font-medium text-gray-700 leading-tight">
-                {classData.start_time} - {classData.end_time}
-              </span>
+            <span className="text-md font-medium text-gray-700 leading-tight">
+              {classData.start_time_new ? 
+              `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
+              `${classData.start_time} - ${classData.end_time}`
+              }
+            </span>
             </div>
 
             {classData.location && (
