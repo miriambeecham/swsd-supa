@@ -19,6 +19,7 @@ interface ClassPrepData {
   partnerOrganization?: string;
   instructorName?: string;
   instructorPhone?: string;
+  waiverUrl?: string;
 }
 
 const ClassPrepPage = () => {
@@ -72,7 +73,8 @@ const ClassPrepPage = () => {
         specialNotes: schedule.fields['Special Notes'] || '',
         partnerOrganization: classInfo.fields['Partner Organization'] || '',
         instructorName: classInfo.fields['Instructor'] || 'Jay Beecham',
-        instructorPhone: '925-532-9953'
+        instructorPhone: '925-532-9953',
+        waiverUrl: schedule.fields['Waiver URL']
       });
     } catch (err) {
       console.error('Error fetching class prep data:', err);
@@ -183,12 +185,27 @@ const ClassPrepPage = () => {
               </div>
             </div>
 
-            <div className="bg-accent-primary/10 border-l-4 border-accent-primary p-4 rounded-r-lg">
-              <p className="text-gray-700 mb-3">
-                Please also make sure to <strong>take care of the electronic activity waiver</strong> (link in text message or email I sent you), 
-                please be sure to check your spam folder if you can't find it, and come prepared to have fun and laugh a lot…
-              </p>
-            </div>
+        <div className="bg-accent-primary/10 border-l-4 border-accent-primary p-4 rounded-r-lg">
+  {classData.waiverUrl ? (
+    <p className="text-gray-700 mb-3">
+      Please make sure to complete the{' '}
+      <a 
+        href={classData.waiverUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-accent-primary font-semibold underline hover:text-accent-dark"
+      >
+        electronic activity waiver
+      </a>{' '}
+      before class, and come prepared to have fun and laugh a lot…
+    </p>
+  ) : (
+    <p className="text-gray-700 mb-3">
+      Please also make sure to <strong>take care of the electronic activity waiver</strong> (link in text message or email I sent you), 
+      please be sure to check your spam folder if you can't find it, and come prepared to have fun and laugh a lot…
+    </p>
+  )}
+</div>
 
             <div className="mt-6 text-center">
               <p className="text-gray-600">Thank You! ~jhb</p>
