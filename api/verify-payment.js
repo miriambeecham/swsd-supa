@@ -105,6 +105,31 @@ if (!updateResponse.ok) {
         }
       }
 
+            // ADD ZOHO INTEGRATION HERE (after line 108, before return statement)
+      const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
+      const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
+      
+      fetch(`${origin}/api/zoho-create-contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactInfo: {
+            firstName: booking.fields['Contact First Name'],
+            lastName: booking.fields['Contact Last Name'],
+            email: booking.fields['Contact Email'],
+            phone: booking.fields['Contact Phone'] || ''
+          },
+          classInfo: {
+            className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+            date: scheduleData?.fields?.Date || '',
+            participantCount: booking.fields['Number of Participants'] || 1
+          },
+          prepPageUrl,
+          bookingId: booking_id,
+          classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
+        })
+      }).catch(err => console.error('Zoho sync failed:', err));
+
       return res.json({
         success: true,
         booking: {
