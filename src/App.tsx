@@ -23,6 +23,9 @@ import StripeSuccessPage from './pages/StripeSuccessPage';
 import StripeError from './pages/StripeErrorPage';
 import MotherDaughterBookingPage from './pages/MotherDaughterBookingPage';
 import AdultBookingPage from './pages/AdultBookingPage';
+import AdminClassPrepLinksPage from './pages/AdminClassPrepLinksPage';
+import ClassPrepPage from './pages/ClassPrepPage';
+
 
 
 function App() {
@@ -48,6 +51,7 @@ function App() {
             <Route path="/book-adult-class" element={AdultBookingPage} />
             <Route path="/book-mother-daughter-class/:id" element={<MotherDaughterBookingPage />} />
             <Route path="/book-adult-class/:id" element={<AdultBookingPage />} />
+            
           
 
            // {/* Class Preparation Pages */}
@@ -58,6 +62,8 @@ function App() {
             <Route path="/public-class-mdyoga-prep" element={<PublicClassMountDiabloYogaStaticPage />} />
             <Route path="/stripe-success" element={<StripeSuccessPage />} />
             <Route path="/stripe-error" element={<StripeError />} />
+            <Route path="/admin/class-prep-links" element={<AdminPrepClassLinksPage />} />
+            <Route path="/class-prep/:scheduleId" element={<ClassPrepPage />} />
             
           </Routes>
         </Layout>
