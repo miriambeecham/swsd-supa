@@ -177,6 +177,52 @@ const isRegistrationClosed = (startTimeNew: string) => {
     }
   };
 
+  const AvailabilityDisplay = ({ classScheduleId, maxParticipants }: { classScheduleId: string; maxParticipants: number }) => {
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAvailability = async () => {
+      try {
+        const response = await fetch('/api/check-availability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classScheduleId, requestedSeats: 1 })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setRemaining(data.remaining);
+        }
+      } catch (error) {
+        console.error('Error checking availability:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAvailability();
+  }, [classScheduleId]);
+
+  if (loading || remaining === null) return null;
+
+  const isFilling = remaining <= (maxParticipants * 0.5);
+
+  return (
+    <div className="mt-2 text-sm text-center">
+      {isFilling ? (
+        <span className="text-orange-600 font-medium">
+          Only {remaining} spot{remaining !== 1 ? 's' : ''} left! • Filling up fast
+        </span>
+      ) : (
+        <span className="text-gray-600">
+          {remaining} spot{remaining !== 1 ? 's' : ''} available • Great for groups
+        </span>
+      )}
+    </div>
+  );
+};
+
   const formatRegistrationDate = (dateTime: string) => {
     const date = new Date(dateTime);
     return date.toLocaleDateString('en-US', { 
@@ -355,6 +401,13 @@ const isRegistrationClosed = (startTimeNew: string) => {
     </button>
   )}
 </div>
+        {/* Availability Display */}
+{classData.max_participants && classData.start_time_new && !isRegistrationClosed(classData.start_time_new) && (
+  <AvailabilityDisplay 
+    classScheduleId={classData.id} 
+    maxParticipants={classData.max_participants} 
+  />
+)}
        </div>
       </div>
   );
