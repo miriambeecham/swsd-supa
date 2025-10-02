@@ -47,6 +47,7 @@ export default async function handler(req, res) {
         'Available Spots': record.fields['Available Spots'],
         'Booked Spots': record.fields['Booked Spots'],
         'Remaining Spots': record.fields['Remaining Spots'],
+         'Waiver URL': record.fields['Waiver URL'],
       }
     }));
 
@@ -57,4 +58,5 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Failed to fetch schedules' });
   }
 }
+
 
