@@ -176,4 +176,4 @@ const AdminClassLinksPage = () => {
   );
 };
 
-export default AdminClassLinksPage;
+export default AdminClassPrepLinksPage;
