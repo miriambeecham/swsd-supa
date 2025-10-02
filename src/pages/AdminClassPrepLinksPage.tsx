@@ -104,7 +104,7 @@ const AdminClassPrepLinksPage = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-navy mb-2">Class Preparation Links</h1>
+            <h1 className="text-3xl font-bold text-navy mb-2">Class Preparation Links 2</h1>
             <p className="text-gray-600">Internal use only - Share these links with students after booking</p>
           </div>
 
