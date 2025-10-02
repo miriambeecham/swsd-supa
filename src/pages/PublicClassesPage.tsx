@@ -332,14 +332,11 @@ const isRegistrationClosed = (startTimeNew: string) => {
 
 {/* Button/Registration Area */}
 <div className="ml-4">
-  {isRegistrationClosed(classData.start_time_new) ? (
+   {isRegistrationClosed(classData.start_time_new) ? (
     // Registration closed - within 4 hours
     <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-      <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+      <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
         Registration Closed
-      </div>
-      <div>
-        Registration has closed for this class
       </div>
     </div>
   ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
