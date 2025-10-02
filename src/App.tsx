@@ -62,7 +62,7 @@ function App() {
             <Route path="/public-class-mdyoga-prep" element={<PublicClassMountDiabloYogaStaticPage />} />
             <Route path="/stripe-success" element={<StripeSuccessPage />} />
             <Route path="/stripe-error" element={<StripeError />} />
-            <Route path="/admin/class-prep-links" element={<AdminPrepClassLinksPage />} />
+            <Route path="/admin/class-prep-links" element={<AdminClassPrepLinksPage />} />
             <Route path="/class-prep/:scheduleId" element={<ClassPrepPage />} />
             
           </Routes>
