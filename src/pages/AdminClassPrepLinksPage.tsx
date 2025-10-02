@@ -11,7 +11,7 @@ interface ClassWithPrepLink {
   prepUrl: string;
 }
 
-const AdminClassLinksPage = () => {
+const AdminClassPrepLinksPage = () => {
   const [classes, setClasses] = useState<ClassWithPrepLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
