@@ -403,14 +403,15 @@ const isRegistrationClosed = (startTimeNew: string) => {
 </div>
        
        </div>
-      </div>
-     {/* Availability Display */}
+        {/* Availability Display */}
 {classData.max_participants && classData.start_time_new && !isRegistrationClosed(classData.start_time_new) && (
   <AvailabilityDisplay 
     classScheduleId={classData.id} 
     maxParticipants={classData.max_participants} 
   />
 )}
+      </div>
+   
   );
 
   if (loading) {
