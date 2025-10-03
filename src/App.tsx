@@ -38,7 +38,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/book-class/:classId" element={<BookingPage />} />
+            
        
             <Route path="/book-adult-class" element={AdultBookingPage} />
             <Route path="/book-mother-daughter-class/:id" element={<MotherDaughterBookingPage />} />
