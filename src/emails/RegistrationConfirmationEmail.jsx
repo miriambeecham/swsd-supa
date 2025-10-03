@@ -1,178 +1,321 @@
-// Add to top of server.js with other imports
-import ical from 'ical-generator';
+import * as React from 'react';
+import {
+  Html,
+  Head,
+  Body,
+  Container,
+  Section,
+  Row,
+  Column,
+  Img,
+  Heading,
+  Text,
+  Button,
+  Hr,
+  Link,
+  Tailwind,
+  Preview,
+} from '@react-email/components';
 
-// Helper function to create Google Calendar URL
-function createGoogleCalendarUrl(classData) {
-  const {
+const RegistrationConfirmationEmail = (props) => {
+  const { 
+    customerName, 
     className,
-    startDateTime, // ISO format: 2025-03-15T10:00:00
-    endDateTime,   // ISO format: 2025-03-15T12:00:00
+    classDate, 
+    classTime, 
     location,
-    description
-  } = classData;
+    registeredParticipants, 
+    totalAmount,
+    prepTipsUrl,
+    waiverUrl,
+    googleCalendarUrl
+  } = props;
 
-  // Format dates for Google Calendar (needs format: 20250315T100000Z)
-  const formatDateForGoogle = (isoDate) => {
-    return new Date(isoDate).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  };
+  return (
+    <Html lang="en" dir="ltr">
+      <Tailwind>
+        <Head />
+        <Preview>Your self-defense class registration is confirmed - you're taking an important step toward empowerment!</Preview>
+        <Body className="font-sans py-[40px]" style={{ backgroundColor: '#F6F8FA' }}>
+          <Container className="mx-auto px-[20px] py-[40px] max-w-[600px]" style={{ backgroundColor: '#FFFFFF' }}>
+            
+            {/* Header with Logo */}
+            <Section className="text-center mb-[32px]">
+              <Img
+                src="https://www.streetwiseselfdefense.com/swsd-logo-official.png"
+                alt="Streetwise Self Defense"
+                className="w-full h-auto object-cover max-w-[300px] mx-auto"
+              />
+            </Section>
 
-  const startFormatted = formatDateForGoogle(startDateTime);
-  const endFormatted = formatDateForGoogle(endDateTime);
+            {/* Main Content */}
+            <Section className="mb-[32px]">
+              <Heading className="text-[28px] font-bold mb-[24px] text-center" style={{ color: '#1E293B' }}>
+                Registration Confirmed!
+              </Heading>
+              
+              <Text className="text-[16px] leading-[24px] mb-[20px]" style={{ color: '#1E293B' }}>
+                Dear {customerName},
+              </Text>
+              
+              <Text className="text-[16px] leading-[24px] mb-[20px]" style={{ color: '#1E293B' }}>
+                Congratulations on taking this empowering step! Your registration for our self-defense class has been confirmed, and we're excited to support you on your journey from fear to confidence.
+              </Text>
+              
+              <Text className="text-[16px] leading-[24px] mb-[24px]" style={{ color: '#1E293B' }}>
+                You're not just learning techniques – you're building strength, awareness, and the confidence that comes with knowing you can protect yourself.
+              </Text>
+            </Section>
 
-  // Build Google Calendar URL
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: className || 'Self-Defense Class',
-    dates: `${startFormatted}/${endFormatted}`,
-    details: description || 'Self-defense class registration confirmed. Check your email for preparation tips and waiver information.',
-    location: location || 'Walnut Creek, CA',
-    ctz: 'America/Los_Angeles' // Pacific Time
-  });
+            {/* Class Details Box */}
+            <Section className="mb-[32px] p-[24px] rounded-[8px] border-solid border-[1px]" style={{ borderColor: '#14b8a6', backgroundColor: '#F0FDFC' }}>
+              <Heading className="text-[20px] font-bold mb-[16px]" style={{ color: '#1E293B' }}>
+                Your Class Details
+              </Heading>
+              
+              {className && (
+                <Row className="mb-[12px]">
+                  <Column className="w-[120px]">
+                    <Text className="text-[16px] font-semibold m-0" style={{ color: '#1E293B' }}>
+                      Class:
+                    </Text>
+                  </Column>
+                  <Column>
+                    <Text className="text-[16px] m-0 text-left" style={{ color: '#1E293B' }}>
+                      {className}
+                    </Text>
+                  </Column>
+                </Row>
+              )}
+              
+              <Row className="mb-[12px]">
+                <Column className="w-[120px]">
+                  <Text className="text-[16px] font-semibold m-0" style={{ color: '#1E293B' }}>
+                    Date:
+                  </Text>
+                </Column>
+                <Column>
+                  <Text className="text-[16px] m-0 text-left" style={{ color: '#1E293B' }}>
+                    {classDate}
+                  </Text>
+                </Column>
+              </Row>
+              
+              <Row className="mb-[12px]">
+                <Column className="w-[120px]">
+                  <Text className="text-[16px] font-semibold m-0" style={{ color: '#1E293B' }}>
+                    Time:
+                  </Text>
+                </Column>
+                <Column>
+                  <Text className="text-[16px] m-0 text-left" style={{ color: '#1E293B' }}>
+                    {classTime}
+                  </Text>
+                </Column>
+              </Row>
+              
+              <Row className="mb-[12px]">
+                <Column className="w-[120px]">
+                  <Text className="text-[16px] font-semibold m-0" style={{ color: '#1E293B' }}>
+                    Location:
+                  </Text>
+                </Column>
+                <Column>
+                  <Text className="text-[16px] m-0 text-left" style={{ color: '#1E293B' }}>
+                    {location || 'Walnut Creek, CA'}
+                  </Text>
+                </Column>
+              </Row>
+              
+              <Row className="mb-[12px]">
+                <Column className="w-[120px]">
+                  <Text className="text-[16px] font-semibold m-0" style={{ color: '#1E293B' }}>
+                    Participants:
+                  </Text>
+                </Column>
+                <Column>
+                  <Text className="text-[16px] m-0 text-left" style={{ color: '#1E293B' }}>
+                    {registeredParticipants}
+                  </Text>
+                </Column>
+              </Row>
 
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
+              {totalAmount && (
+                <Row>
+                  <Column className="w-[120px]">
+                    <Text className="text-[16px] font-semibold m-0" style={{ color: '#1E293B' }}>
+                      Total Paid:
+                    </Text>
+                  </Column>
+                  <Column>
+                    <Text className="text-[16px] m-0 text-left" style={{ color: '#1E293B' }}>
+                      ${totalAmount}
+                    </Text>
+                  </Column>
+                </Row>
+              )}
+            </Section>
 
-// Helper function to create iCal file content
-function createICalFile(classData) {
-  const {
-    className,
-    startDateTime,
-    endDateTime,
-    location,
-    description,
-    organizerEmail
-  } = classData;
+            {/* Action Buttons - Calendar, Class Prep, and Waiver */}
+            <Section className="mb-[32px]">
+              <Heading className="text-[20px] font-bold mb-[20px]" style={{ color: '#1E293B' }}>
+                Prepare for Success
+              </Heading>
+              
+              <Text className="text-[16px] leading-[24px] mb-[24px]" style={{ color: '#1E293B' }}>
+                To help you get the most out of your training, we've prepared some resources:
+              </Text>
+              
+              {/* Add to Google Calendar */}
+              {googleCalendarUrl && (
+                <Row className="mb-[16px]">
+                  <Column>
+                    <Button
+                      href={googleCalendarUrl}
+                      className="box-border px-[24px] py-[12px] rounded-[6px] text-[16px] font-semibold text-white no-underline text-center w-full"
+                      style={{ backgroundColor: '#14b8a6' }}
+                    >
+                      Add to Google Calendar
+                    </Button>
+                  </Column>
+                </Row>
+              )}
+              
+              {/* Class Prep Tips */}
+              {prepTipsUrl && (
+                <Row className="mb-[16px]">
+                  <Column>
+                    <Button
+                      href={prepTipsUrl}
+                      className="box-border px-[24px] py-[12px] rounded-[6px] text-[16px] font-semibold border-solid border-[2px] no-underline text-center w-full"
+                      style={{ borderColor: '#14b8a6', color: '#14b8a6', backgroundColor: 'transparent' }}
+                    >
+                      View Class Preparation Tips
+                    </Button>
+                  </Column>
+                </Row>
+              )}
+              
+              {/* Waiver Form */}
+              {waiverUrl && (
+                <>
+                  <Row>
+                    <Column>
+                      <Button
+                        href={waiverUrl}
+                        className="box-border px-[24px] py-[12px] rounded-[6px] text-[16px] font-semibold border-solid border-[2px] no-underline text-center w-full"
+                        style={{ borderColor: '#14b8a6', color: '#14b8a6', backgroundColor: 'transparent' }}
+                      >
+                        Complete Waiver Form
+                      </Button>
+                    </Column>
+                  </Row>
+                  
+                  <Text className="text-[14px] leading-[20px] mt-[16px]" style={{ color: '#6B7280' }}>
+                    <strong>Important:</strong> Each participant must complete the waiver form before attending class.
+                  </Text>
+                </>
+              )}
+            </Section>
 
-  const calendar = ical({
-    name: 'Streetwise Self Defense Class',
-    prodId: '//Streetwise Self Defense//Class Registration//EN',
-    timezone: 'America/Los_Angeles'
-  });
+            {/* What to Expect */}
+            <Section className="mb-[32px]">
+              <Heading className="text-[20px] font-bold mb-[16px]" style={{ color: '#1E293B' }}>
+                What to Expect
+              </Heading>
+              
+              <Text className="text-[16px] leading-[24px] mb-[12px]" style={{ color: '#1E293B' }}>
+                • Practical techniques you can use in real situations
+              </Text>
+              <Text className="text-[16px] leading-[24px] mb-[12px]" style={{ color: '#1E293B' }}>
+                • Building awareness and confidence in your abilities
+              </Text>
+              <Text className="text-[16px] leading-[24px] mb-[12px]" style={{ color: '#1E293B' }}>
+                • Supportive environment with experienced instructors
+              </Text>
+              <Text className="text-[16px] leading-[24px] mb-[20px]" style={{ color: '#1E293B' }}>
+                • Connection with others on the same empowering journey
+              </Text>
+            </Section>
 
-  calendar.createEvent({
-    start: new Date(startDateTime),
-    end: new Date(endDateTime),
-    summary: className || 'Self-Defense Class',
-    description: description || 'Self-defense class registration confirmed. Check your email for preparation tips and waiver information.',
-    location: location || 'Walnut Creek, CA',
-    url: 'https://www.streetwiseselfdefense.com',
-    organizer: {
-      name: 'Streetwise Self Defense',
-      email: organizerEmail || 'info@streetwiseselfdefense.com'
-    },
-    status: 'CONFIRMED',
-    busyStatus: 'BUSY',
-    sequence: 0
-  });
+            {/* What to Bring */}
+            <Section className="mb-[32px]">
+              <Heading className="text-[20px] font-bold mb-[16px]" style={{ color: '#1E293B' }}>
+                What to Bring
+              </Heading>
+              
+              <Text className="text-[16px] leading-[24px] mb-[12px]" style={{ color: '#1E293B' }}>
+                • Comfortable athletic clothing (yoga pants, t-shirt, etc.)
+              </Text>
+              <Text className="text-[16px] leading-[24px] mb-[12px]" style={{ color: '#1E293B' }}>
+                • Water bottle to stay hydrated
+              </Text>
+              <Text className="text-[16px] leading-[24px] mb-[12px]" style={{ color: '#1E293B' }}>
+                • Athletic shoes (no sandals or flip-flops)
+              </Text>
+              <Text className="text-[16px] leading-[24px] mb-[20px]" style={{ color: '#1E293B' }}>
+                • Open mind and willingness to learn!
+              </Text>
+            </Section>
 
-  return calendar.toString();
-}
+            {/* Contact Info */}
+            <Section className="mb-[32px]">
+              <Text className="text-[16px] leading-[24px] mb-[16px]" style={{ color: '#1E293B' }}>
+                Questions? We're here to support you every step of the way. Visit our website at{' '}
+                <Link href="https://www.streetwiseselfdefense.com" style={{ color: '#14b8a6' }}>
+                  streetwiseselfdefense.com
+                </Link>{' '}
+                or reply to this email.
+              </Text>
+              
+              <Text className="text-[16px] leading-[24px] mb-[20px]" style={{ color: '#1E293B' }}>
+                We're proud of you for taking this important step toward empowerment. See you in class!
+              </Text>
+              
+              <Text className="text-[16px] leading-[24px] font-semibold" style={{ color: '#1E293B' }}>
+                The Streetwise Self Defense Team
+              </Text>
+            </Section>
 
-// Usage in /api/verify-payment endpoint:
-async function verifyPaymentHandler(req, res) {
-  try {
-    // ... existing code to fetch booking, schedule, class data ...
+            <Hr className="border-solid border-[1px] my-[32px]" style={{ borderColor: '#E5E7EB' }} />
 
-    // Construct datetime strings for calendar
-    const classDate = schedule.fields?.Date; // e.g., "2025-03-15"
-    const startTime = schedule.fields?.['Start Time']; // e.g., "10:00 AM"
-    const endTime = schedule.fields?.['End Time']; // e.g., "12:00 PM"
+            {/* Footer */}
+            <Section className="text-center">
+              <Text className="text-[14px] leading-[20px] mb-[16px]" style={{ color: '#6B7280' }}>
+                Empowering women and vulnerable populations through practical self-defense training. Building confidence, strength, and safety awareness since 2014.
+              </Text>
+              
+              <Text className="text-[14px] leading-[20px] mb-[8px] m-0" style={{ color: '#6B7280' }}>
+                Streetwise Self Defense
+              </Text>
+              <Text className="text-[14px] leading-[20px] mb-[16px] m-0" style={{ color: '#6B7280' }}>
+                Walnut Creek, CA
+              </Text>
+              
+              <Text className="text-[12px] leading-[16px] m-0" style={{ color: '#6B7280' }}>
+                © 2025 Streetwise Self Defense. All rights reserved.
+              </Text>
+            </Section>
 
-    // Convert to ISO datetime format
-    const startDateTime = convertToISODateTime(classDate, startTime);
-    const endDateTime = convertToISODateTime(classDate, endTime);
+          </Container>
+        </Body>
+      </Tailwind>
+    </Html>
+  );
+};
 
-    // Prepare calendar data
-    const calendarData = {
-      className: className,
-      startDateTime: startDateTime,
-      endDateTime: endDateTime,
-      location: location || 'Walnut Creek, CA',
-      description: `Self-Defense Class Registration\n\nParticipants: ${booking.fields?.['Number of Participants']}\nInstructor: ${classData.fields?.Instructor || 'TBD'}\n\nPlease arrive 10 minutes early. Wear comfortable athletic clothing.`,
-      organizerEmail: 'info@streetwiseselfdefense.com'
-    };
+// Preview props for testing in React Email
+RegistrationConfirmationEmail.PreviewProps = {
+  customerName: "Sarah Johnson",
+  className: "Women's Self-Defense - Adult & Teen",
+  classDate: "Saturday, March 15th, 2025",
+  classTime: "10:00 AM - 12:00 PM",
+  location: "Forma Gym, Walnut Creek, CA",
+  registeredParticipants: "2",
+  totalAmount: "150",
+  prepTipsUrl: "https://www.streetwiseselfdefense.com/class-prep/rec123abc",
+  waiverUrl: "https://forms.gle/example-waiver-form",
+  googleCalendarUrl: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Self-Defense+Class"
+};
 
-    // Generate Google Calendar URL
-    const googleCalendarUrl = createGoogleCalendarUrl(calendarData);
-
-    // Generate iCal file content
-    const icalContent = createICalFile(calendarData);
-
-    // Send email with calendar attachments
-    const emailHtml = await renderAsync(
-      RegistrationConfirmationEmail({
-        customerName: booking.fields?.['Contact First Name'] || 'Valued Customer',
-        className: className,
-        classDate: classDate 
-          ? new Date(classDate + 'T12:00:00').toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              month: 'long', 
-              day: 'numeric',
-              year: 'numeric'
-            })
-          : 'TBD',
-        classTime: startTime && endTime ? `${startTime} - ${endTime}` : 'TBD',
-        location: location || 'Walnut Creek, CA',
-        registeredParticipants: String(booking.fields?.['Number of Participants'] || 1),
-        totalAmount: booking.fields?.['Total Amount'] || 0,
-        prepTipsUrl: `${getBaseUrl(req)}/class-prep/${scheduleId}`,
-        waiverUrl: schedule.fields?.['Waiver URL'] || null,
-        googleCalendarUrl: googleCalendarUrl,
-        icalAttachment: true
-      })
-    );
-
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: booking.fields?.['Contact Email'] || '',
-      subject: 'Your Self-Defense Class Registration is Confirmed!',
-      html: emailHtml,
-      attachments: [
-        {
-          filename: 'class-event.ics',
-          content: icalContent,
-        }
-      ]
-    });
-
-    // ... rest of response ...
-
-  } catch (e) {
-    console.error('verify-payment error:', e);
-    res.status(500).json({ error: e?.message || String(e) });
-  }
-}
-
-// Helper to convert Airtable date + time to ISO format
-function convertToISODateTime(dateString, timeString) {
-  // dateString: "2025-03-15"
-  // timeString: "10:00 AM" or "2:00 PM"
-  
-  if (!dateString || !timeString) {
-    return new Date().toISOString();
-  }
-
-  // Parse time
-  const timeParts = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!timeParts) {
-    return new Date(dateString + 'T12:00:00').toISOString();
-  }
-
-  let hours = parseInt(timeParts[1]);
-  const minutes = parseInt(timeParts[2]);
-  const meridiem = timeParts[3].toUpperCase();
-
-  // Convert to 24-hour format
-  if (meridiem === 'PM' && hours !== 12) {
-    hours += 12;
-  } else if (meridiem === 'AM' && hours === 12) {
-    hours = 0;
-  }
-
-  // Create date object in Pacific Time
-  const dateTime = new Date(`${dateString}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00-08:00`);
-  
-  return dateTime.toISOString();
-}
-
-export { createGoogleCalendarUrl, createICalFile, convertToISODateTime };
+export default RegistrationConfirmationEmail;
