@@ -11,6 +11,15 @@ export default async function handler(req, res) {
     const ZOHO_REFRESH_TOKEN = process.env.ZOHO_REFRESH_TOKEN;
     const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
     const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+
+   // ADD THIS LOGGING:
+    console.log('[ZOHO] Environment check:', {
+      hasClientId: !!ZOHO_CLIENT_ID,
+      hasClientSecret: !!ZOHO_CLIENT_SECRET,
+      hasRefreshToken: !!ZOHO_REFRESH_TOKEN,
+      hasAirtableKey: !!AIRTABLE_API_KEY,
+      hasAirtableBase: !!AIRTABLE_BASE_ID
+    });
     
     if (!ZOHO_CLIENT_ID || !ZOHO_CLIENT_SECRET || !ZOHO_REFRESH_TOKEN) {
       console.error('[ZOHO] Missing Zoho credentials');
