@@ -229,54 +229,55 @@ export default async function handler(req, res) {
         // Don't fail the request if email fails
       }
 
-      // ====== ZOHO INTEGRATION ======
-      try {
-        console.log('[VERIFY-PAYMENT] Waiting 30 seconds for participants to be created in Airtable...');
-        await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
-        
-        console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
+      // ====== ZOHO INTEGRATION (ASYNC - NON-BLOCKING) ======
+      // Run Zoho sync in background without blocking the response
+      setImmediate(async () => {
+        try {
+          console.log('[VERIFY-PAYMENT-ASYNC] Waiting 45 seconds for Airtable participants to be created...');
+          await new Promise(resolve => setTimeout(resolve, 45000)); // Wait 45 seconds
+          
+          console.log('[VERIFY-PAYMENT-ASYNC] Starting Zoho integration...');
 
-        const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
+          const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
 
-        // Import and call the Zoho function directly instead of using fetch
-        const { default: zohoCreateContact } = await import('./zoho-create-contact.js');
-        
-        // Create a mock request/response for the function
-        const mockReq = {
-          method: 'POST',
-          body: {
-            contactInfo: {
-              firstName: booking.fields['Contact First Name'],
-              lastName: booking.fields['Contact Last Name'],
-              email: booking.fields['Contact Email'],
-              phone: booking.fields['Contact Phone'] || ''
-            },
-            classInfo: {
-              className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-              date: scheduleData?.fields?.Date || '',
-              participantCount: booking.fields['Number of Participants'] || 1
-            },
-            prepPageUrl: classPreparationUrl,
-            bookingId: booking_id,
-            classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
-          }
-        };
+          // Import and call the Zoho function directly
+          const { default: zohoCreateContact } = await import('./zoho-create-contact.js');
+          
+          const mockReq = {
+            method: 'POST',
+            body: {
+              contactInfo: {
+                firstName: booking.fields['Contact First Name'],
+                lastName: booking.fields['Contact Last Name'],
+                email: booking.fields['Contact Email'],
+                phone: booking.fields['Contact Phone'] || ''
+              },
+              classInfo: {
+                className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+                date: scheduleData?.fields?.Date || '',
+                participantCount: booking.fields['Number of Participants'] || 1
+              },
+              prepPageUrl: classPreparationUrl,
+              bookingId: booking_id,
+              classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
+            }
+          };
 
-        const mockRes = {
-          status: (code) => mockRes,
-          json: (data) => {
-            console.log('[VERIFY-PAYMENT] Zoho function returned:', JSON.stringify(data));
-            return data;
-          }
-        };
+          const mockRes = {
+            status: (code) => mockRes,
+            json: (data) => {
+              console.log('[VERIFY-PAYMENT-ASYNC] Zoho function returned:', JSON.stringify(data));
+              return data;
+            }
+          };
 
-        await zohoCreateContact(mockReq, mockRes);
-        console.log('[VERIFY-PAYMENT] Zoho sync completed');
-        
-      } catch (zohoErr) {
-        console.error('[VERIFY-PAYMENT] Zoho sync failed with error:', zohoErr.message);
-        console.error('[VERIFY-PAYMENT] Full error:', zohoErr);
-      }
+          await zohoCreateContact(mockReq, mockRes);
+          console.log('[VERIFY-PAYMENT-ASYNC] Zoho sync completed');
+          
+        } catch (zohoErr) {
+          console.error('[VERIFY-PAYMENT-ASYNC] Zoho sync failed:', zohoErr.message);
+        }
+      });
       // ====== END ZOHO INTEGRATION ======
 
       return res.json({
