@@ -230,43 +230,45 @@ export default async function handler(req, res) {
       }
 
       // ====== ZOHO INTEGRATION ======
-      console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
+      try {
+        console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
 
-      const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
-      const requestOrigin = req.headers.origin || 'https://streetwiseselfdefense.com';
+        const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
+        const requestOrigin = req.headers.origin || 'https://streetwiseselfdefense.com';
 
-      console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${requestOrigin}/api/zoho-create-contact`);
+        console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${requestOrigin}/api/zoho-create-contact`);
+        console.log('[VERIFY-PAYMENT] Sending booking data for:', booking.fields['Contact Email']);
 
-      fetch(`${requestOrigin}/api/zoho-create-contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactInfo: {
-            firstName: booking.fields['Contact First Name'],
-            lastName: booking.fields['Contact Last Name'],
-            email: booking.fields['Contact Email'],
-            phone: booking.fields['Contact Phone'] || ''
-          },
-          classInfo: {
-            className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-            date: scheduleData?.fields?.Date || '',
-            participantCount: booking.fields['Number of Participants'] || 1
-          },
-          prepPageUrl: classPreparationUrl,
-          bookingId: booking_id,
-          classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
-        })
-      })
-      .then(response => {
-        console.log('[VERIFY-PAYMENT] Zoho response status:', response.status);
-        return response.json();
-      })
-      .then(data => {
-        console.log('[VERIFY-PAYMENT] Zoho sync successful:', data);
-      })
-      .catch(err => {
-        console.error('[VERIFY-PAYMENT] Zoho sync failed:', err);
-      });
+        const zohoResponse = await fetch(`${requestOrigin}/api/zoho-create-contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contactInfo: {
+              firstName: booking.fields['Contact First Name'],
+              lastName: booking.fields['Contact Last Name'],
+              email: booking.fields['Contact Email'],
+              phone: booking.fields['Contact Phone'] || ''
+            },
+            classInfo: {
+              className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+              date: scheduleData?.fields?.Date || '',
+              participantCount: booking.fields['Number of Participants'] || 1
+            },
+            prepPageUrl: classPreparationUrl,
+            bookingId: booking_id,
+            classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
+          })
+        });
+
+        console.log('[VERIFY-PAYMENT] Zoho response status:', zohoResponse.status);
+        
+        const zohoData = await zohoResponse.json();
+        console.log('[VERIFY-PAYMENT] Zoho response data:', JSON.stringify(zohoData));
+        
+      } catch (zohoErr) {
+        console.error('[VERIFY-PAYMENT] Zoho sync failed with error:', zohoErr.message);
+        console.error('[VERIFY-PAYMENT] Full error:', zohoErr);
+      }
       // ====== END ZOHO INTEGRATION ======
 
       return res.json({
