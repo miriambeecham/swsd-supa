@@ -258,6 +258,63 @@ const emailHTML = `
         })
       }).catch(err => console.error('Zoho sync failed:', err));
 
+// ====== ZOHO INTEGRATION ======
+console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
+
+const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
+const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
+
+console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${origin}/api/zoho-create-contact`);
+
+fetch(`${origin}/api/zoho-create-contact`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    contactInfo: {
+      firstName: booking.fields['Contact First Name'],
+      lastName: booking.fields['Contact Last Name'],
+      email: booking.fields['Contact Email'],
+      phone: booking.fields['Contact Phone'] || ''
+    },
+    classInfo: {
+      className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+      date: scheduleData?.fields?.Date || '',
+      participantCount: booking.fields['Number of Participants'] || 1
+    },
+    prepPageUrl,
+    bookingId: booking_id,
+    classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
+  })
+})
+.then(response => {
+  console.log('[VERIFY-PAYMENT] Zoho response status:', response.status);
+  return response.json();
+})
+.then(data => {
+  console.log('[VERIFY-PAYMENT] Zoho sync successful:', data);
+})
+.catch(err => {
+  console.error('[VERIFY-PAYMENT] Zoho sync failed:', err);
+});
+// ====== END ZOHO INTEGRATION ======
+
+      return res.json({
+        success: true,
+        booking: {
+          className: classData?.fields?.['Class Name'] || classData?.fields?.['Title'] || 'Self-Defense Class',
+          classDate: scheduleData?.fields?.Date,
+          startTime: scheduleData?.fields?.['Start Time'],
+          endTime: scheduleData?.fields?.['End Time'],
+          location: scheduleData?.fields?.Location || classData?.fields?.Location,
+          participantCount: booking.fields['Number of Participants'],
+          totalAmount: booking.fields['Total Amount']
+        }
+      });
+
+
+
+
+      
       return res.json({
         success: true,
         booking: {
