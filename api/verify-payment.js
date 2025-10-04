@@ -234,15 +234,14 @@ export default async function handler(req, res) {
         console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
 
         const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
-        const requestOrigin = req.headers.origin || 'https://streetwiseselfdefense.com';
 
-        console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${requestOrigin}/api/zoho-create-contact`);
-        console.log('[VERIFY-PAYMENT] Sending booking data for:', booking.fields['Contact Email']);
-
-        const zohoResponse = await fetch(`${requestOrigin}/api/zoho-create-contact`, {
+        // Import and call the Zoho function directly instead of using fetch
+        const { default: zohoCreateContact } = await import('./zoho-create-contact.js');
+        
+        // Create a mock request/response for the function
+        const mockReq = {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             contactInfo: {
               firstName: booking.fields['Contact First Name'],
               lastName: booking.fields['Contact Last Name'],
@@ -257,13 +256,19 @@ export default async function handler(req, res) {
             prepPageUrl: classPreparationUrl,
             bookingId: booking_id,
             classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
-          })
-        });
+          }
+        };
 
-        console.log('[VERIFY-PAYMENT] Zoho response status:', zohoResponse.status);
-        
-        const zohoData = await zohoResponse.json();
-        console.log('[VERIFY-PAYMENT] Zoho response data:', JSON.stringify(zohoData));
+        const mockRes = {
+          status: (code) => mockRes,
+          json: (data) => {
+            console.log('[VERIFY-PAYMENT] Zoho function returned:', JSON.stringify(data));
+            return data;
+          }
+        };
+
+        await zohoCreateContact(mockReq, mockRes);
+        console.log('[VERIFY-PAYMENT] Zoho sync completed');
         
       } catch (zohoErr) {
         console.error('[VERIFY-PAYMENT] Zoho sync failed with error:', zohoErr.message);
