@@ -11,8 +11,7 @@ export default async function handler(req, res) {
     const ZOHO_REFRESH_TOKEN = process.env.ZOHO_REFRESH_TOKEN;
     const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
     const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-
-   // ADD THIS LOGGING:
+    
     console.log('[ZOHO] Environment check:', {
       hasClientId: !!ZOHO_CLIENT_ID,
       hasClientSecret: !!ZOHO_CLIENT_SECRET,
@@ -75,12 +74,27 @@ export default async function handler(req, res) {
     let bookerContactId = null;
     let existingBookerData = null;
 
+    console.log('[ZOHO] Booker search response status:', bookerSearchResponse.status);
+
     if (bookerSearchResponse.ok) {
-      const searchData = await bookerSearchResponse.json();
-      if (searchData.data && searchData.data.length > 0) {
-        existingBookerData = searchData.data[0];
-        bookerContactId = existingBookerData.id;
-        console.log('[ZOHO] Found existing booker contact:', bookerContactId);
+      const responseText = await bookerSearchResponse.text();
+      
+      if (responseText && responseText.trim().length > 0) {
+        try {
+          const searchData = JSON.parse(responseText);
+          if (searchData.data && searchData.data.length > 0) {
+            existingBookerData = searchData.data[0];
+            bookerContactId = existingBookerData.id;
+            console.log('[ZOHO] Found existing booker contact:', bookerContactId);
+          } else {
+            console.log('[ZOHO] No existing booker found, will create new');
+          }
+        } catch (parseErr) {
+          console.error('[ZOHO] Failed to parse search response:', parseErr);
+          console.log('[ZOHO] Will proceed to create new contact');
+        }
+      } else {
+        console.log('[ZOHO] Empty search response, creating new contact');
       }
     }
 
@@ -143,24 +157,34 @@ export default async function handler(req, res) {
     let contactsToCreate = [];
 
     if (classType === 'adult') {
-      // Adult class: Create contact for each participant
-      contactsToCreate = participants.map(p => ({
-        participant: p,
-        data: {
-          Last_Name: p.fields['Last Name'],
-          First_Name: p.fields['First Name'],
-          Email: contactInfo.email, // Use booking contact's email
-          Phone: contactInfo.phone,
-          Lead_Source: 'Website',
-          Latest_Class: classInfo.className,
-          Latest_Class_Date: classInfo.date,
-          Latest_Prep_URL: prepPageUrl,
-          Class_History: newClassEntry,
-          Total_Classes_Attended: 1,
-          Age_Group: p.fields['Age Group'],
-          Booked_By: bookerContactId // Link to booker
-        }
-      }));
+      // Adult class: Create contact for each participant, but skip if they're the booker
+      contactsToCreate = participants
+        .filter(p => {
+          // Skip if participant name matches booker name
+          const isDuplicate = p.fields['First Name'] === contactInfo.firstName && 
+                             p.fields['Last Name'] === contactInfo.lastName;
+          if (isDuplicate) {
+            console.log(`[ZOHO] Skipping participant ${p.fields['First Name']} ${p.fields['Last Name']} - same as booker`);
+          }
+          return !isDuplicate;
+        })
+        .map(p => ({
+          participant: p,
+          data: {
+            Last_Name: p.fields['Last Name'],
+            First_Name: p.fields['First Name'],
+            Email: contactInfo.email, // Use booking contact's email
+            Phone: contactInfo.phone,
+            Lead_Source: 'Website',
+            Latest_Class: classInfo.className,
+            Latest_Class_Date: classInfo.date,
+            Latest_Prep_URL: prepPageUrl,
+            Class_History: newClassEntry,
+            Total_Classes_Attended: 1,
+            Age_Group: p.fields['Age Group'],
+            Booked_By: bookerContactId // Link to booker
+          }
+        }));
     } else if (classType === 'mother-daughter') {
       // Mother-daughter: Only create contacts for 16+ (mothers/guardians)
       const mothers = participants.filter(p => p.fields['Age Group'] === '16+');
@@ -207,15 +231,23 @@ export default async function handler(req, res) {
         );
 
         if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          if (searchData.data && searchData.data.length > 0) {
-            const existing = searchData.data[0];
-            // Append to existing history
-            contactData.Class_History = existing.Class_History 
-              ? `${existing.Class_History}\n${newClassEntry}`
-              : newClassEntry;
-            contactData.Total_Classes_Attended = (existing.Total_Classes_Attended || 0) + 1;
-            console.log(`[ZOHO] Found existing participant, appending to history: ${participantName}`);
+          const searchText = await searchResponse.text();
+          
+          if (searchText && searchText.trim().length > 0) {
+            try {
+              const searchData = JSON.parse(searchText);
+              if (searchData.data && searchData.data.length > 0) {
+                const existing = searchData.data[0];
+                // Append to existing history
+                contactData.Class_History = existing.Class_History 
+                  ? `${existing.Class_History}\n${newClassEntry}`
+                  : newClassEntry;
+                contactData.Total_Classes_Attended = (existing.Total_Classes_Attended || 0) + 1;
+                console.log(`[ZOHO] Found existing participant, appending to history: ${participantName}`);
+              }
+            } catch (parseErr) {
+              console.log(`[ZOHO] No existing participant found for: ${participantName}`);
+            }
           }
         }
 
