@@ -229,35 +229,59 @@ export default async function handler(req, res) {
         // Don't fail the request if email fails
       }
 
-     // Replace the entire Zoho integration section with this fire-and-forget trigger:
-
-
-// ====== TRIGGER POST-PAYMENT SYNC (NON-BLOCKING) ======
-// Use the Vercel deployment URL, not your custom domain
-const deploymentUrl = process.env.VERCEL_URL 
-  ? `https://${process.env.VERCEL_URL}` 
-  : 'https://streetwiseselfdefense.com';
-
-console.log('[VERIFY-PAYMENT] Triggering sync at:', `${deploymentUrl}/api/post-payment-sync`);
-
-fetch(`${deploymentUrl}/api/post-payment-sync`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ bookingId: booking_id })
-})
-.then(response => {
-  console.log('[VERIFY-PAYMENT] Sync trigger response status:', response.status);
-  return response.json();
-})
-.then(data => {
-  console.log('[VERIFY-PAYMENT] Sync trigger response:', data);
-})
-.catch(err => console.error('[VERIFY-PAYMENT] Failed to trigger sync:', err));
-
-console.log('[VERIFY-PAYMENT] Triggered post-payment sync for booking:', booking_id);
-// ====== END TRIGGER ======
-
-
+      // ====== ZOHO CRM SYNC (INLINE) ======
+      try {
+        console.log('[VERIFY-PAYMENT] Starting Zoho sync with 5-second delay...');
+        
+        // Wait 5 seconds for participants to be created in Airtable
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        const { default: zohoCreateContact } = await import('./zoho-create-contact.js');
+        
+        const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
+        
+        // Create mock response object for zoho function
+        const mockRes = {
+          status: (code) => ({
+            json: (data) => {
+              console.log('[VERIFY-PAYMENT] Zoho returned status', code, ':', data);
+              return data;
+            }
+          }),
+          json: (data) => {
+            console.log('[VERIFY-PAYMENT] Zoho success:', data);
+            return data;
+          }
+        };
+        
+        const zohoRequest = {
+          method: 'POST',
+          body: {
+            contactInfo: {
+              firstName: booking.fields['Contact First Name'],
+              lastName: booking.fields['Contact Last Name'],
+              email: booking.fields['Contact Email'],
+              phone: booking.fields['Contact Phone'] || ''
+            },
+            classInfo: {
+              className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+              date: scheduleData?.fields?.Date || '',
+              participantCount: booking.fields['Number of Participants'] || 1
+            },
+            prepPageUrl: classPreparationUrl,
+            bookingId: booking_id,
+            classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
+          }
+        };
+        
+        await zohoCreateContact(zohoRequest, mockRes);
+        console.log('[VERIFY-PAYMENT] Zoho sync completed successfully');
+        
+      } catch (zohoErr) {
+        console.error('[VERIFY-PAYMENT] Zoho sync failed:', zohoErr);
+        // Don't fail the whole request if Zoho fails - booking is already confirmed
+      }
+      // ====== END ZOHO SYNC ======
 
       return res.json({
         success: true,
