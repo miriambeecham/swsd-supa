@@ -143,16 +143,33 @@ export default async function handler(req, res) {
     console.log('[ZOHO] Booker contact ID:', bookerContactId);
 
     // === STEP 2: FETCH PARTICIPANTS FROM AIRTABLE ===
-    console.log('[ZOHO] Fetching participants from Airtable...');
-    const participantsResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=FIND("${bookingId}",ARRAYJOIN({Booking}))`,
-      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-    );
-    
-    const participantsData = await participantsResponse.json();
-    const participants = participantsData.records || [];
-    console.log('[ZOHO] Found participants:', participants.length);
+// === STEP 2: FETCH PARTICIPANTS FROM AIRTABLE ===
+console.log('[ZOHO] Fetching participants from Airtable...');
+console.log('[ZOHO] Booking ID to search:', bookingId);
 
+const filterFormula = `FIND("${bookingId}", ARRAYJOIN({Booking}))`;
+console.log('[ZOHO] Filter formula:', filterFormula);
+
+const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
+
+const participantsResponse = await fetch(participantsUrl, { 
+  headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } 
+});
+
+console.log('[ZOHO] Participants response status:', participantsResponse.status);
+
+const participantsText = await participantsResponse.text();
+console.log('[ZOHO] Raw response (first 500 chars):', participantsText.substring(0, 500));
+
+const participantsData = JSON.parse(participantsText);
+const participants = participantsData.records || [];
+console.log('[ZOHO] Found participants:', participants.length);
+
+if (participants.length > 0) {
+  console.log('[ZOHO] Participant names:', participants.map(p => 
+    `${p.fields['First Name']} ${p.fields['Last Name']}`
+  ));
+}
     // === STEP 3: CREATE PARTICIPANT CONTACTS ===
     let contactsToCreate = [];
 
