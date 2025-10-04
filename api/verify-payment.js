@@ -1,4 +1,3 @@
-
 // /api/verify-payment.js
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -28,46 +27,44 @@ export default async function handler(req, res) {
 
     if (session.payment_status === 'paid') {
       // Payment successful - update booking status
-     // Payment successful - update booking status
-const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
-  method: 'PATCH',
-  headers: {
-    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    fields: {
-      'Status': 'Confirmed',
-      'Payment Status': 'Completed',
-      'Stripe Payment Intent ID': session.id,
-       'Payment Date': new Date().toLocaleString('en-US', { 
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric',
-    month: '2-digit', 
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).replace(/(\d+)\/(\d+)\/(\d+),\s*(.+)/, '$3-$1-$2 $4')
-    
-    }
-  })
-});
+      const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            'Status': 'Confirmed',
+            'Payment Status': 'Completed',
+            'Stripe Payment Intent ID': session.id,
+            'Payment Date': new Date().toLocaleString('en-US', { 
+              timeZone: 'America/Los_Angeles',
+              year: 'numeric',
+              month: '2-digit', 
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).replace(/(\d+)\/(\d+)\/(\d+),\s*(.+)/, '$3-$1-$2 $4')
+          }
+        })
+      });
 
-if (!updateResponse.ok) {
-  const errorText = await updateResponse.text();
-  console.error('Airtable update failed:', {
-    status: updateResponse.status,
-    statusText: updateResponse.statusText,
-    error: errorText,
-    bookingId: booking_id
-  });
-  return res.status(500).json({ 
-    error: 'Failed to confirm booking',
-    details: `HTTP ${updateResponse.status}: ${errorText}`
-  });
-}
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error('Airtable update failed:', {
+          status: updateResponse.status,
+          statusText: updateResponse.statusText,
+          error: errorText,
+          bookingId: booking_id
+        });
+        return res.status(500).json({ 
+          error: 'Failed to confirm booking',
+          details: `HTTP ${updateResponse.status}: ${errorText}`
+        });
+      }
 
       // Get booking details for response
       const bookingResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
@@ -106,58 +103,57 @@ if (!updateResponse.ok) {
         }
       }
 
-// ====== SEND CONFIRMATION EMAIL ======
-try {
-
-  const { Resend } = await import('resend');
-  const { default: ical } = await import('ical-generator');
-  
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-  
-  if (RESEND_API_KEY && booking.fields['Contact Email']) {
-    const resend = new Resend(RESEND_API_KEY);
-    
-    // Helper: Convert time to ISO
-    const convertToISO = (dateStr, timeStr) => {
-      if (!dateStr || !timeStr) return new Date().toISOString();
-      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
-      
-      let hours = parseInt(match[1]);
-      const mins = parseInt(match[2]);
-      const meridiem = match[3].toUpperCase();
-      
-      if (meridiem === 'PM' && hours !== 12) hours += 12;
-      if (meridiem === 'AM' && hours === 12) hours = 0;
-      
-      return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
-    };
-    
-    const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time']);
-    const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time']);
-    
-    // Google Calendar URL
-    const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self-Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self-defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
-    
-    // iCal file
-    const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
-    cal.createEvent({
-      start: new Date(startISO),
-      end: new Date(endISO),
-      summary: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-      location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
-      description: 'Self-defense class confirmed'
-    });
-    
-    // Format date for email
-    const formattedDate = scheduleData?.fields?.Date 
-      ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
-          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-        })
-      : 'TBD';
-    
-const emailHTML = `
+      // ====== SEND CONFIRMATION EMAIL ======
+      try {
+        const { Resend } = await import('resend');
+        const { default: ical } = await import('ical-generator');
+        
+        const RESEND_API_KEY = process.env.RESEND_API_KEY;
+        const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        
+        if (RESEND_API_KEY && booking.fields['Contact Email']) {
+          const resend = new Resend(RESEND_API_KEY);
+          
+          // Helper: Convert time to ISO
+          const convertToISO = (dateStr, timeStr) => {
+            if (!dateStr || !timeStr) return new Date().toISOString();
+            const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
+            
+            let hours = parseInt(match[1]);
+            const mins = parseInt(match[2]);
+            const meridiem = match[3].toUpperCase();
+            
+            if (meridiem === 'PM' && hours !== 12) hours += 12;
+            if (meridiem === 'AM' && hours === 12) hours = 0;
+            
+            return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
+          };
+          
+          const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time']);
+          const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time']);
+          
+          // Google Calendar URL
+          const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self-Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self-defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
+          
+          // iCal file
+          const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
+          cal.createEvent({
+            start: new Date(startISO),
+            end: new Date(endISO),
+            summary: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+            location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
+            description: 'Self-defense class confirmed'
+          });
+          
+          // Format date for email
+          const formattedDate = scheduleData?.fields?.Date 
+            ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+              })
+            : 'TBD';
+          
+          const emailHTML = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -217,26 +213,30 @@ const emailHTML = `
 </body>
 </html>
 `;
-    
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: booking.fields['Contact Email'],
-      subject: 'Your Self-Defense Class Registration is Confirmed!',
-      html: emailHTML,
-      attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
-    });
-    
-    console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
-  }
-} catch (emailErr) {
-  console.error('[EMAIL] Failed:', emailErr);
-  // Don't fail the request if email fails
-}
-      
-            // ADD ZOHO INTEGRATION HERE (after line 108, before return statement)
+          
+          await resend.emails.send({
+            from: FROM_EMAIL,
+            to: booking.fields['Contact Email'],
+            subject: 'Your Self-Defense Class Registration is Confirmed!',
+            html: emailHTML,
+            attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
+          });
+          
+          console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
+        }
+      } catch (emailErr) {
+        console.error('[EMAIL] Failed:', emailErr);
+        // Don't fail the request if email fails
+      }
+
+      // ====== ZOHO INTEGRATION ======
+      console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
+
       const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
       const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
-      
+
+      console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${origin}/api/zoho-create-contact`);
+
       fetch(`${origin}/api/zoho-create-contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -256,65 +256,19 @@ const emailHTML = `
           bookingId: booking_id,
           classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
         })
-      }).catch(err => console.error('Zoho sync failed:', err));
-
-// ====== ZOHO INTEGRATION ======
-console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
-
-const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
-const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
-
-console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${origin}/api/zoho-create-contact`);
-
-fetch(`${origin}/api/zoho-create-contact`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    contactInfo: {
-      firstName: booking.fields['Contact First Name'],
-      lastName: booking.fields['Contact Last Name'],
-      email: booking.fields['Contact Email'],
-      phone: booking.fields['Contact Phone'] || ''
-    },
-    classInfo: {
-      className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-      date: scheduleData?.fields?.Date || '',
-      participantCount: booking.fields['Number of Participants'] || 1
-    },
-    prepPageUrl,
-    bookingId: booking_id,
-    classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
-  })
-})
-.then(response => {
-  console.log('[VERIFY-PAYMENT] Zoho response status:', response.status);
-  return response.json();
-})
-.then(data => {
-  console.log('[VERIFY-PAYMENT] Zoho sync successful:', data);
-})
-.catch(err => {
-  console.error('[VERIFY-PAYMENT] Zoho sync failed:', err);
-});
-// ====== END ZOHO INTEGRATION ======
-
-      return res.json({
-        success: true,
-        booking: {
-          className: classData?.fields?.['Class Name'] || classData?.fields?.['Title'] || 'Self-Defense Class',
-          classDate: scheduleData?.fields?.Date,
-          startTime: scheduleData?.fields?.['Start Time'],
-          endTime: scheduleData?.fields?.['End Time'],
-          location: scheduleData?.fields?.Location || classData?.fields?.Location,
-          participantCount: booking.fields['Number of Participants'],
-          totalAmount: booking.fields['Total Amount']
-        }
+      })
+      .then(response => {
+        console.log('[VERIFY-PAYMENT] Zoho response status:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('[VERIFY-PAYMENT] Zoho sync successful:', data);
+      })
+      .catch(err => {
+        console.error('[VERIFY-PAYMENT] Zoho sync failed:', err);
       });
+      // ====== END ZOHO INTEGRATION ======
 
-
-
-
-      
       return res.json({
         success: true,
         booking: {
