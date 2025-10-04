@@ -156,7 +156,7 @@ try {
         })
       : 'TBD';
     
-   const emailHTML = `
+const emailHTML = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -168,7 +168,54 @@ try {
   
   <p>Dear ${booking.fields['Contact First Name'] || 'Valued Customer'},</p>
   
-  <p>Congratulations on taking this empowering step! Your registration for our self-defense cl
+  <p>Congratulations on taking this empowering step! Your registration for our self-defense class has been confirmed.</p>
+  
+  <div style="background: #F0FDFC; border: 1px solid #14b8a6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h2 style="color: #1E293B; margin-top: 0;">Your Class Details</h2>
+    <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self-Defense Class'}</p>
+    <p><strong>Date:</strong> ${formattedDate}</p>
+    <p><strong>Time:</strong> ${scheduleData?.fields?.['Start Time']} - ${scheduleData?.fields?.['End Time']}</p>
+    <p><strong>Location:</strong> ${scheduleData?.fields?.Location || 'Walnut Creek, CA'}</p>
+    <p><strong>Participants:</strong> ${booking.fields['Number of Participants'] || 1}</p>
+    <p><strong>Total Paid:</strong> $${booking.fields['Total Amount'] || 0}</p>
+  </div>
+  
+  <div style="margin: 30px 0;">
+    <h2 style="color: #1E293B;">Prepare for Success</h2>
+    <p style="text-align: center;">
+      <a href="${gcalURL}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px;">Add to Google Calendar</a>
+    </p>
+    ${scheduleData?.fields?.['Waiver URL'] ? `
+    <p style="text-align: center;">
+      <a href="${scheduleData.fields['Waiver URL']}" style="display: inline-block; border: 2px solid #14b8a6; color: #14b8a6; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px;">Complete Waiver Form</a>
+    </p>
+    <p style="font-size: 14px; color: #6B7280; text-align: center;"><strong>Important:</strong> Each participant must complete the waiver form before attending class.</p>
+    ` : ''}
+  </div>
+  
+  <h2 style="color: #1E293B;">What to Bring</h2>
+  <ul style="color: #1E293B;">
+    <li>Comfortable athletic clothing (yoga pants, t-shirt, etc.)</li>
+    <li>Water bottle to stay hydrated</li>
+    <li>Athletic shoes (no sandals or flip-flops)</li>
+    <li>Open mind and willingness to learn!</li>
+  </ul>
+  
+  <p>Questions? Visit <a href="https://www.streetwiseselfdefense.com" style="color: #14b8a6;">streetwiseselfdefense.com</a> or reply to this email.</p>
+  
+  <p>We're proud of you for taking this important step toward empowerment. See you in class!</p>
+  <p><strong>The Streetwise Self Defense Team</strong></p>
+  
+  <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
+  
+  <p style="text-align: center; font-size: 14px; color: #6B7280;">
+    Empowering women and vulnerable populations through practical self-defense training.<br>
+    Streetwise Self Defense | Walnut Creek, CA<br>
+    © 2025 Streetwise Self Defense. All rights reserved.
+  </p>
+</body>
+</html>
+`;
     
     await resend.emails.send({
       from: FROM_EMAIL,
