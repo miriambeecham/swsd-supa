@@ -231,6 +231,9 @@ export default async function handler(req, res) {
 
       // ====== ZOHO INTEGRATION ======
       try {
+        console.log('[VERIFY-PAYMENT] Waiting 30 seconds for participants to be created in Airtable...');
+        await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+        
         console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
 
         const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
