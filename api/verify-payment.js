@@ -105,6 +105,90 @@ if (!updateResponse.ok) {
         }
       }
 
+// ====== SEND CONFIRMATION EMAIL ======
+try {
+  const { Resend } = await import('resend');
+  const { renderAsync } = await import('@react-email/render');
+  const ical = (await import('ical-generator')).default;
+  
+  // Import your email component
+  const { default: RegistrationConfirmationEmail } = await import('../src/emails/RegistrationConfirmationEmail.jsx');
+  
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  
+  if (RESEND_API_KEY && booking.fields['Contact Email']) {
+    const resend = new Resend(RESEND_API_KEY);
+    
+    // Helper: Convert time to ISO
+    const convertToISO = (dateStr, timeStr) => {
+      if (!dateStr || !timeStr) return new Date().toISOString();
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
+      
+      let hours = parseInt(match[1]);
+      const mins = parseInt(match[2]);
+      const meridiem = match[3].toUpperCase();
+      
+      if (meridiem === 'PM' && hours !== 12) hours += 12;
+      if (meridiem === 'AM' && hours === 12) hours = 0;
+      
+      return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
+    };
+    
+    const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time']);
+    const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time']);
+    
+    // Google Calendar URL
+    const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self-Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self-defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
+    
+    // iCal file
+    const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
+    cal.createEvent({
+      start: new Date(startISO),
+      end: new Date(endISO),
+      summary: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+      location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
+      description: 'Self-defense class confirmed'
+    });
+    
+    // Format date for email
+    const formattedDate = scheduleData?.fields?.Date 
+      ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+        })
+      : 'TBD';
+    
+    const emailHTML = await renderAsync(
+      RegistrationConfirmationEmail({
+        customerName: booking.fields['Contact First Name'] || 'Valued Customer',
+        className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+        classDate: formattedDate,
+        classTime: `${scheduleData?.fields?.['Start Time']} - ${scheduleData?.fields?.['End Time']}`,
+        location: scheduleData?.fields?.Location || classData?.fields?.Location || 'Walnut Creek, CA',
+        registeredParticipants: String(booking.fields['Number of Participants'] || 1),
+        totalAmount: booking.fields['Total Amount'] || 0,
+        prepTipsUrl: `https://streetwiseselfdefense.com/class-prep/${scheduleId}`,
+        waiverUrl: scheduleData?.fields?.['Waiver URL'] || null,
+        googleCalendarUrl: gcalURL
+      })
+    );
+    
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: booking.fields['Contact Email'],
+      subject: 'Your Self-Defense Class Registration is Confirmed!',
+      html: emailHTML,
+      attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
+    });
+    
+    console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
+  }
+} catch (emailErr) {
+  console.error('[EMAIL] Failed:', emailErr);
+  // Don't fail the request if email fails
+}
+      
             // ADD ZOHO INTEGRATION HERE (after line 108, before return statement)
       const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
       const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
