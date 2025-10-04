@@ -107,12 +107,9 @@ if (!updateResponse.ok) {
 
 // ====== SEND CONFIRMATION EMAIL ======
 try {
-  const { Resend } = await import('resend');
-  const { renderAsync } = await import('@react-email/render');
-  const ical = (await import('ical-generator')).default;
-  
-  // Import your email component
- const { default: RegistrationConfirmationEmail } = await import('../src/emails/RegistrationConfirmationEmail.js');
+ const { Resend } = await import('resend');
+ const ical = (await import('ical-generator')).default;
+
   
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
@@ -159,20 +156,19 @@ try {
         })
       : 'TBD';
     
-    const emailHTML = await renderAsync(
-      RegistrationConfirmationEmail({
-        customerName: booking.fields['Contact First Name'] || 'Valued Customer',
-        className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-        classDate: formattedDate,
-        classTime: `${scheduleData?.fields?.['Start Time']} - ${scheduleData?.fields?.['End Time']}`,
-        location: scheduleData?.fields?.Location || classData?.fields?.Location || 'Walnut Creek, CA',
-        registeredParticipants: String(booking.fields['Number of Participants'] || 1),
-        totalAmount: booking.fields['Total Amount'] || 0,
-        prepTipsUrl: `https://streetwiseselfdefense.com/class-prep/${scheduleId}`,
-        waiverUrl: scheduleData?.fields?.['Waiver URL'] || null,
-        googleCalendarUrl: gcalURL
-      })
-    );
+   const emailHTML = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
+  </div>
+  
+  <h1 style="color: #1E293B; text-align: center;">Registration Confirmed!</h1>
+  
+  <p>Dear ${booking.fields['Contact First Name'] || 'Valued Customer'},</p>
+  
+  <p>Congratulations on taking this empowering step! Your registration for our self-defense cl
     
     await resend.emails.send({
       from: FROM_EMAIL,
