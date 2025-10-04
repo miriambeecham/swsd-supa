@@ -1,3 +1,6 @@
+import { Resend } from 'resend';
+import ical from 'ical-generator';
+
 // /api/verify-payment.js
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -107,8 +110,7 @@ if (!updateResponse.ok) {
 
 // ====== SEND CONFIRMATION EMAIL ======
 try {
- const { Resend } = await import('resend');
- const ical = (await import('ical-generator')).default;
+
 
   
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
