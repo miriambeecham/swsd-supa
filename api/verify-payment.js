@@ -112,7 +112,7 @@ try {
   const ical = (await import('ical-generator')).default;
   
   // Import your email component
-  const { default: RegistrationConfirmationEmail } = await import('../src/emails/RegistrationConfirmationEmail.jsx');
+ const { default: RegistrationConfirmationEmail } = await import('../src/emails/RegistrationConfirmationEmail.js');
   
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
