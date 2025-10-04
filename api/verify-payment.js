@@ -243,13 +243,7 @@ fetch(`${baseUrl}/api/post-payment-sync`, {
 console.log('[VERIFY-PAYMENT] Triggered post-payment sync for booking:', booking_id);
 // ====== END TRIGGER ======
 
-return res.json({
-  success: true,
-  booking: {
-    className: classData?.fields?.['Class Name'] || classData?.fields?.['Title'] || 'Self-Defense Class',
-    // ... rest of response
-  }
-});
+
 
       return res.json({
         success: true,
