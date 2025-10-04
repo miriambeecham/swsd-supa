@@ -232,12 +232,12 @@ export default async function handler(req, res) {
       // ====== ZOHO INTEGRATION ======
       console.log('[VERIFY-PAYMENT] About to call Zoho integration...');
 
-      const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
-      const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
+      const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
+      const requestOrigin = req.headers.origin || 'https://streetwiseselfdefense.com';
 
-      console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${origin}/api/zoho-create-contact`);
+      console.log('[VERIFY-PAYMENT] Zoho endpoint:', `${requestOrigin}/api/zoho-create-contact`);
 
-      fetch(`${origin}/api/zoho-create-contact`, {
+      fetch(`${requestOrigin}/api/zoho-create-contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -252,7 +252,7 @@ export default async function handler(req, res) {
             date: scheduleData?.fields?.Date || '',
             participantCount: booking.fields['Number of Participants'] || 1
           },
-          prepPageUrl,
+          prepPageUrl: classPreparationUrl,
           bookingId: booking_id,
           classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
         })
