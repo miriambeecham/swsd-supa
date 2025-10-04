@@ -231,14 +231,28 @@ export default async function handler(req, res) {
 
      // Replace the entire Zoho integration section with this fire-and-forget trigger:
 
-// ====== TRIGGER POST-PAYMENT SYNC (NON-BLOCKING) ======
-const baseUrl = 'https://streetwiseselfdefense.com'; // Your production domain
 
-fetch(`${baseUrl}/api/post-payment-sync`, {
+// ====== TRIGGER POST-PAYMENT SYNC (NON-BLOCKING) ======
+// Use the Vercel deployment URL, not your custom domain
+const deploymentUrl = process.env.VERCEL_URL 
+  ? `https://${process.env.VERCEL_URL}` 
+  : 'https://streetwiseselfdefense.com';
+
+console.log('[VERIFY-PAYMENT] Triggering sync at:', `${deploymentUrl}/api/post-payment-sync`);
+
+fetch(`${deploymentUrl}/api/post-payment-sync`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ bookingId: booking_id })
-}).catch(err => console.error('[VERIFY-PAYMENT] Failed to trigger sync:', err));
+})
+.then(response => {
+  console.log('[VERIFY-PAYMENT] Sync trigger response status:', response.status);
+  return response.json();
+})
+.then(data => {
+  console.log('[VERIFY-PAYMENT] Sync trigger response:', data);
+})
+.catch(err => console.error('[VERIFY-PAYMENT] Failed to trigger sync:', err));
 
 console.log('[VERIFY-PAYMENT] Triggered post-payment sync for booking:', booking_id);
 // ====== END TRIGGER ======
