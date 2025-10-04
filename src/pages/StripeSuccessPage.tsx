@@ -88,7 +88,7 @@ export default function StripeSuccessPage() {
             <div className="absolute border-4 border-gray-200 rounded-full w-16 h-16"></div>
             <div className="absolute border-4 border-teal-500 border-t-transparent rounded-full w-16 h-16 animate-spin"></div>
           </div>
-          
+
           <h2 className="text-2xl font-semibold text-gray-800 mb-3">
             Processing your registration...
           </h2>
@@ -166,7 +166,9 @@ export default function StripeSuccessPage() {
             <div className="space-y-3">
               <h3 className="font-medium text-gray-900">Add to Your Calendar</h3>
               <div className="flex flex-col sm:flex-row gap-3">
-                
+
+                {/* FIXED: proper <a ...> opening tag */}
+                <a
                   className="inline-flex items-center justify-center px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
                   href={makeGoogleCalendarUrl({
                     title: booking.className,
@@ -220,8 +222,8 @@ export default function StripeSuccessPage() {
           </div>
 
           <div className="text-center pt-6">
-            <Link 
-              to="/public-classes" 
+            <Link
+              to="/public-classes"
               className="text-teal-600 hover:text-teal-700 font-medium underline"
             >
               ← Back to classes
