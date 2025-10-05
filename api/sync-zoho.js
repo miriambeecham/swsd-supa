@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         }
 
         // Call Zoho integration
-        const { default: zohoCreateContact } = await import('../zoho-create-contact.js');
+        const { default: zohoCreateContact } = await import('./zoho-create-contact.js');
         
         const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking.id}`;
         
