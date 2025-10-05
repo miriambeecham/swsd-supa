@@ -1,9 +1,18 @@
 // /api/cron/sync-zoho.js
 export default async function handler(req, res) {
-  // Verify this is called by Vercel Cron (security)
+  // Accept either CRON_SECRET or Vercel's bypass token
   const authHeader = req.headers.authorization;
   const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+  const bypassToken = req.headers['x-vercel-protection-bypass'] || req.query['x-vercel-protection-bypass'];
+  const expectedBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   
+  const isAuthorized = authHeader === expectedAuth || bypassToken === expectedBypass;
+  
+  if (!isAuthorized) {
+    console.log('[CRON] Unauthorized request');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   if (authHeader !== expectedAuth) {
     console.log('[CRON] Unauthorized request');
     return res.status(401).json({ error: 'Unauthorized' });
