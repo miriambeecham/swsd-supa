@@ -229,59 +229,7 @@ export default async function handler(req, res) {
         // Don't fail the request if email fails
       }
 
-      // ====== ZOHO CRM SYNC (INLINE) ======
-      try {
-        console.log('[VERIFY-PAYMENT] Starting Zoho sync with 5-second delay...');
-        
-        // Wait 5 seconds for participants to be created in Airtable
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        
-        const { default: zohoCreateContact } = await import('./zoho-create-contact.js');
-        
-        const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
-        
-        // Create mock response object for zoho function
-        const mockRes = {
-          status: (code) => ({
-            json: (data) => {
-              console.log('[VERIFY-PAYMENT] Zoho returned status', code, ':', data);
-              return data;
-            }
-          }),
-          json: (data) => {
-            console.log('[VERIFY-PAYMENT] Zoho success:', data);
-            return data;
-          }
-        };
-        
-        const zohoRequest = {
-          method: 'POST',
-          body: {
-            contactInfo: {
-              firstName: booking.fields['Contact First Name'],
-              lastName: booking.fields['Contact Last Name'],
-              email: booking.fields['Contact Email'],
-              phone: booking.fields['Contact Phone'] || ''
-            },
-            classInfo: {
-              className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-              date: scheduleData?.fields?.Date || '',
-              participantCount: booking.fields['Number of Participants'] || 1
-            },
-            prepPageUrl: classPreparationUrl,
-            bookingId: booking_id,
-            classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
-          }
-        };
-        
-        await zohoCreateContact(zohoRequest, mockRes);
-        console.log('[VERIFY-PAYMENT] Zoho sync completed successfully');
-        
-      } catch (zohoErr) {
-        console.error('[VERIFY-PAYMENT] Zoho sync failed:', zohoErr);
-        // Don't fail the whole request if Zoho fails - booking is already confirmed
-      }
-      // ====== END ZOHO SYNC ======
+   
 
       return res.json({
         success: true,
