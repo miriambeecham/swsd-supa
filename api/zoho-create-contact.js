@@ -147,7 +147,8 @@ export default async function handler(req, res) {
 console.log('[ZOHO] Fetching participants from Airtable...');
 console.log('[ZOHO] Booking ID to search:', bookingId);
 
-const filterFormula = `FIND("${bookingId}", ARRAYJOIN(RECORD_ID({Booking})))`;
+// Direct comparison for single-linked record field
+const filterFormula = `{Booking} = "${bookingId}"`;
 console.log('[ZOHO] Filter formula:', filterFormula);
 
 const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
