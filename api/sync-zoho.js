@@ -1,4 +1,5 @@
 // /api/sync-zoho.js
+// new comment
 export default async function handler(req, res) {
   // Verify this is called by Vercel Cron or with proper auth
   const authHeader = req.headers.authorization;
