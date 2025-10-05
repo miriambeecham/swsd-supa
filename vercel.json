@@ -7,7 +7,7 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/sync-zoho",
+      "path": "/api/sync-zoho",
       "schedule": "*/2 * * * *"
     }
   ]
