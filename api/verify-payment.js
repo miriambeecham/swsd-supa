@@ -203,7 +203,7 @@ export default async function handler(req, res) {
     <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self-Defense Class'}</p>
     <p><strong>Date:</strong> ${formattedDate}</p>
     <p><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</p>
-    <p><strong>Location:</strong> ${scheduleData?.fields?.Location || 'Walnut Creek, CA'}</p>
+    <p><strong>Location:</strong> ${classData?.fields?.Location || 'Walnut Creek, CA'}</p>
     <p><strong>Participants:</strong> ${booking.fields['Number of Participants'] || 1}</p>
     <p><strong>Total Paid:</strong> $${booking.fields['Total Amount'] || 0}</p>
   </div>
