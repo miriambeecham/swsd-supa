@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { PublicClassPolicySummary } from './PublicClassPoliciesPage';
 
 type AgeGroup = '' | 'Under 12' | '12-15' | '16+';
 
@@ -276,9 +275,6 @@ const MotherDaughterBookingPage = () => {
           {/* Main Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 space-y-8">
-              {/* Policy Summary */}
-              <PublicClassPolicySummary />
-
               {/* Errors summary */}
               {allErrors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -489,6 +485,10 @@ const MotherDaughterBookingPage = () => {
                   By proceeding with your booking, you agree to our{' '}
                   <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
                     Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                    Booking Policies
                   </a>.
                 </p>
               </div>
