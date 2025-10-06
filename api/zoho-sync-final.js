@@ -424,3 +424,6 @@ for (const { data: contactData } of contactsToCreate) {
 
 console.log('[ZOHO] Participant upsert loop completed');
 // Updated Sun Oct  5 22:20:28 UTC 2025
+
+    console.log('[ZOHO] Sync completed');
+}
