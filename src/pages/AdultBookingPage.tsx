@@ -2,17 +2,13 @@
 // AdultBookingPage.tsx - UPDATED
 // ============================================
 // Changes:
-// 1. Added PublicClassPolicySummary import and component
-// 2. Fixed time display to use start_time_new/end_time_new fields
-// 3. Added policy summary box before the form
+// 1. Fixed time display to use start_time_new/end_time_new fields
+// 2. Added booking policies link to privacy statement
 
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, MapPin, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
-
-// Import the policy summary component
-import { PublicClassPolicySummary } from './PublicClassPoliciesPage';
 
 type AdditionalAdult = { firstName: string; lastName: string };
 
@@ -261,9 +257,6 @@ const AdultBookingPage: React.FC = () => {
           {/* Main Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 space-y-8">
-              {/* ADDED: Policy Summary */}
-              <PublicClassPolicySummary />
-
               {/* Errors summary */}
               {errorsToShow.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -432,6 +425,15 @@ const AdultBookingPage: React.FC = () => {
                     className="text-accent-primary hover:text-accent-dark underline"
                   >
                     Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a
+                    href="/public-class-policies"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-primary hover:text-accent-dark underline"
+                  >
+                    Booking Policies
                   </a>.
                 </p>
               </div>
