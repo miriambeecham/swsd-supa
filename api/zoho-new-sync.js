@@ -279,7 +279,6 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
         data: {
           Last_Name: p.fields['Last Name'],
           First_Name: p.fields['First Name'],
-          Email: contactInfo.email,
           Phone: contactInfo.phone,
           Lead_Source: 'Website',
           Latest_Class: classInfo.className,
