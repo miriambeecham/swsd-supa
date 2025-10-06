@@ -250,7 +250,7 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
 // STEP 2: FETCH PARTICIPANTS FROM AIRTABLE
 console.log('[ZOHO] Fetching participants from Airtable...');
 
-const filterFormula = `SEARCH("${bookingId}", ARRAYJOIN({Booking}))`;
+const filterFormula = `RECORD_ID({Booking}) = "${bookingId}"`;
 const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
 const participantsResponse = await fetch(participantsUrl, { 
