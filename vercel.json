@@ -8,7 +8,7 @@
   "crons": [
     {
       "path": "/api/zoho-sync-final",
-      "schedule": "*/2 * * * *"
+      "schedule": "*/10 * * * *"
     }
   ]
 }
