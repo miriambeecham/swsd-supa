@@ -1,8 +1,18 @@
-// src/pages/AdultBookingPage.tsx
+// ============================================
+// AdultBookingPage.tsx - UPDATED
+// ============================================
+// Changes:
+// 1. Added PublicClassPolicySummary import and component
+// 2. Fixed time display to use start_time_new/end_time_new fields
+// 3. Added policy summary box before the form
+
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Info } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
+
+// Import the policy summary component
+import { PublicClassPolicySummary } from './PublicClassPolicies';
 
 type AdditionalAdult = { firstName: string; lastName: string };
 
@@ -108,7 +118,7 @@ const AdultBookingPage: React.FC = () => {
         {
           firstName: contactInfo.firstName,
           lastName: contactInfo.lastName,
-          ageGroup: '16+', // align with server's adult validation
+          ageGroup: '16+',
           participantNumber: 1,
         },
         ...additionalAdults.map((p, idx) => ({
@@ -125,8 +135,8 @@ const AdultBookingPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classScheduleId: classSchedule.id,
-          requestedSpots: totalParticipants,  // primary key server expects
-          requestedSeats: totalParticipants,  // send both for safety
+          requestedSpots: totalParticipants,
+          requestedSeats: totalParticipants,
         }),
       });
 
@@ -152,7 +162,7 @@ const AdultBookingPage: React.FC = () => {
         contactInfo,
         participants,
         totalParticipants,
-        participantCount: totalParticipants, // add alt name for compatibility
+        participantCount: totalParticipants,
         totalAmount: totalPrice,
         recaptchaToken: recaptchaValue,
         classType: 'adult',
@@ -196,6 +206,25 @@ const AdultBookingPage: React.FC = () => {
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
+  // UPDATED: Format time using new time fields
+  const formatClassTime = () => {
+    if (classSchedule.start_time_new && classSchedule.end_time_new) {
+      const startTime = new Date(classSchedule.start_time_new).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      const endTime = new Date(classSchedule.end_time_new).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      return `${startTime} - ${endTime}`;
+    }
+    // Fallback to old fields if new ones don't exist
+    return `${classSchedule.start_time} - ${classSchedule.end_time}`;
+  };
+
   const errorsToShow = showValidation ? collectErrors() : [];
 
   return (
@@ -224,7 +253,7 @@ const AdultBookingPage: React.FC = () => {
           {/* Error banner */}
           {pageError && (
             <div className="lg:col-span-3 bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 -mt-2">
-              <div className="font-medium">We couldn’t complete your booking:</div>
+              <div className="font-medium">We couldn't complete your booking:</div>
               <div className="text-sm mt-1">{pageError}</div>
             </div>
           )}
@@ -232,6 +261,9 @@ const AdultBookingPage: React.FC = () => {
           {/* Main Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 space-y-8">
+              {/* ADDED: Policy Summary */}
+              <PublicClassPolicySummary />
+
               {/* Errors summary */}
               {errorsToShow.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -321,7 +353,7 @@ const AdultBookingPage: React.FC = () => {
 
                 {additionalAdults.length === 0 && (
                   <p className="text-sm text-gray-600">
-                    You can add more adult participants if you’re booking for a group.
+                    You can add more adult participants if you're booking for a group.
                   </p>
                 )}
 
@@ -419,12 +451,7 @@ const AdultBookingPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-700">
-                    {classSchedule.start_time_new ? 
-          `${new Date(classSchedule.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classSchedule.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
-          `${classSchedule.start_time} - ${classSchedule.end_time}`
-        }
-                    </span>
+                    <span className="text-gray-700">{formatClassTime()}</span>
                   </div>
                   {classSchedule.location && (
                     <div className="flex items-center gap-3">
