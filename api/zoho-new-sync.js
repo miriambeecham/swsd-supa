@@ -232,7 +232,7 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
     },
     body: JSON.stringify({
       data: [bookerData],
-      duplicate_check_fields: ['Email'],
+      duplicate_check_fields: ['Email', 'First_Name', 'Last_Name'],
       trigger: ['workflow']
     })
   });
