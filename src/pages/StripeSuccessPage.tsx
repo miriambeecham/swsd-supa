@@ -10,6 +10,7 @@ type BookingInfo = {
   location?: string | null;
   participantCount?: number | null;
   totalAmount?: number | null;
+  waiverUrl?: string | null;
 };
 
 export default function StripeSuccessPage() {
@@ -21,6 +22,7 @@ export default function StripeSuccessPage() {
   const [booking, setBooking] = useState<BookingInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedWaiver, setCopiedWaiver] = useState<boolean>(false);
 
   useEffect(() => {
     const run = async () => {
@@ -133,29 +135,36 @@ export default function StripeSuccessPage() {
 
           <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">{booking.className}</h2>
-            <div className="space-y-2 text-gray-700">
-              <div className="flex">
-                <span className="font-medium w-32">Date:</span>
+            <div className="space-y-3 text-gray-700">
+              <div className="grid grid-cols-[auto_1fr] gap-x-4">
+                <span className="font-medium">Date:</span>
                 <span>{booking.classDate || 'TBD'}</span>
               </div>
-              <div className="flex">
-                <span className="font-medium w-32">Time:</span>
-                <span>{booking.startTime || 'TBD'} – {booking.endTime || 'TBD'}</span>
+              
+              <div className="grid grid-cols-[auto_1fr] gap-x-4">
+                <span className="font-medium">Time:</span>
+                <span>
+                  {formatDisplayTime(booking.startTime)} – {formatDisplayTime(booking.endTime)}
+                </span>
               </div>
-              <div className="flex">
-                <span className="font-medium w-32">Location:</span>
-                <span>{booking.location || 'TBD'}</span>
+              
+              <div className="grid grid-cols-[auto_1fr] gap-x-4 items-start">
+                <span className="font-medium whitespace-nowrap">Location:</span>
+                <span className="break-words">{booking.location || 'TBD'}</span>
               </div>
-              <div className="flex">
-                <span className="font-medium w-32">Participants:</span>
+              
+              <div className="grid grid-cols-[auto_1fr] gap-x-4">
+                <span className="font-medium">Participants:</span>
                 <span>{booking.participantCount ?? 1}</span>
               </div>
-              <div className="flex">
-                <span className="font-medium w-32">Total Paid:</span>
+              
+              <div className="grid grid-cols-[auto_1fr] gap-x-4">
+                <span className="font-medium">Total Paid:</span>
                 <span className="text-teal-600 font-semibold">${booking.totalAmount?.toFixed?.(2) ?? '0.00'}</span>
               </div>
+              
               {bookingId && (
-                <div className="flex pt-2 mt-2 border-t border-gray-100">
+                <div className="pt-2 mt-2 border-t border-gray-100">
                   <span className="text-sm text-gray-500">Booking ID: {bookingId}</span>
                 </div>
               )}
@@ -167,7 +176,6 @@ export default function StripeSuccessPage() {
               <h3 className="font-medium text-gray-900">Add to Your Calendar</h3>
               <div className="flex flex-col sm:flex-row gap-3">
 
-                {/* FIXED: proper <a ...> opening tag */}
                 <a
                   className="inline-flex items-center justify-center px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
                   href={makeGoogleCalendarUrl({
@@ -213,12 +221,76 @@ export default function StripeSuccessPage() {
 
           <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
             <h3 className="font-medium text-teal-900 mb-2">What's Next?</h3>
-            <ul className="text-sm text-teal-800 space-y-1">
+            <ul className="text-sm text-teal-800 space-y-1 mb-4">
               <li>✓ Check your email for confirmation details</li>
               <li>✓ Add the class to your calendar</li>
-              <li>✓ Complete the waiver form (link in email)</li>
+              {booking.waiverUrl && (
+                <li>✓ Complete the waiver form below (required for each participant)</li>
+              )}
               <li>✓ Wear comfortable athletic clothing</li>
             </ul>
+
+            {booking.waiverUrl && (
+              <div className="mt-4 pt-4 border-t border-teal-200">
+                <div className="flex items-start gap-2 mb-2">
+                  <svg className="w-5 h-5 text-teal-700 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="font-medium text-teal-900">Waiver Required</p>
+                    <p className="text-sm text-teal-800">
+                      Each participant must complete a waiver before class.
+                      {booking.participantCount && booking.participantCount > 1 && (
+                        <span className="font-medium"> Please share this link with all {booking.participantCount} participants.</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                  <a
+                    href={booking.waiverUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center px-4 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors text-sm"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Open Waiver Form
+                  </a>
+                  
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(booking.waiverUrl!);
+                        setCopiedWaiver(true);
+                        setTimeout(() => setCopiedWaiver(false), 2000);
+                      } catch (err) {
+                        console.error('Failed to copy:', err);
+                      }
+                    }}
+                    className="inline-flex items-center justify-center px-4 py-2 bg-white text-teal-700 font-medium rounded-lg border-2 border-teal-600 hover:bg-teal-50 transition-colors text-sm"
+                  >
+                    {copiedWaiver ? (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy Link
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="text-center pt-6">
@@ -236,6 +308,26 @@ export default function StripeSuccessPage() {
 }
 
 /* ===================== helpers (module scope) ===================== */
+
+function formatDisplayTime(timeStr: string | null | undefined): string {
+  if (!timeStr) return 'TBD';
+  
+  // If it's already formatted nicely (e.g., "10:00 AM"), return as-is
+  if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(timeStr)) {
+    return timeStr;
+  }
+  
+  // If it's an ISO datetime string, parse and format
+  const parsed = parseTimeString(timeStr);
+  if (parsed) {
+    const { hh, mm } = parsed;
+    const hour12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${String(mm).padStart(2, '0')} ${ampm}`;
+  }
+  
+  return timeStr; // Fallback to whatever we received
+}
 
 function normalizeDate(dateStr: string | null): string | null {
   if (!dateStr) return null;
