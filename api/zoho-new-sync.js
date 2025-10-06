@@ -258,16 +258,38 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
 // STEP 2: FETCH PARTICIPANTS FROM AIRTABLE
 console.log('[ZOHO] Fetching participants from Airtable...');
 
-const filterFormula = `{Booking ID} = "${bookingNumber}"`;  // Use the autonumber, not bookingId
-const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
+// First, fetch the booking record to get linked participant IDs
+const bookingResponse = await fetch(
+  `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingId}`,
+  { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+);
 
-const participantsResponse = await fetch(participantsUrl, { 
-  headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } 
-});
+if (!bookingResponse.ok) {
+  throw new Error(`Failed to fetch booking: ${bookingResponse.status}`);
+}
 
-const participantsText = await participantsResponse.text();  // <-- This line was missing
-const participantsData = JSON.parse(participantsText);
-const participants = participantsData.records || [];
+const bookingData = await bookingResponse.json();
+const participantIds = bookingData.fields.Participants || [];
+
+console.log('[ZOHO] Linked participant IDs:', participantIds);
+
+let participants = [];
+
+if (participantIds.length > 0) {
+  // Build OR filter with all participant record IDs
+  const orConditions = participantIds.map(id => `RECORD_ID()="${id}"`).join(',');
+  const filterFormula = `OR(${orConditions})`;
+  
+  const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
+  
+  const participantsResponse = await fetch(participantsUrl, { 
+    headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } 
+  });
+
+  const participantsText = await participantsResponse.text();
+  const participantsData = JSON.parse(participantsText);
+  participants = participantsData.records || [];
+}
 
 console.log('[ZOHO] Found participants:', participants.length);
 console.log('[ZOHO] Participant details:', participants.map(p => ({
