@@ -20,8 +20,9 @@ export default async function handler(req, res) {
 
     console.log('[CRON] Starting Zoho sync job...');
 
-    // Find all confirmed bookings from the last 10 minutes that haven't been synced
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+   // Look back 24 hours
+const LOOKBACK_HOURS = 24;
+const lookbackTime = new Date(Date.now() - (LOOKBACK_HOURS * 60 * 60 * 1000)).toISOString();
     
     const bookingsResponse = await fetch(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND({Status}='Confirmed',{Payment Date}>'${tenMinutesAgo}',{Zoho Synced}=FALSE())`,
