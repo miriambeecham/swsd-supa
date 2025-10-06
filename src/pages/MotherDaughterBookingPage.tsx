@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { PublicClassPolicySummary } from './PublicClassPolicies';
+import { PublicClassPolicySummary } from './PublicClassPoliciesPage';
 
 type AgeGroup = '' | 'Under 12' | '12-15' | '16+';
 
