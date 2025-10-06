@@ -202,42 +202,36 @@ const AdultBookingPage: React.FC = () => {
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
-  // UPDATED: Format time using new time fields
-// UPDATED: Format time from ISO datetime strings
 const formatClassTime = () => {
   if (classSchedule.start_time_new && classSchedule.end_time_new) {
     try {
       const startDate = new Date(classSchedule.start_time_new);
       const endDate = new Date(classSchedule.end_time_new);
       
-      const startTime = startDate.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'America/Los_Angeles'
-      });
-      
-      const endTime = endDate.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'America/Los_Angeles'
-      });
-      
-      return `${startTime} - ${endTime}`;
+      // Validate dates are valid
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+        const startTime = startDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
+        });
+        
+        const endTime = endDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
+        });
+        
+        return `${startTime} - ${endTime}`;
+      }
     } catch (error) {
       console.error('Error formatting time:', error);
-      // Fallback to old fields if parsing fails
-      return classSchedule.start_time && classSchedule.end_time
-        ? `${classSchedule.start_time} - ${classSchedule.end_time}`
-        : 'TBD';
     }
   }
   
-  // Fallback to old fields if new ones don't exist
-  return classSchedule.start_time && classSchedule.end_time
-    ? `${classSchedule.start_time} - ${classSchedule.end_time}`
-    : 'TBD';
+  return 'TBD';
 };
 
 
