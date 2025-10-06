@@ -234,13 +234,14 @@ export default async function handler(req, res) {
       return res.json({
         success: true,
         booking: {
-          className: classData?.fields?.['Class Name'] || classData?.fields?.['Title'] || 'Self-Defense Class',
-          classDate: scheduleData?.fields?.Date,
-          startTime: scheduleData?.fields?.['Start Time'],
-          endTime: scheduleData?.fields?.['End Time'],
-          location: scheduleData?.fields?.Location || classData?.fields?.Location,
-          participantCount: booking.fields['Number of Participants'],
-          totalAmount: booking.fields['Total Amount']
+      className: schedule.fields['Class Name'],
+      classDate: schedule.fields.Date,
+      startTime: schedule.fields['Start Time New'],
+      endTime: schedule.fields['End Time New'],
+      location: schedule.fields.Location,
+      participantCount: booking.fields['Number of Participants'],
+      totalAmount: booking.fields['Total Amount'],
+      waiverUrl: schedule.fields['Waiver URL']  // ← Add this
         }
       });
 
