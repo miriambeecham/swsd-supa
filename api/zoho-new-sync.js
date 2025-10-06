@@ -246,20 +246,26 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
   bookerContactId = bookerResult.data[0].details.id;
   console.log('[ZOHO] Booker contact ID:', bookerContactId);
 
-  // STEP 2: FETCH PARTICIPANTS FROM AIRTABLE
-  console.log('[ZOHO] Fetching participants from Airtable...');
-  
-  const filterFormula = `{Booking} = "${bookingId}"`;
-  const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
+ 
+// STEP 2: FETCH PARTICIPANTS FROM AIRTABLE
+console.log('[ZOHO] Fetching participants from Airtable...');
 
-  const participantsResponse = await fetch(participantsUrl, { 
-    headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } 
-  });
+const filterFormula = `{Booking} = "${bookingId}"`;
+const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
-  const participantsText = await participantsResponse.text();
-  const participantsData = JSON.parse(participantsText);
-  const participants = participantsData.records || [];
-  console.log('[ZOHO] Found participants:', participants.length);
+const participantsResponse = await fetch(participantsUrl, { 
+  headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } 
+});
+
+const participantsText = await participantsResponse.text();  // <-- This line was missing
+const participantsData = JSON.parse(participantsText);
+const participants = participantsData.records || [];
+
+console.log('[ZOHO] Found participants:', participants.length);
+console.log('[ZOHO] Participant details:', participants.map(p => ({
+  name: `${p.fields['First Name']} ${p.fields['Last Name']}`,
+  ageGroup: p.fields['Age Group']
+})));
 
   // STEP 3: CREATE PARTICIPANT CONTACTS
   let contactsToCreate = [];
@@ -315,56 +321,76 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
 
   console.log('[ZOHO] Contacts to create:', contactsToCreate.length);
 
-  // STEP 4: UPSERT PARTICIPANT CONTACTS
-  for (const { data: contactData } of contactsToCreate) {
-    const participantName = `${contactData.First_Name} ${contactData.Last_Name}`;
-    
-    const searchResponse = await fetch(
-      `https://www.zohoapis.com/crm/v2/Contacts/search?criteria=(Email:equals:${encodeURIComponent(contactData.Email)})and(First_Name:equals:${encodeURIComponent(contactData.First_Name)})and(Last_Name:equals:${encodeURIComponent(contactData.Last_Name)})`,
-      {
-        headers: {
-          'Authorization': `Zoho-oauthtoken ${access_token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+// STEP 4: UPSERT PARTICIPANT CONTACTS
+console.log('[ZOHO] Starting participant upsert loop...');
+console.log('[ZOHO] Total contacts to create:', contactsToCreate.length);
 
-    if (searchResponse.ok) {
-      const searchText = await searchResponse.text();
-      
-      if (searchText && searchText.trim().length > 0) {
-        try {
-          const searchData = JSON.parse(searchText);
-          if (searchData.data && searchData.data.length > 0) {
-            const existing = searchData.data[0];
-            contactData.Class_History = existing.Class_History 
-              ? `${existing.Class_History}\n${newClassEntry}`
-              : newClassEntry;
-            contactData.Total_Classes_Attended = (existing.Total_Classes_Attended || 0) + 1;
-          }
-        } catch (parseErr) {
-          // New participant
-        }
-      }
-    }
-
-    console.log(`[ZOHO] Upserting contact: ${participantName}`);
-    
-    await fetch('https://www.zohoapis.com/crm/v2/Contacts/upsert', {
-      method: 'POST',
+for (const { data: contactData } of contactsToCreate) {
+  const participantName = `${contactData.First_Name} ${contactData.Last_Name}`;
+  
+  console.log(`[ZOHO] ===== Processing participant: ${participantName} =====`);
+  console.log(`[ZOHO] Participant data:`, JSON.stringify(contactData, null, 2));
+  
+  const searchResponse = await fetch(
+    `https://www.zohoapis.com/crm/v2/Contacts/search?criteria=(Email:equals:${encodeURIComponent(contactData.Email)})and(First_Name:equals:${encodeURIComponent(contactData.First_Name)})and(Last_Name:equals:${encodeURIComponent(contactData.Last_Name)})`,
+    {
       headers: {
         'Authorization': `Zoho-oauthtoken ${access_token}`,
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        data: [contactData],
-        duplicate_check_fields: ['Email', 'First_Name', 'Last_Name'],
-        trigger: ['workflow']
-      })
-    });
+      }
+    }
+  );
+
+  console.log(`[ZOHO] Search response status: ${searchResponse.status}`);
+
+  if (searchResponse.ok) {
+    const searchText = await searchResponse.text();
+    console.log(`[ZOHO] Search response text (first 200 chars):`, searchText.substring(0, 200));
+    
+    if (searchText && searchText.trim().length > 0) {
+      try {
+        const searchData = JSON.parse(searchText);
+        if (searchData.data && searchData.data.length > 0) {
+          const existing = searchData.data[0];
+          console.log(`[ZOHO] Found existing participant: ${existing.id}`);
+          contactData.Class_History = existing.Class_History 
+            ? `${existing.Class_History}\n${newClassEntry}`
+            : newClassEntry;
+          contactData.Total_Classes_Attended = (existing.Total_Classes_Attended || 0) + 1;
+        } else {
+          console.log(`[ZOHO] No existing participant found, creating new`);
+        }
+      } catch (parseErr) {
+        console.log(`[ZOHO] Parse error (likely no existing):`, parseErr.message);
+      }
+    }
   }
 
-  console.log('[ZOHO] Sync completed');
+  console.log(`[ZOHO] Upserting contact with data:`, JSON.stringify(contactData, null, 2));
+  
+  const upsertResponse = await fetch('https://www.zohoapis.com/crm/v2/Contacts/upsert', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Zoho-oauthtoken ${access_token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      data: [contactData],
+      duplicate_check_fields: ['Email', 'First_Name', 'Last_Name'],
+      trigger: ['workflow']
+    })
+  });
+
+  console.log(`[ZOHO] Upsert response status: ${upsertResponse.status}`);
+  const upsertText = await upsertResponse.text();
+  console.log(`[ZOHO] Upsert response:`, upsertText);
+  
+  if (!upsertResponse.ok) {
+    console.error(`[ZOHO] ✗ Failed to create participant ${participantName}`);
+  } else {
+    console.log(`[ZOHO] ✓ Successfully created/updated participant ${participantName}`);
+  }
 }
 
+console.log('[ZOHO] Participant upsert loop completed');
 // Updated Sun Oct  5 22:20:28 UTC 2025
