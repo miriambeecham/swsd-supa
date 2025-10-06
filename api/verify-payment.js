@@ -114,9 +114,16 @@ export default async function handler(req, res) {
         if (RESEND_API_KEY && booking.fields['Contact Email']) {
           const resend = new Resend(RESEND_API_KEY);
           
-          // Helper: Convert time to ISO
+          // Helper: Convert time to ISO - UPDATED to use new time fields
           const convertToISO = (dateStr, timeStr) => {
             if (!dateStr || !timeStr) return new Date().toISOString();
+            
+            // Handle ISO datetime format (from Start Time New / End Time New)
+            if (timeStr.includes('T')) {
+              return new Date(timeStr).toISOString();
+            }
+            
+            // Handle legacy time format "10:00 AM"
             const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
             if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
             
@@ -130,8 +137,32 @@ export default async function handler(req, res) {
             return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
           };
           
-          const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time']);
-          const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time']);
+          // Helper: Format time for display
+          const formatTimeForDisplay = (timeStr) => {
+            if (!timeStr) return 'TBD';
+            
+            // If it's ISO format, parse it
+            if (timeStr.includes('T')) {
+              const date = new Date(timeStr);
+              return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'America/Los_Angeles'
+              });
+            }
+            
+            // If it's already formatted, return as-is
+            return timeStr;
+          };
+          
+          // Use new time fields
+          const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time New']);
+          const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time New']);
+          
+          // Format times for email display
+          const displayStartTime = formatTimeForDisplay(scheduleData?.fields?.['Start Time New']);
+          const displayEndTime = formatTimeForDisplay(scheduleData?.fields?.['End Time New']);
           
           // Google Calendar URL
           const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self-Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self-defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
@@ -171,7 +202,7 @@ export default async function handler(req, res) {
     <h2 style="color: #1E293B; margin-top: 0;">Your Class Details</h2>
     <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self-Defense Class'}</p>
     <p><strong>Date:</strong> ${formattedDate}</p>
-    <p><strong>Time:</strong> ${scheduleData?.fields?.['Start Time']} - ${scheduleData?.fields?.['End Time']}</p>
+    <p><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</p>
     <p><strong>Location:</strong> ${scheduleData?.fields?.Location || 'Walnut Creek, CA'}</p>
     <p><strong>Participants:</strong> ${booking.fields['Number of Participants'] || 1}</p>
     <p><strong>Total Paid:</strong> $${booking.fields['Total Amount'] || 0}</p>
@@ -229,19 +260,18 @@ export default async function handler(req, res) {
         // Don't fail the request if email fails
       }
 
-   
-
+      // FIXED: Return booking data using scheduleData instead of undefined 'schedule'
       return res.json({
         success: true,
         booking: {
-      className: schedule.fields['Class Name'],
-      classDate: schedule.fields.Date,
-      startTime: schedule.fields['Start Time New'],
-      endTime: schedule.fields['End Time New'],
-      location: schedule.fields.Location,
-      participantCount: booking.fields['Number of Participants'],
-      totalAmount: booking.fields['Total Amount'],
-      waiverUrl: schedule.fields['Waiver URL']  // ← Add this
+          className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+          classDate: scheduleData?.fields?.Date || null,
+          startTime: scheduleData?.fields?.['Start Time New'] || null,
+          endTime: scheduleData?.fields?.['End Time New'] || null,
+          location: scheduleData?.fields?.Location || null,
+          participantCount: booking.fields['Number of Participants'] || 1,
+          totalAmount: booking.fields['Total Amount'] || 0,
+          waiverUrl: scheduleData?.fields?.['Waiver URL'] || null
         }
       });
 
