@@ -34,14 +34,21 @@ export default async function handler(req, res) {
 
     const bookingsData = await bookingsResponse.json();
     const bookings = bookingsData.records || [];
+    
 
     console.log(`[CRON] Found ${bookings.length} bookings to sync`);
 
     const results = [];
+
+
     
     for (const booking of bookings) {
       try {
         console.log(`[CRON] Processing booking ${booking.id}`);
+              
+        // Get the autonumber from the booking
+        const bookingNumber = booking.fields['Booking ID'];
+        console.log(`[CRON] Booking record ID: ${booking.id}, Booking number: ${bookingNumber}`);
         
         // Get class schedule details
         const scheduleId = booking.fields['Class Schedule']?.[0];
@@ -94,6 +101,7 @@ export default async function handler(req, res) {
           classInfo,
           prepPageUrl: classPreparationUrl,
           bookingId: booking.id,
+          bookingNumber: bookingNumber,  // Add this
           classType
         });
         
@@ -137,7 +145,7 @@ export default async function handler(req, res) {
 }
 
 // Inline Zoho contact creation function
-async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, bookingId, classType }) {
+async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, bookingId, bookingNumber, classType }) {
   console.log('[ZOHO] Starting contact creation process');
   
   const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID;
@@ -250,7 +258,7 @@ async function createZohoContacts({ contactInfo, classInfo, prepPageUrl, booking
 // STEP 2: FETCH PARTICIPANTS FROM AIRTABLE
 console.log('[ZOHO] Fetching participants from Airtable...');
 
-const filterFormula = `RECORD_ID({Booking}) = "${bookingId}"`;
+const filterFormula = `{Booking ID} = "${bookingNumber}"`;  // Use the autonumber, not bookingId
 const participantsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`;
 
 const participantsResponse = await fetch(participantsUrl, { 
