@@ -136,30 +136,30 @@ export default function StripeSuccessPage() {
           <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">{booking.className}</h2>
             <div className="space-y-3 text-gray-700">
-              <div className="grid grid-cols-[auto_1fr] gap-x-4">
-                <span className="font-medium">Date:</span>
+              <div className="flex">
+                <span className="font-medium w-32 flex-shrink-0">Date:</span>
                 <span>{booking.classDate || 'TBD'}</span>
               </div>
               
-              <div className="grid grid-cols-[auto_1fr] gap-x-4">
-                <span className="font-medium">Time:</span>
+              <div className="flex">
+                <span className="font-medium w-32 flex-shrink-0">Time:</span>
                 <span>
                   {formatDisplayTime(booking.startTime)} – {formatDisplayTime(booking.endTime)}
                 </span>
               </div>
               
-              <div className="grid grid-cols-[auto_1fr] gap-x-4 items-start">
-                <span className="font-medium whitespace-nowrap">Location:</span>
-                <span className="break-words">{booking.location || 'TBD'}</span>
+              <div className="flex">
+                <span className="font-medium w-32 flex-shrink-0">Location:</span>
+                <span className="flex-1">{booking.location || 'TBD'}</span>
               </div>
               
-              <div className="grid grid-cols-[auto_1fr] gap-x-4">
-                <span className="font-medium">Participants:</span>
+              <div className="flex">
+                <span className="font-medium w-32 flex-shrink-0">Participants:</span>
                 <span>{booking.participantCount ?? 1}</span>
               </div>
               
-              <div className="grid grid-cols-[auto_1fr] gap-x-4">
-                <span className="font-medium">Total Paid:</span>
+              <div className="flex">
+                <span className="font-medium w-32 flex-shrink-0">Total Paid:</span>
                 <span className="text-teal-600 font-semibold">${booking.totalAmount?.toFixed?.(2) ?? '0.00'}</span>
               </div>
               
@@ -219,9 +219,9 @@ export default function StripeSuccessPage() {
             </div>
           )}
 
-          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-            <h3 className="font-medium text-teal-900 mb-2">What's Next?</h3>
-            <ul className="text-sm text-teal-800 space-y-1 mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-2">What's Next?</h3>
+            <ul className="text-sm text-gray-700 space-y-1 mb-4">
               <li>✓ Check your email for confirmation details</li>
               <li>✓ Add the class to your calendar</li>
               {booking.waiverUrl && (
@@ -231,14 +231,14 @@ export default function StripeSuccessPage() {
             </ul>
 
             {booking.waiverUrl && (
-              <div className="mt-4 pt-4 border-t border-teal-200">
+              <div className="mt-4 pt-4 border-t border-gray-300">
                 <div className="flex items-start gap-2 mb-2">
-                  <svg className="w-5 h-5 text-teal-700 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-700 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div className="flex-1">
-                    <p className="font-medium text-teal-900">Waiver Required</p>
-                    <p className="text-sm text-teal-800">
+                    <p className="font-medium text-gray-900">Waiver Required</p>
+                    <p className="text-sm text-gray-700">
                       Each participant must complete a waiver before class.
                       {booking.participantCount && booking.participantCount > 1 && (
                         <span className="font-medium"> Please share this link with all {booking.participantCount} participants.</span>
@@ -312,12 +312,29 @@ export default function StripeSuccessPage() {
 function formatDisplayTime(timeStr: string | null | undefined): string {
   if (!timeStr) return 'TBD';
   
+  // If it's an ISO datetime string (YYYY-MM-DDTHH:mm:ss), extract and format the time
+  if (timeStr.includes('T')) {
+    try {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
+        });
+      }
+    } catch (e) {
+      console.error('Error parsing time:', e);
+    }
+  }
+  
   // If it's already formatted nicely (e.g., "10:00 AM"), return as-is
   if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(timeStr)) {
     return timeStr;
   }
   
-  // If it's an ISO datetime string, parse and format
+  // Try to parse with parseTimeString as fallback
   const parsed = parseTimeString(timeStr);
   if (parsed) {
     const { hh, mm } = parsed;
