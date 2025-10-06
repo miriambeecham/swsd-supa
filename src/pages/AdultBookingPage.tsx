@@ -12,7 +12,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, Info } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 // Import the policy summary component
-import { PublicClassPolicySummary } from './PublicClassPolicies';
+import { PublicClassPolicySummary } from './PublicClassPoliciesPage';
 
 type AdditionalAdult = { firstName: string; lastName: string };
 
