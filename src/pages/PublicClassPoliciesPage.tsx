@@ -2,6 +2,45 @@ import React from 'react';
 import { CreditCard, Calendar, XCircle, Info } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 
+export const PublicClassPolicySummary = () => {
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <h4 className="font-semibold text-navy mb-3 flex items-center gap-2">
+        <Info className="w-5 h-5" />
+        Booking Policies - Quick Summary
+      </h4>
+      <ul className="text-sm text-gray-700 space-y-2">
+        <li className="flex items-start gap-2">
+          <span className="text-accent-primary font-bold mt-0.5">•</span>
+          <span><strong>Payment:</strong> Full payment due at booking</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-accent-primary font-bold mt-0.5">•</span>
+          <span><strong>Reschedule:</strong> Free with 72+ hours notice, $20 fee for additional reschedules</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-accent-primary font-bold mt-0.5">•</span>
+          <span><strong>Cancellation:</strong> Full refund if cancelled 2+ weeks out</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="text-accent-primary font-bold mt-0.5">•</span>
+          <span><strong>Substitutions:</strong> Always welcome (subject to age/eligibility)</span>
+        </li>
+      </ul>
+      <div className="mt-3 pt-3 border-t border-blue-200">
+        <a 
+          href="/public-class-policies" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-accent-primary hover:text-accent-dark font-medium text-sm underline"
+        >
+          View full booking policies →
+        </a>
+      </div>
+    </div>
+  );
+};
+
 const PublicClassPolicies = () => {
   return (
     <div>
@@ -33,7 +72,7 @@ const PublicClassPolicies = () => {
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
                 ⚠️ Important: Classes hosted by City of Walnut Creek are subject to their policies.{' '}
                 <a 
-                  href="https://www.walnutcreekartsrec.org/programs-activities" 
+                  href="https://www.walnut-creek.org/departments/parks-recreation" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="underline hover:text-yellow-700"
