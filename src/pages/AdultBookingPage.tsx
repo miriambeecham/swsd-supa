@@ -239,9 +239,7 @@ const formatClassTime = () => {
     ? `${classSchedule.start_time} - ${classSchedule.end_time}`
     : 'TBD';
 };
-    // Fallback to old fields if new ones don't exist
-    return `${classSchedule.start_time} - ${classSchedule.end_time}`;
-  };
+
 
   const errorsToShow = showValidation ? collectErrors() : [];
 
