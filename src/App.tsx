@@ -18,6 +18,9 @@ import MotherDaughterBookingPage from './pages/MotherDaughterBookingPage';
 import AdultBookingPage from './pages/AdultBookingPage';
 import AdminClassPrepLinksPage from './pages/AdminClassPrepLinksPage';
 import ClassPrepPage from './pages/ClassPrepPage';
+import PublicClassPoliciesPage from './pages/PublicClassPoliciesPage';
+import PrivateClassPoliciesPage from './pages/PrivateClassPoliciesPage';
+
 
 
 
@@ -52,6 +55,8 @@ function App() {
             <Route path="/stripe-success" element={<StripeSuccessPage />} />
             <Route path="/admin/class-prep-links" element={<AdminClassPrepLinksPage />} />
             <Route path="/class-prep/:scheduleId" element={<ClassPrepPage />} />
+            <Route path="/public-class-policies" element={<PublicClassPoliciesPage />} />
+            <Route path="/private-class-policies" element={<PrivateClassPoliciesPage />} />
             
           </Routes>
         </Layout>
