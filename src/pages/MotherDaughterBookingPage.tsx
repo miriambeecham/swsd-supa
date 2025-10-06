@@ -225,20 +225,42 @@ const MotherDaughterBookingPage = () => {
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
-  const formatClassTime = () => {
-    if (classSchedule.start_time_new && classSchedule.end_time_new) {
-      const startTime = new Date(classSchedule.start_time_new).toLocaleTimeString('en-US', {
+// UPDATED: Format time from ISO datetime strings
+const formatClassTime = () => {
+  if (classSchedule.start_time_new && classSchedule.end_time_new) {
+    try {
+      const startDate = new Date(classSchedule.start_time_new);
+      const endDate = new Date(classSchedule.end_time_new);
+      
+      const startTime = startDate.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: 'America/Los_Angeles'
       });
-      const endTime = new Date(classSchedule.end_time_new).toLocaleTimeString('en-US', {
+      
+      const endTime = endDate.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: 'America/Los_Angeles'
       });
+      
       return `${startTime} - ${endTime}`;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      // Fallback to old fields if parsing fails
+      return classSchedule.start_time && classSchedule.end_time
+        ? `${classSchedule.start_time} - ${classSchedule.end_time}`
+        : 'TBD';
     }
+  }
+  
+  // Fallback to old fields if new ones don't exist
+  return classSchedule.start_time && classSchedule.end_time
+    ? `${classSchedule.start_time} - ${classSchedule.end_time}`
+    : 'TBD';
+};
     // Fallback to old fields if new ones don't exist
     return `${classSchedule.start_time} - ${classSchedule.end_time}`;
   };
