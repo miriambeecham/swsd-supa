@@ -228,6 +228,10 @@ export default async function handler(req, res) {
     <li>Athletic shoes (no sandals or flip-flops)</li>
     <li>Open mind and willingness to learn!</li>
   </ul>
+
+ <p style="font-size: 14px; color: #6B7280; text-align: center; margin: 20px 0;">
+    Need to reschedule or cancel? Review our <a href="https://www.streetwiseselfdefense.com/public-class-policies" style="color: #14b8a6; text-decoration: underline;">cancellation and reschedule policy</a>.
+  </p>
   
   <p>Questions? Visit <a href="https://www.streetwiseselfdefense.com" style="color: #14b8a6;">streetwiseselfdefense.com</a> or reply to this email.</p>
   
