@@ -74,17 +74,6 @@ const PublicClassesPage = () => {
       return false;
     }
   };
-
-  // Get unique cities from all classes
-  const getAvailableCities = () => {
-    const cities = new Set<string>();
-    classSchedules.forEach(classData => {
-      if (classData.city && classData.city !== 'Unknown') {
-        cities.add(classData.city);
-      }
-    });
-    return ['All', ...Array.from(cities).sort()];
-  };
   
   useEffect(() => {
     fetchClassesFromAirtable();
