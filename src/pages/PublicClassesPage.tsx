@@ -1,4 +1,22 @@
-import React, { useState, useEffect } from 'react';
+// Filter classes by type for different sections
+  const motherDaughterClasses = classSchedules.filter(c => 
+    c.type === 'public: mother & daughter'
+  );
+
+  const adultTeenClasses = classSchedules.filter(c => 
+    c.type === 'public: adult & teen'
+  );
+
+  // Apply city filter to classes
+  const filterByCity = (classes: ClassSchedule[]) => {
+    if (selectedCity === 'All') return classes;
+    
+    return classes.filter(classData => {
+      return classData.city === selectedCity;
+    });
+  };
+
+  import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
@@ -12,6 +30,7 @@ interface ClassSchedule {
   duration: number;
   max_participants?: number;
   location: string;
+  city?: string;
   instructor: string;
   price: number;
   pricing_unit: string;
@@ -33,6 +52,7 @@ const PublicClassesPage = () => {
   const navigate = useNavigate();
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
   const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
+  const [selectedCity, setSelectedCity] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +73,17 @@ const PublicClassesPage = () => {
       console.error('Date parsing error:', error);
       return false;
     }
+  };
+
+  // Get unique cities from all classes
+  const getAvailableCities = () => {
+    const cities = new Set<string>();
+    classSchedules.forEach(classData => {
+      if (classData.city && classData.city !== 'Unknown') {
+        cities.add(classData.city);
+      }
+    });
+    return ['All', ...Array.from(cities).sort()];
   };
   
   useEffect(() => {
@@ -133,6 +164,7 @@ const PublicClassesPage = () => {
             duration: classRecord.fields['Duration'] || 60,
             max_participants: classRecord.fields['Max Participants'],
             location: classRecord.fields['Location'] || '',
+            city: classRecord.fields['City'] || '',
             instructor: classRecord.fields['Instructor'] || '',
             price: classRecord.fields['Price'] || 0,
             pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
@@ -233,12 +265,11 @@ const PublicClassesPage = () => {
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true,
-      timeZone: 'America/Los_Angeles'  // Force Pacific time
+      timeZone: 'America/Los_Angeles'
     });
   };
 
   const formatClassDate = (dateString: string) => {
-    // Add noon time to prevent timezone issues
     const date = new Date(dateString + 'T12:00:00');
     return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -317,6 +348,8 @@ const PublicClassesPage = () => {
       checkIfFull();
     }, [classData.id, classData.max_participants, classData.booking_method]);
 
+    const registrationClosed = isRegistrationClosed(classData.start_time_new);
+
     return (
       <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
         <div className="flex justify-between items-start">
@@ -335,10 +368,21 @@ const PublicClassesPage = () => {
             <div className="mb-4 space-y-2">
               <div className="flex items-start gap-2 min-h-[24px]">
                 <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-                <span className="text-md font-semibold text-gray-700 leading-tight">
-                  {formatClassDate(classData.date)}
-                </span>
+                <div className="flex-1">
+                  <span className="text-md font-semibold text-gray-700 leading-tight">
+                    {formatClassDate(classData.date)}
+                  </span>
+                  {/* Full Badge - positioned right under the date */}
+                  {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' && (
+                    <div className="mt-1">
+                      <span className="inline-block bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs font-medium">
+                        Full
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
+              
               <div className="flex items-start gap-2 min-h-[24px]">
                 <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
                 <span className="text-md font-medium text-gray-700 leading-tight">
@@ -373,19 +417,23 @@ const PublicClassesPage = () => {
           {/* Button/Registration Area */}
           <div className="ml-4">
             {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
-              // Class is full - only show for SWSD website bookings
-              <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-                <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
-                  Class Full
-                </div>
-              </div>
-            ) : isRegistrationClosed(classData.start_time_new) ? (
-              // Registration closed - within 4 hours
-              <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-                <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
-                  Registration Closed
-                </div>
-              </div>
+              // Class is full - UPDATED: disabled button instead of pill
+              <button
+                disabled
+                className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
+                title="This class is at capacity"
+              >
+                Class Full
+              </button>
+            ) : registrationClosed ? (
+              // Registration closed - within 4 hours - UPDATED: disabled button
+              <button
+                disabled
+                className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
+                title="Registration has closed for this class"
+              >
+                Registration Closed
+              </button>
             ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
               classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
               // SWSD internal booking
@@ -450,7 +498,7 @@ const PublicClassesPage = () => {
         {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
         {classData.max_participants && classData.start_time_new && 
          classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-         !isFull && !isRegistrationClosed(classData.start_time_new) && (
+         !isFull && !registrationClosed && (
           <AvailabilityDisplay 
             classScheduleId={classData.id} 
             maxParticipants={classData.max_participants} 
@@ -572,6 +620,52 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
+          {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
+          {getAvailableCities().length > 1 && (
+            <div className="mb-8">
+              {/* Mobile Dropdown */}
+              <div className="md:hidden">
+                <label htmlFor="city-filter" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+                  Filter by City:
+                </label>
+                <select
+                  id="city-filter"
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                >
+                  {getAvailableCities().map(city => (
+                    <option key={city} value={city}>
+                      {city === 'All' ? 'All Cities' : city}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Desktop Horizontal Chips */}
+              <div className="hidden md:block">
+                <div className="text-center mb-3">
+                  <span className="text-sm font-medium text-gray-700">Filter by City:</span>
+                </div>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {getAvailableCities().map(city => (
+                    <button
+                      key={city}
+                      onClick={() => setSelectedCity(city)}
+                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                        selectedCity === city
+                          ? 'bg-accent-primary text-white shadow-md'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {city === 'All' ? 'All Cities' : city}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Private Classes Call-out */}
           <div className="mb-12 flex justify-center">
             <div className="max-w-2xl px-4">
@@ -617,12 +711,16 @@ const PublicClassesPage = () => {
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {adultTeenClasses.length === 0 ? (
+                {filterByCity(adultTeenClasses).length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No upcoming Adults & Teens classes scheduled.</p>
+                    <p className="text-gray-600">
+                      {selectedCity === 'All' 
+                        ? 'No upcoming Adults & Teens classes scheduled.' 
+                        : `No upcoming Adults & Teens classes in ${selectedCity}.`}
+                    </p>
                   </div>
                 ) : (
-                  adultTeenClasses.map((classData) => (
+                  filterByCity(adultTeenClasses).map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
@@ -658,12 +756,16 @@ const PublicClassesPage = () => {
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {motherDaughterClasses.length === 0 ? (
+                {filterByCity(motherDaughterClasses).length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No upcoming Mother & Daughter Classes scheduled.</p>
+                    <p className="text-gray-600">
+                      {selectedCity === 'All' 
+                        ? 'No upcoming Mother & Daughter Classes scheduled.' 
+                        : `No upcoming Mother & Daughter Classes in ${selectedCity}.`}
+                    </p>
                   </div>
                 ) : (
-                  motherDaughterClasses.map((classData) => (
+                  filterByCity(motherDaughterClasses).map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
