@@ -41,6 +41,7 @@ export default async function handler(req, res) {
         'Duration': record.fields.Duration,
         'Max Participants': record.fields['Max Participants'],
         'Location': record.fields.Location,
+        'City': record.fields.City,
         'Instructor': record.fields.Instructor,
         'Price': record.fields.Price,
         'Partner Organization': record.fields['Partner Organization'],
