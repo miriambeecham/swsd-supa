@@ -88,39 +88,6 @@ const PublicClassPolicies = () => {
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-lg">
-                  <CreditCard className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold">Payment Policy</h2>
-              </div>
-            </div>
-            <div className="p-6 bg-white">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Full payment is due at the time of booking.</strong>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    Payment secures your spot in class (capacity is limited).
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    All major credit cards accepted.
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-accent-primary text-white px-8 py-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-lg">
                   <Calendar className="w-6 h-6" />
                 </div>
                 <h2 className="text-2xl font-bold">Reschedule and Cancellation Policies</h2>
@@ -131,19 +98,19 @@ const PublicClassPolicies = () => {
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">14+ days before class:</strong> Full refunds available.
+                    <strong className="text-navy">14 days or more before class:</strong> Full refund or one free reschedule. Additional reschedules $20 each.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">3-14 days before class:</strong> You will receive a non-refundable class credit valid for 12 months. Credit can be rescheduled once; additional changes require a $20 rebooking fee.
+                    <strong className="text-navy">3-14 days before class:</strong>Non-refundable class credit (valid 12 months). 
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Under 3 days before class:</strong> No reschedule or credit available. 
+                    <strong className="text-navy">Under 3 days (less than 72 hours) before class start:</strong> No refund or credit. Substitutions allowed.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
