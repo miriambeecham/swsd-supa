@@ -203,12 +203,21 @@ const AdultBookingPage: React.FC = () => {
   };
 
 const formatClassTime = () => {
+  // DEBUG: Log what we're receiving
+  console.log('classSchedule object:', classSchedule);
+  console.log('start_time_new:', classSchedule.start_time_new);
+  console.log('end_time_new:', classSchedule.end_time_new);
+  
   if (classSchedule.start_time_new && classSchedule.end_time_new) {
     try {
       const startDate = new Date(classSchedule.start_time_new);
       const endDate = new Date(classSchedule.end_time_new);
       
-      // Validate dates are valid
+      console.log('startDate:', startDate);
+      console.log('endDate:', endDate);
+      console.log('startDate valid?', !isNaN(startDate.getTime()));
+      console.log('endDate valid?', !isNaN(endDate.getTime()));
+      
       if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
         const startTime = startDate.toLocaleTimeString('en-US', {
           hour: 'numeric',
@@ -233,7 +242,6 @@ const formatClassTime = () => {
   
   return 'TBD';
 };
-
 
   const errorsToShow = showValidation ? collectErrors() : [];
 
