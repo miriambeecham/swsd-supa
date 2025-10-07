@@ -227,7 +227,7 @@ export default function StripeSuccessPage() {
               {booking.waiverUrl && (
                 <li>✓ Complete the waiver form below (required for each participant)</li>
               )}
-              <li>✓ Wear comfortable athletic clothing</li>
+              <li>✓ Wear comfortable athletic clothing (no shorts or jewelry, please)</li>
             </ul>
 
             {booking.waiverUrl && (
@@ -239,9 +239,9 @@ export default function StripeSuccessPage() {
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Waiver Required</p>
                     <p className="text-sm text-gray-700">
-                      Each participant must complete a waiver before class.
+                      Each participant must complete a waiver before class. 
                       {booking.participantCount && booking.participantCount > 1 && (
-                        <span className="font-medium"> Please share this link with all {booking.participantCount} participants.</span>
+                        <span className="font-medium"> Please share this link with everyone in your party.</span>
                       )}
                     </p>
                   </div>
