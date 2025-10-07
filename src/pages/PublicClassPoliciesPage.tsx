@@ -123,7 +123,7 @@ const PublicClassPolicies = () => {
                 <div className="bg-white/20 p-3 rounded-lg">
                   <Calendar className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold">Rescheduling Policy</h2>
+                <h2 className="text-2xl font-bold">Reschedule and Cancellation Policies</h2>
               </div>
             </div>
             <div className="p-6 bg-white">
@@ -131,7 +131,7 @@ const PublicClassPolicies = () => {
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">14+ days before class:</strong> You may reschedule to another available class date at no charge.
+                    <strong className="text-navy">14+ days before class:</strong> Full refunds available.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -143,16 +143,21 @@ const PublicClassPolicies = () => {
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Under 3 days before class:</strong> No reschedule or credit available. See substitution policy below.
+                    <strong className="text-navy">Under 3 days before class:</strong> No reschedule or credit available. 
                   </span>
                 </li>
-                <li className="flex items-start gap-3">
+                      <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    Class credits are non-refundable and non-transferable. They must be used by the original purchaser.
+                    <strong className="text-navy">Substitutions always allowed:</strong> You may send someone in your place (must meet age and eligibility requirements). Email us at{' '}
+                    <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
+                      support@streetwiseselfdefense.com
+                    </a>{' '}
+                    with the replacement participant&apos;s name and email address.
                   </span>
-                </li>
+              
               </ul>
+              
 
               <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
@@ -165,51 +170,7 @@ const PublicClassPolicies = () => {
                   Please include: Email address used to register, current class date, preferred new class date, and which participant(s) need to reschedule (if applicable).
                 </p>
               </div>
-            </div>
-          </div>
-
-          <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-accent-primary text-white px-8 py-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-lg">
-                  <XCircle className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold">Cancellation Policy</h2>
-              </div>
-            </div>
-            <div className="p-6 bg-white">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">14+ days before class:</strong> Full refund available.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">3-14 days before class:</strong> Non-refundable class credit issued (valid for 12 months).
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Under 3 days before class:</strong> No refund or credit available. Substitutions permitted (see below).
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Substitutions always allowed:</strong> You may send someone in your place (must meet age and eligibility requirements). Email us at{' '}
-                    <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
-                      support@streetwiseselfdefense.com
-                    </a>{' '}
-                    with the replacement participant&apos;s name and email address.
-                  </span>
-                </li>
-              </ul>
-
-              <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
+            <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
                   <strong className="text-navy">Need to cancel?</strong> Email us at{' '}
                   <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
@@ -219,11 +180,15 @@ const PublicClassPolicies = () => {
                 <p className="text-sm text-gray-600">
                   Please include: Email address used to register, class date, and which participant(s) are canceling.
                 </p>
-              </div>
+            </div>
+
+
+              
             </div>
           </div>
 
-          <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        
+           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-lg">
@@ -258,24 +223,7 @@ const PublicClassPolicies = () => {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-xl font-semibold text-navy mb-3">Weather & Emergencies</h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      Outdoor classes may be rescheduled due to unsafe weather conditions (heavy rain, lightning, extreme heat/cold).
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      You will be notified and offered a reschedule or refund at no charge.
-                    </span>
-                  </li>
-                </ul>
-              </div>
-
+            
               <div>
                 <h3 className="text-xl font-semibold text-navy mb-3">No-Show Policy</h3>
                 <ul className="space-y-3">
@@ -300,29 +248,7 @@ const PublicClassPolicies = () => {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-xl font-semibold text-navy mb-3">Late Arrivals</h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      Please arrive 10 minutes before your scheduled class time for check-in and safety briefing.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      Late arrivals (within 15 minutes) may participate in the remaining class time, but no refund or time extension is provided.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      Arrivals more than 15 minutes late may not be able to participate for safety reasons (see No-Show Policy above).
-                    </span>
-                  </li>
-                </ul>
-              </div>
+            
             </div>
           </div>
 
