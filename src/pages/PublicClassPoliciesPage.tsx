@@ -46,11 +46,9 @@ const PublicClassPolicies = () => {
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
           className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(/swsd-logo-bug.png)'
-          }}
-        ></div>
-        <div className="absolute inset-0 bg-white/95"></div>
+          style={{ backgroundImage: 'url(/swsd-logo-bug.png)' }}
+        />
+        <div className="absolute inset-0 bg-white/95" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-navy mb-4 lg:mb-6">
@@ -205,8 +203,8 @@ const PublicClassPolicies = () => {
                     <strong className="text-navy">Substitutions always allowed:</strong> You may send someone in your place (must meet age and eligibility requirements). Email us at{' '}
                     <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                       support@streetwiseselfdefense.com
-                    </a>
-                    {' '}with the replacement participant&apos;s name and email address.
+                    </a>{' '}
+                    with the replacement participant&apos;s name and email address.
                   </span>
                 </li>
               </ul>
@@ -338,13 +336,13 @@ const PublicClassPolicies = () => {
                 We&apos;re here to help! If you have questions or need to discuss a special situation, please don&apos;t hesitate to reach out.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                
+                <a
                   href="mailto:support@streetwiseselfdefense.com"
                   className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
                   Email Us
                 </a>
-                
+                <a
                   href="/private-class-policies"
                   className="border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
