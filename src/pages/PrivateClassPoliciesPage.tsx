@@ -6,13 +6,11 @@ const PrivateClassPolicies = () => {
     <div>
       {/* Header Section */}
       <section className="relative h-80 lg:h-96 flex items-center">
-        <div 
+        <div
           className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(/swsd-logo-bug.png)'
-          }}
-        ></div>
-        <div className="absolute inset-0 bg-white/95"></div>
+          style={{ backgroundImage: 'url(/swsd-logo-bug.png)' }}
+        />
+        <div className="absolute inset-0 bg-white/95" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-navy mb-4 lg:mb-6">
@@ -22,7 +20,10 @@ const PrivateClassPolicies = () => {
               Clear policies for our private training sessions
             </p>
             <p className="text-base">
-              <a href="/public-class-policies" className="text-accent-primary hover:text-accent-dark underline font-medium">
+              <a
+                href="/public-class-policies"
+                className="text-accent-primary hover:text-accent-dark underline font-medium"
+              >
                 View Public Class Policies →
               </a>
             </p>
@@ -33,7 +34,6 @@ const PrivateClassPolicies = () => {
       {/* Main Content */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
           {/* Payment Policy */}
           <div className="mb-8 rounded-2xl border-2 border-navy/20 bg-navy/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-navy text-white px-8 py-6">
@@ -115,10 +115,13 @@ const PrivateClassPolicies = () => {
               <div className="mt-6 bg-gradient-to-r from-navy/10 to-accent-primary/10 border-l-4 border-navy p-4 rounded">
                 <p className="text-gray-700">
                   <strong className="text-navy">Need to reschedule?</strong> Email us at{' '}
-                  <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
+                  <a
+                    href="mailto:support@streetwiseselfdefense.com"
+                    className="text-accent-primary hover:text-accent-dark underline font-semibold"
+                  >
                     support@streetwiseselfdefense.com
-                  </a>
-                  {' '}with your booking details.
+                  </a>{' '}
+                  with your booking details.
                 </p>
               </div>
             </div>
@@ -165,10 +168,13 @@ const PrivateClassPolicies = () => {
               <div className="mt-6 bg-gradient-to-r from-navy/10 to-accent-primary/10 border-l-4 border-navy p-4 rounded">
                 <p className="text-gray-700 mb-3">
                   <strong className="text-navy">Need to cancel?</strong> Email us at{' '}
-                  <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
+                  <a
+                    href="mailto:support@streetwiseselfdefense.com"
+                    className="text-accent-primary hover:text-accent-dark underline font-semibold"
+                  >
                     support@streetwiseselfdefense.com
-                  </a>
-                  {' '}with your booking details.
+                  </a>{' '}
+                  with your booking details.
                 </p>
                 <p className="text-sm text-gray-600">
                   <strong className="text-navy">Why these policies?</strong> Private classes require significant advance coordination and block instructor availability. These timelines allow us to potentially rebook the slot and serve other customers.
@@ -188,7 +194,6 @@ const PrivateClassPolicies = () => {
               </div>
             </div>
             <div className="p-6 bg-white space-y-6">
-              
               <div>
                 <h3 className="text-xl font-semibold text-navy mb-3">Instructor Cancellations</h3>
                 <ul className="space-y-3">
@@ -243,7 +248,7 @@ const PrivateClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      <strong className="text-navy">Please contact us immediately if you're running late</strong>—we'll do our best to accommodate you.
+                      <strong className="text-navy">Please contact us immediately if you&apos;re running late</strong>—we&apos;ll do our best to accommodate you.
                     </span>
                   </li>
                 </ul>
@@ -283,16 +288,16 @@ const PrivateClassPolicies = () => {
               </div>
               <h3 className="text-2xl font-bold text-navy mb-4">Questions About These Policies?</h3>
               <p className="text-gray-600 mb-6 text-lg">
-                We're here to help! If you have questions or need to discuss a special situation, please don't hesitate to reach out.
+                We&apos;re here to help! If you have questions or need to discuss a special situation, please don&apos;t hesitate to reach out.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                
+                <a
                   href="mailto:support@streetwiseselfdefense.com"
                   className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
                   Email Us
                 </a>
-                
+                <a
                   href="/public-class-policies"
                   className="border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
