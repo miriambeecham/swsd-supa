@@ -290,13 +290,17 @@ const PublicClassesPage = () => {
           return;
         }
 
+        // Mother-daughter classes require 2 spots minimum
+        const isMotherDaughter = classData.type === 'public: mother & daughter';
+        const requiredSeats = isMotherDaughter ? 2 : 1;
+
         try {
           const response = await fetch('/api/check-availability', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               classScheduleId: classData.id, 
-              requestedSeats: 1 
+              requestedSeats: requiredSeats
             })
           });
           
@@ -305,7 +309,13 @@ const PublicClassesPage = () => {
             setIsFull(true);
           } else if (response.ok) {
             const data = await response.json();
-            setIsFull(data.remaining <= 0);
+            // For mother-daughter, mark full if 1 or fewer spots
+            // For adult classes, mark full if 0 spots
+            if (isMotherDaughter) {
+              setIsFull(data.remaining <= 1);
+            } else {
+              setIsFull(data.remaining <= 0);
+            }
           }
         } catch (error) {
           console.error('Error checking availability:', error);
@@ -315,7 +325,7 @@ const PublicClassesPage = () => {
       };
 
       checkIfFull();
-    }, [classData.id, classData.max_participants, classData.booking_method]);
+    }, [classData.id, classData.max_participants, classData.booking_method, classData.type]);
 
     const registrationClosed = isRegistrationClosed(classData.start_time_new);
 
