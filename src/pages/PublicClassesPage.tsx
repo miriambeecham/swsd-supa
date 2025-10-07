@@ -172,6 +172,13 @@ const PublicClassesPage = () => {
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       setClassSchedules(combinedData);
+      
+      // Debug: Log city data
+      console.log('Classes with city data:', combinedData.map(c => ({ 
+        name: c.class_name, 
+        city: c.city,
+        location: c.location 
+      })));
     } catch (err) {
       console.error('Error fetching classes:', err);
       setError('Failed to load class schedule. Please try again later.');
@@ -509,7 +516,9 @@ const PublicClassesPage = () => {
         cities.add(classData.city);
       }
     });
-    return ['All', ...Array.from(cities).sort()];
+    const result = ['All', ...Array.from(cities).sort()];
+    console.log('Available cities:', result);
+    return result;
   })();
 
   // Filter classes by type and city
