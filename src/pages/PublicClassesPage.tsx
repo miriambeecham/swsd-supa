@@ -700,7 +700,7 @@ const PublicClassesPage = () => {
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {filterByCity(adultTeenClasses).length === 0 ? (
+                {getFilteredClasses('public: adult & teen').length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600">
                       {selectedCity === 'All' 
@@ -709,7 +709,7 @@ const PublicClassesPage = () => {
                     </p>
                   </div>
                 ) : (
-                  filterByCity(adultTeenClasses).map((classData) => (
+                  getFilteredClasses('public: adult & teen').map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
@@ -745,7 +745,7 @@ const PublicClassesPage = () => {
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {filterByCity(motherDaughterClasses).length === 0 ? (
+                {getFilteredClasses('public: mother & daughter').length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600">
                       {selectedCity === 'All' 
@@ -754,7 +754,7 @@ const PublicClassesPage = () => {
                     </p>
                   </div>
                 ) : (
-                  filterByCity(motherDaughterClasses).map((classData) => (
+                  getFilteredClasses('public: mother & daughter').map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
