@@ -43,7 +43,6 @@ export const PublicClassPolicySummary = () => {
 const PublicClassPolicies = () => {
   return (
     <div>
-      {/* Header Section */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
           className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
@@ -61,7 +60,6 @@ const PublicClassPolicies = () => {
               Clear policies for our public training classes
             </p>
             
-            {/* City of Walnut Creek Notice */}
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
                 ⚠️ Important: Classes hosted by City of Walnut Creek are subject to their policies.{' '}
@@ -85,11 +83,9 @@ const PublicClassPolicies = () => {
         </div>
       </section>
 
-      {/* Main Content */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* Payment Policy */}
           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
@@ -123,7 +119,6 @@ const PublicClassPolicies = () => {
             </div>
           </div>
 
-          {/* Rescheduling Policy */}
           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
@@ -150,7 +145,7 @@ const PublicClassPolicies = () => {
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Less than 3 days before class:</strong> No reschedule or credit available. See substitution policy below.
+                    <strong className="text-navy">Under 3 days before class:</strong> No reschedule or credit available. See substitution policy below.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -175,7 +170,6 @@ const PublicClassPolicies = () => {
             </div>
           </div>
 
-          {/* Cancellation Policy */}
           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
@@ -202,7 +196,7 @@ const PublicClassPolicies = () => {
                 <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Less than 3 days before class:</strong> No refund or credit available. Substitutions permitted (see below).
+                    <strong className="text-navy">Under 3 days before class:</strong> No refund or credit available. Substitutions permitted (see below).
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -212,7 +206,7 @@ const PublicClassPolicies = () => {
                     <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                       support@streetwiseselfdefense.com
                     </a>
-                    {' '}with the replacement participant's name and email address.
+                    {' '}with the replacement participant&apos;s name and email address.
                   </span>
                 </li>
               </ul>
@@ -231,7 +225,6 @@ const PublicClassPolicies = () => {
             </div>
           </div>
 
-          {/* Additional Policies */}
           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
@@ -303,7 +296,7 @@ const PublicClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      <strong className="text-navy">Please contact us immediately if you're running late</strong>—we'll do our best to accommodate you.
+                      <strong className="text-navy">Please contact us immediately if you&apos;re running late</strong>—we&apos;ll do our best to accommodate you.
                     </span>
                   </li>
                 </ul>
@@ -335,7 +328,6 @@ const PublicClassPolicies = () => {
             </div>
           </div>
 
-          {/* Contact CTA */}
           <div className="mt-16 text-center bg-gradient-to-r from-accent-primary/10 to-navy/10 rounded-2xl p-8 border-2 border-accent-primary/20">
             <div className="max-w-2xl mx-auto">
               <div className="bg-accent-primary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -343,7 +335,7 @@ const PublicClassPolicies = () => {
               </div>
               <h3 className="text-2xl font-bold text-navy mb-4">Questions About These Policies?</h3>
               <p className="text-gray-600 mb-6 text-lg">
-                We're here to help! If you have questions or need to discuss a special situation, please don't hesitate to reach out.
+                We&apos;re here to help! If you have questions or need to discuss a special situation, please don&apos;t hesitate to reach out.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 
