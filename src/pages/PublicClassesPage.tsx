@@ -277,7 +277,45 @@ const isRegistrationClosed = (startTimeNew: string) => {
     c.type === 'public: adult & teen'
   );
 
-  const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
+const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
+  const [isFull, setIsFull] = useState(false);
+  const [checkingAvailability, setCheckingAvailability] = useState(true);
+
+  useEffect(() => {
+    const checkIfFull = async () => {
+      if (!classData.max_participants) {
+        setCheckingAvailability(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/check-availability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            classScheduleId: classData.id, 
+            requestedSeats: 1 
+          })
+        });
+        
+        if (response.status === 409) {
+          // Class is full
+          setIsFull(true);
+        } else if (response.ok) {
+          const data = await response.json();
+          setIsFull(data.remaining <= 0);
+        }
+      } catch (error) {
+        console.error('Error checking availability:', error);
+      } finally {
+        setCheckingAvailability(false);
+      }
+    };
+
+    checkIfFull();
+  }, [classData.id, classData.max_participants]);
+
+  return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -301,12 +339,12 @@ const isRegistrationClosed = (startTimeNew: string) => {
             </div>
             <div className="flex items-start gap-2 min-h-[24px]">
               <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-            <span className="text-md font-medium text-gray-700 leading-tight">
-              {classData.start_time_new ? 
-              `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
-              `${classData.start_time} - ${classData.end_time}`
-              }
-            </span>
+              <span className="text-md font-medium text-gray-700 leading-tight">
+                {classData.start_time_new ? 
+                `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
+                `${classData.start_time} - ${classData.end_time}`
+                }
+              </span>
             </div>
 
             {classData.location && (
@@ -330,86 +368,94 @@ const isRegistrationClosed = (startTimeNew: string) => {
           </div>
         </div>
 
-{/* Button/Registration Area */}
-<div className="ml-4">
-   {isRegistrationClosed(classData.start_time_new) ? (
-    // Registration closed - within 4 hours
-    <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-      <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
-        Registration Closed
+        {/* Button/Registration Area */}
+        <div className="ml-4">
+          {isFull ? (
+            // Class is full
+            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
+                Class Full
+              </div>
+            </div>
+          ) : isRegistrationClosed(classData.start_time_new) ? (
+            // Registration closed - within 4 hours
+            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
+                Registration Closed
+              </div>
+            </div>
+          ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+            classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+            // SWSD internal booking
+            <button
+              onClick={() => handleBookNow(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+            >
+              Register
+            </button>
+          ) : (classData.booking_method === 'external' && classData.booking_url) ? (
+            // External partner registration
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Register <ExternalLink className="w-4 h-4" />
+            </button>
+          ) : classData.booking_method === 'contact' ? (
+            // Contact us flow
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Contact Us <Mail className="w-4 h-4" />
+            </button>
+          ) : classData.registration_opens ? (
+            // Coming soon
+            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                Coming Soon
+              </div>
+              <div>
+                Registration opens<br />
+                <span className="font-medium">
+                  {formatRegistrationDate(classData.registration_opens)}
+                </span>
+              </div>
+            </div>
+          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+            // SWSD class without website booking — show phone
+            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+              <div className="mb-2">Call us to register:</div>
+              
+                href="tel:9255329953"
+                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+              >
+                (925) 532-9953
+              </a>
+            </div>
+          ) : (
+            // Fallback
+            <button
+              onClick={() => handleBooking(classData)}
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+            >
+              Contact Us <Mail className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Availability Display - only show if not full and not closed */}
+      {classData.max_participants && classData.start_time_new && 
+       !isFull && !isRegistrationClosed(classData.start_time_new) && (
+        <AvailabilityDisplay 
+          classScheduleId={classData.id} 
+          maxParticipants={classData.max_participants} 
+        />
+      )}
     </div>
-  ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-    classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-    // SWSD internal booking
-    <button
-      onClick={() => handleBookNow(classData)}
-      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-    >
-      Register
-    </button>
-  ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-    // External partner registration
-    <button
-      onClick={() => handleBooking(classData)}
-      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-    >
-      Register <ExternalLink className="w-4 h-4" />
-    </button>
-  ) : classData.booking_method === 'contact' ? (
-    // Contact us flow
-    <button
-      onClick={() => handleBooking(classData)}
-      className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-    >
-      Contact Us <Mail className="w-4 h-4" />
-    </button>
-  ) : classData.registration_opens ? (
-    // Coming soon
-    <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-      <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
-        Coming Soon
-      </div>
-      <div>
-        Registration opens<br />
-        <span className="font-medium">
-          {formatRegistrationDate(classData.registration_opens)}
-        </span>
-      </div>
-    </div>
-  ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-    // SWSD class without website booking — show phone
-    <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-      <div className="mb-2">Call us to register:</div>
-      
-        <a>href="tel:9255329953"
-        className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-      
-        (925) 532-9953
-      </a>
-    </div>
-  ) : (
-    // Fallback
-    <button
-      onClick={() => handleBooking(classData)}
-      className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-    >
-      Contact Us <Mail className="w-4 h-4" />
-    </button>
-  )}
-</div>
-       
-       </div>
-        {/* Availability Display */}
-{classData.max_participants && classData.start_time_new && !isRegistrationClosed(classData.start_time_new) && (
-  <AvailabilityDisplay 
-    classScheduleId={classData.id} 
-    maxParticipants={classData.max_participants} 
-  />
-)}
-      </div>
-   
   );
+};
 
   if (loading) {
     return (
