@@ -225,38 +225,27 @@ const MotherDaughterBookingPage = () => {
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
-const formatClassTime = () => {
-  if (classSchedule.start_time_new && classSchedule.end_time_new) {
+const formatDisplayTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return 'TBD';
+  
+  if (timeStr.includes('T')) {
     try {
-      const startDate = new Date(classSchedule.start_time_new);
-      const endDate = new Date(classSchedule.end_time_new);
-      
-      // Validate dates are valid
-      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-        const startTime = startDate.toLocaleTimeString('en-US', {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true,
           timeZone: 'America/Los_Angeles'
         });
-        
-        const endTime = endDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'America/Los_Angeles'
-        });
-        
-        return `${startTime} - ${endTime}`;
       }
-    } catch (error) {
-      console.error('Error formatting time:', error);
+    } catch (e) {
+      console.error('Error parsing time:', e);
     }
   }
   
-  return 'TBD';
+  return timeStr;
 };
-
 
   const allErrors = showValidation ? [...formErrors(), ...hardErrors] : [];
 
@@ -522,7 +511,9 @@ const formatClassTime = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-700">{formatClassTime()}</span>
+                 <span className="text-gray-700">
+  {formatDisplayTime(classSchedule.start_time)} - {formatDisplayTime(classSchedule.end_time)}
+</span>
                   </div>
                   {classSchedule.location && (
                     <div className="flex items-center gap-3">
