@@ -528,9 +528,9 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                 <h3 className="font-semibold text-navy mb-4">Booking Summary</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Participants: </span>
+                    <span className="text-gray-600">Participants:  </span>
                     <span className="text-gray-900">
-                      {totalParticipants} (Mother + {totalParticipants - 1} daughter{totalParticipants > 2 ? 's' : ''})
+                      {totalParticipants} 
                     </span>
                   </div>
                   <div className="flex justify-between">
