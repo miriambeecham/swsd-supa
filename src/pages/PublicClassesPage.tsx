@@ -283,7 +283,9 @@ const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
 
   useEffect(() => {
     const checkIfFull = async () => {
-      if (!classData.max_participants) {
+      // Only check availability for SWSD website bookings
+      if (!classData.max_participants || 
+          classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
         setCheckingAvailability(false);
         return;
       }
@@ -313,7 +315,7 @@ const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
     };
 
     checkIfFull();
-  }, [classData.id, classData.max_participants]);
+  }, [classData.id, classData.max_participants, classData.booking_method]);
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
@@ -334,128 +336,6 @@ const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
             <div className="flex items-start gap-2 min-h-[24px]">
               <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
               <span className="text-md font-semibold text-gray-700 leading-tight">
-                {formatClassDate(classData.date)}
-              </span>
-            </div>
-            <div className="flex items-start gap-2 min-h-[24px]">
-              <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-              <span className="text-md font-medium text-gray-700 leading-tight">
-                {classData.start_time_new ? 
-                `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
-                `${classData.start_time} - ${classData.end_time}`
-                }
-              </span>
-            </div>
-
-            {classData.location && (
-              <button
-                onClick={() => handleLocationClick(classData.location)}
-                className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
-              >
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span className="text-md font-medium underline leading-tight">{classData.location}</span>
-              </button>
-            )}
-
-            {!classData.location && classData.special_notes && (
-              <div className="flex items-start gap-2 min-h-[24px]">
-                <MapPin className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
-                <span className="text-md font-medium text-gray-700 leading-tight">
-                  {classData.special_notes}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Button/Registration Area */}
-        <div className="ml-4">
-          {isFull ? (
-            // Class is full
-            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
-                Class Full
-              </div>
-            </div>
-          ) : isRegistrationClosed(classData.start_time_new) ? (
-            // Registration closed - within 4 hours
-            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
-                Registration Closed
-              </div>
-            </div>
-          ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-            classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // SWSD internal booking
-            <button
-              onClick={() => handleBookNow(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-            >
-              Register
-            </button>
-          ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-            // External partner registration
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Register <ExternalLink className="w-4 h-4" />
-            </button>
-          ) : classData.booking_method === 'contact' ? (
-            // Contact us flow
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Contact Us <Mail className="w-4 h-4" />
-            </button>
-          ) : classData.registration_opens ? (
-            // Coming soon
-            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
-                Coming Soon
-              </div>
-              <div>
-                Registration opens<br />
-                <span className="font-medium">
-                  {formatRegistrationDate(classData.registration_opens)}
-                </span>
-              </div>
-            </div>
-          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // SWSD class without website booking — show phone
-            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-              <div className="mb-2">Call us to register:</div>
-              
-               <a  href="tel:9255329953"
-                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-              >
-                (925) 532-9953
-              </a>
-            </div>
-          ) : (
-            // Fallback
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Contact Us <Mail className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Availability Display - only show if not full and not closed */}
-      {classData.max_participants && classData.start_time_new && 
-       !isFull && !isRegistrationClosed(classData.start_time_new) && (
-        <AvailabilityDisplay 
-          classScheduleId={classData.id} 
-          maxParticipants={classData.max_participants} 
-        />
-      )}
-    </div>
-  );
-};
 
   if (loading) {
     return (
