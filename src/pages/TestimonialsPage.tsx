@@ -215,7 +215,7 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 12+ reviews</div>
               {/* CTA link in site teal color */}
               <a
                 href="https://www.yelp.com/biz/streetwise-self-defense-walnut-creek"
