@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Calendar, XCircle, Info, Mail } from 'lucide-react';
+import { CreditCard, Calendar, Info, Mail } from 'lucide-react';
 
 export const PublicClassPolicySummary = () => {
   return (
@@ -60,7 +60,7 @@ const PublicClassPolicies = () => {
             
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
-                ⚠️ Important: Classes hosted by City of Walnut Creek are subject to their policies.{' '}
+                ⚠️ Important: Classes hosted by City of Walnut Creek are subject to their policies.{` `}
                 <a 
                   href="https://www.walnut-creek.org/departments/parks-recreation" 
                   target="_blank" 
@@ -146,7 +146,7 @@ const PublicClassPolicies = () => {
                     <strong className="text-navy">Under 3 days before class:</strong> No reschedule or credit available. 
                   </span>
                 </li>
-                      <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3">
                   <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
                     <strong className="text-navy">Substitutions always allowed:</strong> You may send someone in your place (must meet age and eligibility requirements). Email us at{' '}
@@ -155,9 +155,8 @@ const PublicClassPolicies = () => {
                     </a>{' '}
                     with the replacement participant&apos;s name and email address.
                   </span>
-              
+                </li>
               </ul>
-              
 
               <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
@@ -170,7 +169,8 @@ const PublicClassPolicies = () => {
                   Please include: Email address used to register, current class date, preferred new class date, and which participant(s) need to reschedule (if applicable).
                 </p>
               </div>
-            <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
+
+              <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
                   <strong className="text-navy">Need to cancel?</strong> Email us at{' '}
                   <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
@@ -180,15 +180,11 @@ const PublicClassPolicies = () => {
                 <p className="text-sm text-gray-600">
                   Please include: Email address used to register, class date, and which participant(s) are canceling.
                 </p>
-            </div>
-
-
-              
+              </div>
             </div>
           </div>
 
-        
-           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-lg">
@@ -198,7 +194,6 @@ const PublicClassPolicies = () => {
               </div>
             </div>
             <div className="p-6 bg-white space-y-6">
-              
               <div>
                 <h3 className="text-xl font-semibold text-navy mb-3">Instructor Cancellations</h3>
                 <ul className="space-y-3">
@@ -223,7 +218,6 @@ const PublicClassPolicies = () => {
                 </ul>
               </div>
 
-            
               <div>
                 <h3 className="text-xl font-semibold text-navy mb-3">No-Show Policy</h3>
                 <ul className="space-y-3">
@@ -247,8 +241,6 @@ const PublicClassPolicies = () => {
                   </li>
                 </ul>
               </div>
-
-            
             </div>
           </div>
 
