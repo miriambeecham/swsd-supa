@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
@@ -25,7 +25,7 @@ interface ClassSchedule {
   registration_opens?: string;
   is_cancelled: boolean;
   special_notes?: string;
-   start_time_new?: string;
+  start_time_new?: string;
   end_time_new?: string;
 }
 
@@ -36,26 +36,26 @@ const PublicClassesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-const isRegistrationClosed = (startTimeNew: string) => {
-  if (!startTimeNew) return false;
-  
-  try {
-    const classDateTime = new Date(startTimeNew);
- 
-    const nowPacific = new Date().toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles"
-    });
-    const now = new Date(nowPacific);
-    const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+  const isRegistrationClosed = (startTimeNew: string) => {
+    if (!startTimeNew) return false;
     
-    return classDateTime <= fourHoursFromNow;
-  } catch (error) {
-    console.error('Date parsing error:', error);
-    return false;
-  }
-};
+    try {
+      const classDateTime = new Date(startTimeNew);
+   
+      const nowPacific = new Date().toLocaleString("en-US", {
+        timeZone: "America/Los_Angeles"
+      });
+      const now = new Date(nowPacific);
+      const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+      
+      return classDateTime <= fourHoursFromNow;
+    } catch (error) {
+      console.error('Date parsing error:', error);
+      return false;
+    }
+  };
   
-   useEffect(() => {
+  useEffect(() => {
     fetchClassesFromAirtable();
     
     // Cleanup expired bookings occasionally
@@ -151,21 +151,21 @@ const isRegistrationClosed = (startTimeNew: string) => {
           };
         })
         .filter(Boolean)
-         .filter(classData => {
-  // Show classes until their actual start time (not just date)
-  if (classData.start_time_new) {
-    // Use the new datetime field
-    const classDateTime = new Date(classData.start_time_new);
-    const now = new Date();
-    return classDateTime > now;
-  } else {
-    // Fallback to date-only filtering for old data
-    const classDate = new Date(classData.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return classDate >= today;
-  }
-})
+        .filter(classData => {
+          // Show classes until their actual start time (not just date)
+          if (classData.start_time_new) {
+            // Use the new datetime field
+            const classDateTime = new Date(classData.start_time_new);
+            const now = new Date();
+            return classDateTime > now;
+          } else {
+            // Fallback to date-only filtering for old data
+            const classDate = new Date(classData.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return classDate >= today;
+          }
+        })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       setClassSchedules(combinedData);
@@ -178,50 +178,50 @@ const isRegistrationClosed = (startTimeNew: string) => {
   };
 
   const AvailabilityDisplay = ({ classScheduleId, maxParticipants }: { classScheduleId: string; maxParticipants: number }) => {
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+    const [remaining, setRemaining] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const checkAvailability = async () => {
-      try {
-        const response = await fetch('/api/check-availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ classScheduleId, requestedSeats: 1 })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setRemaining(data.remaining);
+    useEffect(() => {
+      const checkAvailability = async () => {
+        try {
+          const response = await fetch('/api/check-availability', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ classScheduleId, requestedSeats: 1 })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setRemaining(data.remaining);
+          }
+        } catch (error) {
+          console.error('Error checking availability:', error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error checking availability:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    checkAvailability();
-  }, [classScheduleId]);
+      checkAvailability();
+    }, [classScheduleId]);
 
-  if (loading || remaining === null) return null;
+    if (loading || remaining === null) return null;
 
-  const isFilling = remaining <= (maxParticipants * 0.5);
+    const isFilling = remaining <= (maxParticipants * 0.5);
 
-  return (
-    <div className="mt-2 text-sm text-center">
-      {isFilling ? (
-        <span className="text-orange-600 font-medium">
-          Only {remaining} spot{remaining !== 1 ? 's' : ''} left! • Filling up fast
-        </span>
-      ) : (
-        <span className="text-gray-600">
-          {remaining} spot{remaining !== 1 ? 's' : ''} available • Great for groups
-        </span>
-      )}
-    </div>
-  );
-};
+    return (
+      <div className="mt-2 text-sm text-center">
+        {isFilling ? (
+          <span className="text-orange-600 font-medium">
+            Only {remaining} spot{remaining !== 1 ? 's' : ''} left! • Filling up fast
+          </span>
+        ) : (
+          <span className="text-gray-600">
+            {remaining} spot{remaining !== 1 ? 's' : ''} available • Great for groups
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const formatRegistrationDate = (dateTime: string) => {
     const date = new Date(dateTime);
@@ -277,65 +277,188 @@ const isRegistrationClosed = (startTimeNew: string) => {
     c.type === 'public: adult & teen'
   );
 
-const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
-  const [isFull, setIsFull] = useState(false);
-  const [checkingAvailability, setCheckingAvailability] = useState(true);
+  const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
+    const [isFull, setIsFull] = useState(false);
+    const [checkingAvailability, setCheckingAvailability] = useState(true);
 
-  useEffect(() => {
-    const checkIfFull = async () => {
-      // Only check availability for SWSD website bookings
-      if (!classData.max_participants || 
-          classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
-        setCheckingAvailability(false);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/check-availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            classScheduleId: classData.id, 
-            requestedSeats: 1 
-          })
-        });
-        
-        if (response.status === 409) {
-          // Class is full
-          setIsFull(true);
-        } else if (response.ok) {
-          const data = await response.json();
-          setIsFull(data.remaining <= 0);
+    useEffect(() => {
+      const checkIfFull = async () => {
+        // Only check availability for SWSD website bookings
+        if (!classData.max_participants || 
+            classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
+          setCheckingAvailability(false);
+          return;
         }
-      } catch (error) {
-        console.error('Error checking availability:', error);
-      } finally {
-        setCheckingAvailability(false);
-      }
-    };
 
-    checkIfFull();
-  }, [classData.id, classData.max_participants, classData.booking_method]);
+        try {
+          const response = await fetch('/api/check-availability', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              classScheduleId: classData.id, 
+              requestedSeats: 1 
+            })
+          });
+          
+          if (response.status === 409) {
+            // Class is full
+            setIsFull(true);
+          } else if (response.ok) {
+            const data = await response.json();
+            setIsFull(data.remaining <= 0);
+          }
+        } catch (error) {
+          console.error('Error checking availability:', error);
+        } finally {
+          setCheckingAvailability(false);
+        }
+      };
 
-  return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          {/* Class Title */}
-          <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
+      checkIfFull();
+    }, [classData.id, classData.max_participants, classData.booking_method]);
 
-          {/* Partner Organization - Always show if present */}
-          {classData.partner_organization && (
-            <p className="text-sm text-gray-500 mb-2">
-              Hosted by {classData.partner_organization}
-            </p>
-          )}
+    return (
+      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            {/* Class Title */}
+            <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
 
-          {/* Date, Time & Location - All in one container */}
-          <div className="mb-4 space-y-2">
-            <div className="flex items-start gap-2 min-h-[24px]">
-              <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-              <span className="text-md font-semibold text-gray-700 leading-tight">
+            {/* Partner Organization - Always show if present */}
+            {classData.partner_organization && (
+              <p className="text-sm text-gray-500 mb-2">
+                Hosted by {classData.partner_organization}
+              </p>
+            )}
+
+            {/* Date, Time & Location - All in one container */}
+            <div className="mb-4 space-y-2">
+              <div className="flex items-start gap-2 min-h-[24px]">
+                <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+                <span className="text-md font-semibold text-gray-700 leading-tight">
+                  {formatClassDate(classData.date)}
+                </span>
+              </div>
+              <div className="flex items-start gap-2 min-h-[24px]">
+                <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+                <span className="text-md font-medium text-gray-700 leading-tight">
+                  {classData.start_time_new ? 
+                  `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
+                  `${classData.start_time} - ${classData.end_time}`
+                  }
+                </span>
+              </div>
+
+              {classData.location && (
+                <button
+                  onClick={() => handleLocationClick(classData.location)}
+                  className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
+                >
+                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span className="text-md font-medium underline leading-tight">{classData.location}</span>
+                </button>
+              )}
+
+              {!classData.location && classData.special_notes && (
+                <div className="flex items-start gap-2 min-h-[24px]">
+                  <MapPin className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-md font-medium text-gray-700 leading-tight">
+                    {classData.special_notes}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Button/Registration Area */}
+          <div className="ml-4">
+            {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
+              // Class is full - only show for SWSD website bookings
+              <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+                <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
+                  Class Full
+                </div>
+              </div>
+            ) : isRegistrationClosed(classData.start_time_new) ? (
+              // Registration closed - within 4 hours
+              <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+                <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium inline-block">
+                  Registration Closed
+                </div>
+              </div>
+            ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+              classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+              // SWSD internal booking
+              <button
+                onClick={() => handleBookNow(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+              >
+                Register
+              </button>
+            ) : (classData.booking_method === 'external' && classData.booking_url) ? (
+              // External partner registration
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Register <ExternalLink className="w-4 h-4" />
+              </button>
+            ) : classData.booking_method === 'contact' ? (
+              // Contact us flow
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Contact Us <Mail className="w-4 h-4" />
+              </button>
+            ) : classData.registration_opens ? (
+              // Coming soon
+              <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+                <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                  Coming Soon
+                </div>
+                <div>
+                  Registration opens<br />
+                  <span className="font-medium">
+                    {formatRegistrationDate(classData.registration_opens)}
+                  </span>
+                </div>
+              </div>
+            ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+              // SWSD class without website booking — show phone
+              <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+                <div className="mb-2">Call us to register:</div>
+                
+                  href="tel:9255329953"
+                  className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+                >
+                  (925) 532-9953
+                </a>
+              </div>
+            ) : (
+              // Fallback
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Contact Us <Mail className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
+        {classData.max_participants && classData.start_time_new && 
+         classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+         !isFull && !isRegistrationClosed(classData.start_time_new) && (
+          <AvailabilityDisplay 
+            classScheduleId={classData.id} 
+            maxParticipants={classData.max_participants} 
+          />
+        )}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
