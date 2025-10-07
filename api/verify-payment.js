@@ -248,6 +248,7 @@ export default async function handler(req, res) {
           await resend.emails.send({
             from: FROM_EMAIL,
             to: booking.fields['Contact Email'],
+            cc: 'confirmations@streetwiseselfdefense.com', 
             subject: 'Your Self-Defense Class Registration is Confirmed!',
             html: emailHTML,
             attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
