@@ -616,52 +616,6 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
-          {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
-          {availableCities.length > 1 && (
-            <div className="mb-8">
-              {/* Mobile Dropdown */}
-              <div className="md:hidden">
-                <label htmlFor="city-filter" className="block text-sm font-medium text-gray-700 mb-2 text-center">
-                  Filter by City:
-                </label>
-                <select
-                  id="city-filter"
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
-                >
-                  {availableCities.map(city => (
-                    <option key={city} value={city}>
-                      {city === 'All' ? 'All Cities' : city}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Desktop Horizontal Chips */}
-              <div className="hidden md:block">
-                <div className="text-center mb-3">
-                  <span className="text-sm font-medium text-gray-700">Filter by City:</span>
-                </div>
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {availableCities.map(city => (
-                    <button
-                      key={city}
-                      onClick={() => setSelectedCity(city)}
-                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                        selectedCity === city
-                          ? 'bg-accent-primary text-white shadow-md'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {city === 'All' ? 'All Cities' : city}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Private Classes Call-out */}
           <div className="mb-12 flex justify-center">
             <div className="max-w-2xl px-4">
@@ -704,6 +658,52 @@ const PublicClassesPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
+              {availableCities.length > 1 && (
+                <div className="mb-6">
+                  {/* Mobile Dropdown */}
+                  <div className="md:hidden">
+                    <label htmlFor="city-filter-adult" className="block text-sm font-medium text-gray-700 mb-2">
+                      Filter by City:
+                    </label>
+                    <select
+                      id="city-filter-adult"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                    >
+                      {availableCities.map(city => (
+                        <option key={city} value={city}>
+                          {city === 'All' ? 'All Cities' : city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Desktop Horizontal Chips */}
+                  <div className="hidden md:block">
+                    <div className="mb-3">
+                      <span className="text-sm font-medium text-gray-700">Filter by City:</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableCities.map(city => (
+                        <button
+                          key={city}
+                          onClick={() => setSelectedCity(city)}
+                          className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                            selectedCity === city
+                              ? 'bg-accent-primary text-white shadow-md'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {city === 'All' ? 'All Cities' : city}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
@@ -749,6 +749,52 @@ const PublicClassesPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
+              {availableCities.length > 1 && (
+                <div className="mb-6">
+                  {/* Mobile Dropdown */}
+                  <div className="md:hidden">
+                    <label htmlFor="city-filter-mother-daughter" className="block text-sm font-medium text-gray-700 mb-2">
+                      Filter by City:
+                    </label>
+                    <select
+                      id="city-filter-mother-daughter"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                    >
+                      {availableCities.map(city => (
+                        <option key={city} value={city}>
+                          {city === 'All' ? 'All Cities' : city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Desktop Horizontal Chips */}
+                  <div className="hidden md:block">
+                    <div className="mb-3">
+                      <span className="text-sm font-medium text-gray-700">Filter by City:</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableCities.map(city => (
+                        <button
+                          key={city}
+                          onClick={() => setSelectedCity(city)}
+                          className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                            selectedCity === city
+                              ? 'bg-accent-primary text-white shadow-md'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {city === 'All' ? 'All Cities' : city}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
