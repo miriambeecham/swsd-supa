@@ -457,7 +457,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
                    <span className="text-gray-700">
-  {formatDisplayTime(classSchedule.start_time_new)} - {formatDisplayTime(classSchedule.end_time_new)}
+  {formatDisplayTime(classSchedule.start_time)} - {formatDisplayTime(classSchedule.end_time)}
 </span>
                   </div>
                   {classSchedule.location && (
