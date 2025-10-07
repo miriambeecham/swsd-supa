@@ -1,25 +1,7 @@
-// Filter classes by type for different sections
-  const motherDaughterClasses = classSchedules.filter(c => 
-    c.type === 'public: mother & daughter'
-  );
-
-  const adultTeenClasses = classSchedules.filter(c => 
-    c.type === 'public: adult & teen'
-  );
-
-  // Apply city filter to classes
-  const filterByCity = (classes: ClassSchedule[]) => {
-    if (selectedCity === 'All') return classes;
-    
-    return classes.filter(classData => {
-      return classData.city === selectedCity;
-    });
-  };
-
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, ExternalLink, Mail } from 'lucide-react';
 
 interface ClassSchedule {
   id: string;
@@ -288,15 +270,6 @@ const PublicClassesPage = () => {
     window.open(mapUrl, '_blank');
   };
 
-  // Filter classes by type for different sections
-  const motherDaughterClasses = classSchedules.filter(c => 
-    c.type === 'public: mother & daughter'
-  );
-
-  const adultTeenClasses = classSchedules.filter(c => 
-    c.type === 'public: adult & teen'
-  );
-
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
     const [isFull, setIsFull] = useState(false);
     const [checkingAvailability, setCheckingAvailability] = useState(true);
@@ -406,7 +379,7 @@ const PublicClassesPage = () => {
           {/* Button/Registration Area */}
           <div className="ml-4">
             {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
-              // Class is full - UPDATED: disabled button instead of pill
+              // Class is full - disabled button
               <button
                 disabled
                 className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
@@ -415,7 +388,7 @@ const PublicClassesPage = () => {
                 Class Full
               </button>
             ) : registrationClosed ? (
-              // Registration closed - within 4 hours - UPDATED: disabled button
+              // Registration closed - disabled button
               <button
                 disabled
                 className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
@@ -528,6 +501,31 @@ const PublicClassesPage = () => {
     );
   }
 
+  // Get unique cities - moved inside render to ensure classSchedules is available
+  const availableCities = (() => {
+    const cities = new Set<string>();
+    classSchedules.forEach(classData => {
+      if (classData.city && classData.city !== 'Unknown') {
+        cities.add(classData.city);
+      }
+    });
+    return ['All', ...Array.from(cities).sort()];
+  })();
+
+  // Filter classes by type and city
+  const getFilteredClasses = (type: string) => {
+    let filtered = classSchedules.filter(c => c.type === type);
+    
+    if (selectedCity !== 'All') {
+      filtered = filtered.filter(c => c.city === selectedCity);
+    }
+    
+    return filtered;
+  };
+
+  const filteredAdultTeenClasses = getFilteredClasses('public: adult & teen');
+  const filteredMotherDaughterClasses = getFilteredClasses('public: mother & daughter');
+
   return (
     <div className="min-h-screen bg-white">
       {/*SEO Tags*/}
@@ -610,7 +608,7 @@ const PublicClassesPage = () => {
           </div>
 
           {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
-          {getAvailableCities().length > 1 && (
+          {availableCities.length > 1 && (
             <div className="mb-8">
               {/* Mobile Dropdown */}
               <div className="md:hidden">
@@ -623,7 +621,7 @@ const PublicClassesPage = () => {
                   onChange={(e) => setSelectedCity(e.target.value)}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
                 >
-                  {getAvailableCities().map(city => (
+                  {availableCities.map(city => (
                     <option key={city} value={city}>
                       {city === 'All' ? 'All Cities' : city}
                     </option>
@@ -637,7 +635,7 @@ const PublicClassesPage = () => {
                   <span className="text-sm font-medium text-gray-700">Filter by City:</span>
                 </div>
                 <div className="flex gap-2 flex-wrap justify-center">
-                  {getAvailableCities().map(city => (
+                  {availableCities.map(city => (
                     <button
                       key={city}
                       onClick={() => setSelectedCity(city)}
@@ -700,7 +698,7 @@ const PublicClassesPage = () => {
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {getFilteredClasses('public: adult & teen').length === 0 ? (
+                {filteredAdultTeenClasses.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600">
                       {selectedCity === 'All' 
@@ -709,7 +707,7 @@ const PublicClassesPage = () => {
                     </p>
                   </div>
                 ) : (
-                  getFilteredClasses('public: adult & teen').map((classData) => (
+                  filteredAdultTeenClasses.map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
@@ -745,7 +743,7 @@ const PublicClassesPage = () => {
 
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {getFilteredClasses('public: mother & daughter').length === 0 ? (
+                {filteredMotherDaughterClasses.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600">
                       {selectedCity === 'All' 
@@ -754,7 +752,7 @@ const PublicClassesPage = () => {
                     </p>
                   </div>
                 ) : (
-                  getFilteredClasses('public: mother & daughter').map((classData) => (
+                  filteredMotherDaughterClasses.map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
