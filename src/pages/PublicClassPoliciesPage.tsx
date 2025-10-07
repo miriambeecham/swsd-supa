@@ -27,9 +27,9 @@ export const PublicClassPolicySummary = () => {
         </li>
       </ul>
       <div className="mt-3 pt-3 border-t border-blue-200">
-        <a 
-          href="/public-class-policies" 
-          target="_blank" 
+        <a
+          href="/public-class-policies"
+          target="_blank"
           rel="noopener noreferrer"
           className="text-accent-primary hover:text-accent-dark font-medium text-sm underline"
         >
@@ -44,7 +44,7 @@ const PublicClassPolicies = () => {
   return (
     <div>
       <section className="relative h-80 lg:h-96 flex items-center">
-        <div 
+        <div
           className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
           style={{ backgroundImage: 'url(/swsd-logo-bug.png)' }}
         />
@@ -57,13 +57,13 @@ const PublicClassPolicies = () => {
             <p className="text-lg md:text-xl text-gray-600 mb-6">
               We want signing up for class to be easy and stress-free. Here’s how we handle changes if plans shift.
             </p>
-            
+
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
                 ⚠️ <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{` `}
-                <a 
-                  href="https://www.walnut-creek.org/departments/parks-recreation" 
-                  target="_blank" 
+                <a
+                  href="https://www.walnut-creek.org/departments/parks-recreation"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-yellow-700"
                 >
@@ -83,7 +83,7 @@ const PublicClassPolicies = () => {
 
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="mb-8 rounded-2xl border-2 border-accent-primary/20 bg-accent-primary/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-accent-primary text-white px-8 py-6">
               <div className="flex items-center gap-4">
@@ -183,3 +183,58 @@ const PublicClassPolicies = () => {
                 <h3 className="text-xl font-semibold text-navy mb-3">No-Show Policy</h3>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3">
+                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      If you don’t arrive within 15 minutes of the start time (and we haven’t heard from you), it counts as a cancellation.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      No refunds or reschedules are available for no-shows.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      Running late? Let us know—we’ll do our best to accommodate you.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-16 text-center bg-gradient-to-r from-accent-primary/10 to-navy/10 rounded-2xl p-8 border-2 border-accent-primary/20">
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-accent-primary/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-accent-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-navy mb-4">Questions About These Policies?</h3>
+              <p className="text-gray-600 mb-6 text-lg">
+                We’re here to help! If you have a unique situation or just want to talk it through, reach out any time.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <a
+                  href="mailto:support@streetwiseselfdefense.com"
+                  className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
+                >
+                  Email Us
+                </a>
+                <a
+                  href="/private-class-policies"
+                  className="border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
+                >
+                  View Private Class Policies
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default PublicClassPolicies;
