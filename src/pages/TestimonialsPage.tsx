@@ -218,7 +218,7 @@ const TestimonialsPage = () => {
               <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
               {/* CTA link in site teal color */}
               <a
-                href="https://yelp.com/biz/streetwise-self-defense"
+                href="https://www.yelp.com/biz/streetwise-self-defense-walnut-creek"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
