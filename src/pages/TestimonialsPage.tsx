@@ -193,7 +193,7 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 2+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 3+ reviews</div>
               <a
                 href="https://google.com/search?q=streetwise+self+defense+reviews"
                 target="_blank"
@@ -201,6 +201,14 @@ const TestimonialsPage = () => {
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
                 View on Google →
+              </a>
+                <a
+                href="https://google.com/search?q=streetwise+self+defense+reviews"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
+              >
+                Leave a Google review →
               </a>
             </div>
 
