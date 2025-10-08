@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Calendar, XCircle, Info, Mail } from 'lucide-react';
+import { CreditCard, Calendar, Info, Mail } from 'lucide-react';
 
 const PrivateClassPolicies = () => {
   return (
@@ -17,7 +17,7 @@ const PrivateClassPolicies = () => {
               Private Class Booking Policies
             </h1>
             <p className="text-lg md:text-xl text-gray-600 mb-6">
-              Clear policies for our private training sessions
+              We want planning your private training to be simple and stress-free. Here’s how booking, changes, and cancellations work.
             </p>
             <p className="text-base">
               <a
@@ -34,14 +34,14 @@ const PrivateClassPolicies = () => {
       {/* Main Content */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Payment Policy */}
+          {/* Payment */}
           <div className="mb-8 rounded-2xl border-2 border-navy/20 bg-navy/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-navy text-white px-8 py-6">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-lg">
                   <CreditCard className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold">Payment Policy</h2>
+                <h2 className="text-2xl font-bold">Payment</h2>
               </div>
             </div>
             <div className="p-6 bg-white">
@@ -49,125 +49,98 @@ const PrivateClassPolicies = () => {
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">50% deposit required at time of booking</strong> (when selecting your date).
+                    <strong className="text-navy">50% deposit is due when you choose your date.</strong>
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Remaining balance due 2 weeks prior to class date.</strong>
+                    <strong className="text-navy">Remaining balance is due 14 days before the class.</strong>
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    Deposit becomes non-refundable if cancellation occurs within 4 weeks of class date.
+                    If you cancel within 4 weeks of the class, the deposit becomes non-refundable.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    Payment plans available for groups—contact us to discuss.
+                    Payment plans are available for groups—email us and we&apos;ll set one up.
                   </span>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Rescheduling Policy */}
+          {/* Combined Rescheduling & Cancellations */}
           <div className="mb-8 rounded-2xl border-2 border-navy/20 bg-navy/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="bg-navy text-white px-8 py-6">
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-lg">
                   <Calendar className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold">Rescheduling Policy</h2>
+                <h2 className="text-2xl font-bold">Rescheduling &amp; Cancellations</h2>
               </div>
             </div>
             <div className="p-6 bg-white">
+              <p className="text-sm text-gray-500 mb-3">
+                Timeframes are measured from the scheduled start time. “2 weeks” = 14 days (336 hours).
+              </p>
+
+              {/* Buckets */}
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Requests must be made at least 2 weeks before class date.</strong>
+                    <strong className="text-navy">4+ weeks (28+ days) before the class:</strong> Full refund <em>or</em> move to another date for free.
                   </span>
                 </li>
+
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Within 2 weeks of class:</strong> Rescheduling is allowed with a $50 rebooking fee.
+                    <strong className="text-navy">2–4 weeks (14–27 days) before:</strong> The deposit is non-refundable. You can{' '}
+                    <strong>reschedule with a $50 rebooking fee</strong> (per change), or cancel and receive a refund of any amount paid beyond the deposit.
                   </span>
                 </li>
+
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    The rebooking fee applies to each reschedule request.
+                    <strong className="text-navy">Under 2 weeks (&lt;14 days):</strong> The full fee is non-refundable. We&apos;re happy to{' '}
+                    <strong>reschedule with a $50 rebooking fee</strong> (per change), subject to instructor availability.
                   </span>
                 </li>
+
                 <li className="flex items-start gap-3">
                   <span className="text-navy font-bold text-lg leading-6">•</span>
                   <span className="text-gray-700 flex-1">
-                    Every effort will be made to accommodate your preferred new date, subject to instructor availability.
+                    <strong className="text-navy">Substitutions are always welcome:</strong> Send a qualified replacement (age/eligibility and group size limits apply).
                   </span>
                 </li>
               </ul>
 
+              {/* Contact blocks */}
               <div className="mt-6 bg-gradient-to-r from-navy/10 to-accent-primary/10 border-l-4 border-navy p-4 rounded">
-                <p className="text-gray-700">
-                  <strong className="text-navy">Need to reschedule?</strong> Email us at{' '}
+                <p className="text-gray-700 mb-2">
+                  <strong className="text-navy">Need to make a change?</strong> Email us at{' '}
                   <a
                     href="mailto:support@streetwiseselfdefense.com"
                     className="text-accent-primary hover:text-accent-dark underline font-semibold"
                   >
                     support@streetwiseselfdefense.com
-                  </a>{' '}
-                  with your booking details.
+                  </a>.
+                </p>
+                <p className="text-sm text-gray-600">
+                  Please include: booking name, the email used to register, your current date, and the new date you prefer (for reschedules).
                 </p>
               </div>
-            </div>
-          </div>
 
-          {/* Cancellation Policy */}
-          <div className="mb-8 rounded-2xl border-2 border-navy/20 bg-navy/5 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-navy text-white px-8 py-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-lg">
-                  <XCircle className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold">Cancellation Policy</h2>
-              </div>
-            </div>
-            <div className="p-6 bg-white">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-navy font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Full refund available if cancellation is made at least 4 weeks before class date.</strong>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-navy font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Within 4 weeks of class:</strong> Deposit is non-refundable.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-navy font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Within 2 weeks of class:</strong> Full fee is non-refundable, but every effort will be made to help you reschedule.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-navy font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Substitutions allowed:</strong> Replacement participants must meet class requirements (age, eligibility, group size limits).
-                  </span>
-                </li>
-              </ul>
-
-              <div className="mt-6 bg-gradient-to-r from-navy/10 to-accent-primary/10 border-l-4 border-navy p-4 rounded">
-                <p className="text-gray-700 mb-3">
-                  <strong className="text-navy">Need to cancel?</strong> Email us at{' '}
+              <div className="mt-4 bg-gradient-to-r from-navy/10 to-accent-primary/10 border-l-4 border-navy p-4 rounded">
+                <p className="text-gray-700 mb-2">
+                  <strong className="text-navy">Canceling?</strong> Email{' '}
                   <a
                     href="mailto:support@streetwiseselfdefense.com"
                     className="text-accent-primary hover:text-accent-dark underline font-semibold"
@@ -177,7 +150,7 @@ const PrivateClassPolicies = () => {
                   with your booking details.
                 </p>
                 <p className="text-sm text-gray-600">
-                  <strong className="text-navy">Why these policies?</strong> Private classes require significant advance coordination and block instructor availability. These timelines allow us to potentially rebook the slot and serve other customers.
+                  We know plans change—thanks for the heads-up so we can offer your spot to someone on the waitlist.
                 </p>
               </div>
             </div>
@@ -200,31 +173,31 @@ const PrivateClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      In the rare event we must cancel a class (illness, emergency, unsafe conditions), you will receive a <strong className="text-navy">full refund or priority rescheduling</strong> at your preference.
+                      If we ever need to cancel (illness, emergency, unsafe conditions), you&apos;ll get a full refund or priority rescheduling—your choice.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      We will notify you as soon as possible, typically at least 48 hours in advance when feasible.
+                      We&apos;ll notify you as soon as possible, typically at least 48 hours in advance when feasible.
                     </span>
                   </li>
                 </ul>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold text-navy mb-3">Weather & Emergencies</h3>
+                <h3 className="text-xl font-semibold text-navy mb-3">Weather &amp; Emergencies</h3>
                 <ul className="space-y-3">
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      Outdoor classes may be rescheduled due to unsafe weather conditions (heavy rain, lightning, extreme heat/cold).
+                      Outdoor sessions may be rescheduled if conditions are unsafe (heavy rain, lightning, extreme heat/cold).
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      You will be notified and offered a reschedule or refund at no charge.
+                      If that happens, you may choose a new date or receive a refund—no fees.
                     </span>
                   </li>
                 </ul>
@@ -236,19 +209,19 @@ const PrivateClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      If you do not arrive within 15 minutes of class start time without prior notice, it will be treated as a cancellation.
+                      If you don&apos;t arrive within 15 minutes of the start time (and we haven&apos;t heard from you), it counts as a cancellation.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      No refund or reschedule will be available for no-shows.
+                      No refunds or reschedules are available for no-shows.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      <strong className="text-navy">Please contact us immediately if you&apos;re running late</strong>—we&apos;ll do our best to accommodate you.
+                      Running late? Let us know—we&apos;ll do our best to accommodate you.
                     </span>
                   </li>
                 </ul>
@@ -260,19 +233,19 @@ const PrivateClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      Please arrive 10 minutes before your scheduled class time for check-in and safety briefing.
+                      Please arrive 10 minutes early for check-in and a quick safety briefing.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      Late arrivals (within 15 minutes) may participate in the remaining class time, but no refund or time extension is provided.
+                      Arrivals within 15 minutes may join the remaining class time, but we can&apos;t extend the session.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      Arrivals more than 15 minutes late may not be able to participate for safety reasons (see No-Show Policy above).
+                      More than 15 minutes late? For safety reasons participation may not be possible (see No-Show Policy).
                     </span>
                   </li>
                 </ul>
@@ -288,7 +261,7 @@ const PrivateClassPolicies = () => {
               </div>
               <h3 className="text-2xl font-bold text-navy mb-4">Questions About These Policies?</h3>
               <p className="text-gray-600 mb-6 text-lg">
-                We&apos;re here to help! If you have questions or need to discuss a special situation, please don&apos;t hesitate to reach out.
+                We&apos;re here to help! If you have a unique situation or want to talk it through, reach out any time.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
