@@ -1,0 +1,36 @@
+Table Name,Field Name,Not Populated
+Classes,Description,Yes
+Classes,Registration Instructions,Yes
+Class Schedules,End Time,Yes
+Class Schedules,Special Notes,Yes
+Class Schedules,Is Cancelled,Yes
+Class Schedules,Bookings,No
+Class Schedules,Available Spots,No
+Class Schedules,Booked Spots,No
+Class Schedules,Remaining Spots,No
+Testimonials,Profile Picture,Yes
+Testimonials,Platform Screenshot,Yes
+Testimonials,Internal Notes,Yes
+Testimonials,Rating,No
+Testimonials,Class Type,Yes
+Form Submissions,Submitted Date,Yes
+Form Submissions,Status,Yes
+Form Submissions,Notes,Yes
+Form Submissions,Follow-up Date,Yes
+Categories,Description,Yes
+Categories,FAQ copy,Yes
+Categories,WhatToExpect Content CWC 15+ copy,Yes
+FAQ,Categories copy,Yes
+Bookings,Refund Status,Yes
+Bookings,Refund Amount,Yes
+Bookings,Refund Date,Yes
+Bookings,Refund Reason,Yes
+Bookings,Refund Notes,Yes
+Bookings,Age Validation Status,Yes
+Bookings,Validation Notes,Yes
+Bookings,Participants JSON,Yes
+Participants,Special Needs,Yes
+Participants,Guardian Name,Yes
+Participants,Dietary Requirements,Yes
+Participants,Contact Email,Yes
+Participants,Emergency Contact Number,Yes
