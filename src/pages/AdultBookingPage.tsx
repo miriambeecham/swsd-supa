@@ -1,4 +1,10 @@
-// src/pages/AdultBookingPage.tsx
+// ============================================
+// AdultBookingPage.tsx - UPDATED
+// ============================================
+// Changes:
+// 1. Fixed time display to use start_time_new/end_time_new fields
+// 2. Added booking policies link to privacy statement
+
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
@@ -108,7 +114,7 @@ const AdultBookingPage: React.FC = () => {
         {
           firstName: contactInfo.firstName,
           lastName: contactInfo.lastName,
-          ageGroup: '16+', // align with server's adult validation
+          ageGroup: '16+',
           participantNumber: 1,
         },
         ...additionalAdults.map((p, idx) => ({
@@ -125,8 +131,8 @@ const AdultBookingPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classScheduleId: classSchedule.id,
-          requestedSpots: totalParticipants,  // primary key server expects
-          requestedSeats: totalParticipants,  // send both for safety
+          requestedSpots: totalParticipants,
+          requestedSeats: totalParticipants,
         }),
       });
 
@@ -152,7 +158,7 @@ const AdultBookingPage: React.FC = () => {
         contactInfo,
         participants,
         totalParticipants,
-        participantCount: totalParticipants, // add alt name for compatibility
+        participantCount: totalParticipants,
         totalAmount: totalPrice,
         recaptchaToken: recaptchaValue,
         classType: 'adult',
@@ -196,6 +202,28 @@ const AdultBookingPage: React.FC = () => {
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
+const formatDisplayTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return 'TBD';
+  
+  if (timeStr.includes('T')) {
+    try {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
+        });
+      }
+    } catch (e) {
+      console.error('Error parsing time:', e);
+    }
+  }
+  
+  return timeStr;
+};
+
   const errorsToShow = showValidation ? collectErrors() : [];
 
   return (
@@ -224,7 +252,7 @@ const AdultBookingPage: React.FC = () => {
           {/* Error banner */}
           {pageError && (
             <div className="lg:col-span-3 bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 -mt-2">
-              <div className="font-medium">We couldn’t complete your booking:</div>
+              <div className="font-medium">We couldn't complete your booking:</div>
               <div className="text-sm mt-1">{pageError}</div>
             </div>
           )}
@@ -321,7 +349,7 @@ const AdultBookingPage: React.FC = () => {
 
                 {additionalAdults.length === 0 && (
                   <p className="text-sm text-gray-600">
-                    You can add more adult participants if you’re booking for a group.
+                    You can add more adult participants if you're booking for a group.
                   </p>
                 )}
 
@@ -400,6 +428,15 @@ const AdultBookingPage: React.FC = () => {
                     className="text-accent-primary hover:text-accent-dark underline"
                   >
                     Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a
+                    href="/public-class-policies"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-primary hover:text-accent-dark underline"
+                  >
+                    Booking Policies
                   </a>.
                 </p>
               </div>
@@ -419,9 +456,9 @@ const AdultBookingPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-700">
-                      {classSchedule.start_time} - {classSchedule.end_time}
-                    </span>
+                   <span className="text-gray-700">
+  {formatDisplayTime(classSchedule.start_time)} - {formatDisplayTime(classSchedule.end_time)}
+</span>
                   </div>
                   {classSchedule.location && (
                     <div className="flex items-center gap-3">

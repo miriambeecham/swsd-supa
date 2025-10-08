@@ -193,14 +193,14 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 2+ reviews</div>
-              <a
+              <div className="text-sm text-gray-600 mb-3">Based on 3+ reviews</div>
+               <a
                 href="https://google.com/search?q=streetwise+self+defense+reviews"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Google →
+                Leave a Google review →
               </a>
             </div>
 
@@ -215,15 +215,15 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 12+ reviews</div>
               {/* CTA link in site teal color */}
               <a
-                href="https://yelp.com/biz/streetwise-self-defense"
+                href="https://www.yelp.com/biz/streetwise-self-defense-walnut-creek"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Yelp →
+                Leave a Yelp review →
               </a>
             </div>
 
@@ -235,13 +235,13 @@ const TestimonialsPage = () => {
               <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
              
               <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
-              <a
+             <p></p><br></br> <a
                 href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Facebook →
+                Leave a Facebook review →
               </a>
             </div>
           </div>

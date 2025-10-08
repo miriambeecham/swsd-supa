@@ -27,46 +27,44 @@ export default async function handler(req, res) {
 
     if (session.payment_status === 'paid') {
       // Payment successful - update booking status
-     // Payment successful - update booking status
-const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
-  method: 'PATCH',
-  headers: {
-    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    fields: {
-      'Status': 'Confirmed',
-      'Payment Status': 'Completed',
-      'Stripe Payment Intent ID': session.id,
-       'Payment Date': new Date().toLocaleString('en-US', { 
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric',
-    month: '2-digit', 
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).replace(/(\d+)\/(\d+)\/(\d+),\s*(.+)/, '$3-$1-$2 $4')
-    
-    }
-  })
-});
+      const updateResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            'Status': 'Confirmed',
+            'Payment Status': 'Completed',
+            'Stripe Payment Intent ID': session.id,
+            'Payment Date': new Date().toLocaleString('en-US', { 
+              timeZone: 'America/Los_Angeles',
+              year: 'numeric',
+              month: '2-digit', 
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).replace(/(\d+)\/(\d+)\/(\d+),\s*(.+)/, '$3-$1-$2 $4')
+          }
+        })
+      });
 
-if (!updateResponse.ok) {
-  const errorText = await updateResponse.text();
-  console.error('Airtable update failed:', {
-    status: updateResponse.status,
-    statusText: updateResponse.statusText,
-    error: errorText,
-    bookingId: booking_id
-  });
-  return res.status(500).json({ 
-    error: 'Failed to confirm booking',
-    details: `HTTP ${updateResponse.status}: ${errorText}`
-  });
-}
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error('Airtable update failed:', {
+          status: updateResponse.status,
+          statusText: updateResponse.statusText,
+          error: errorText,
+          bookingId: booking_id
+        });
+        return res.status(500).json({ 
+          error: 'Failed to confirm booking',
+          details: `HTTP ${updateResponse.status}: ${errorText}`
+        });
+      }
 
       // Get booking details for response
       const bookingResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
@@ -105,41 +103,181 @@ if (!updateResponse.ok) {
         }
       }
 
-            // ADD ZOHO INTEGRATION HERE (after line 108, before return statement)
-      const prepPageUrl = `https://streetwiseselfdefense.com/class-prep/${booking_id}`;
-      const origin = req.headers.origin || 'https://streetwiseselfdefense.com';
-      
-      fetch(`${origin}/api/zoho-create-contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactInfo: {
-            firstName: booking.fields['Contact First Name'],
-            lastName: booking.fields['Contact Last Name'],
-            email: booking.fields['Contact Email'],
-            phone: booking.fields['Contact Phone'] || ''
-          },
-          classInfo: {
-            className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
-            date: scheduleData?.fields?.Date || '',
-            participantCount: booking.fields['Number of Participants'] || 1
-          },
-          prepPageUrl,
-          bookingId: booking_id,
-          classType: classData?.fields?.['Type']?.toLowerCase().includes('mother') ? 'mother-daughter' : 'adult'
-        })
-      }).catch(err => console.error('Zoho sync failed:', err));
+      // ====== SEND CONFIRMATION EMAIL ======
+      try {
+        const { Resend } = await import('resend');
+        const { default: ical } = await import('ical-generator');
+        
+        const RESEND_API_KEY = process.env.RESEND_API_KEY;
+        const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        
+        if (RESEND_API_KEY && booking.fields['Contact Email']) {
+          const resend = new Resend(RESEND_API_KEY);
+          
+          // Helper: Convert time to ISO - UPDATED to use new time fields
+          const convertToISO = (dateStr, timeStr) => {
+            if (!dateStr || !timeStr) return new Date().toISOString();
+            
+            // Handle ISO datetime format (from Start Time New / End Time New)
+            if (timeStr.includes('T')) {
+              return new Date(timeStr).toISOString();
+            }
+            
+            // Handle legacy time format "10:00 AM"
+            const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
+            
+            let hours = parseInt(match[1]);
+            const mins = parseInt(match[2]);
+            const meridiem = match[3].toUpperCase();
+            
+            if (meridiem === 'PM' && hours !== 12) hours += 12;
+            if (meridiem === 'AM' && hours === 12) hours = 0;
+            
+            return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
+          };
+          
+          // Helper: Format time for display
+          const formatTimeForDisplay = (timeStr) => {
+            if (!timeStr) return 'TBD';
+            
+            // If it's ISO format, parse it
+            if (timeStr.includes('T')) {
+              const date = new Date(timeStr);
+              return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'America/Los_Angeles'
+              });
+            }
+            
+            // If it's already formatted, return as-is
+            return timeStr;
+          };
+          
+          // Use new time fields
+          const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time New']);
+          const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time New']);
+          
+          // Format times for email display
+          const displayStartTime = formatTimeForDisplay(scheduleData?.fields?.['Start Time New']);
+          const displayEndTime = formatTimeForDisplay(scheduleData?.fields?.['End Time New']);
+          
+          // Google Calendar URL
+          const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self-Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self-defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
+          
+          // iCal file
+          const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
+          cal.createEvent({
+            start: new Date(startISO),
+            end: new Date(endISO),
+            summary: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+            location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
+            description: 'Self-defense class confirmed'
+          });
+          
+          // Format date for email
+          const formattedDate = scheduleData?.fields?.Date 
+            ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+              })
+            : 'TBD';
+          
+          const emailHTML = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
+  </div>
+  
+  <h1 style="color: #1E293B; text-align: center;">Registration Confirmed!</h1>
+  
+  <p>Dear ${booking.fields['Contact First Name'] || 'Valued Customer'},</p>
+  
+  <p>Congratulations on taking this empowering step! Your registration for our self-defense class has been confirmed.</p>
+  
+  <div style="background: #F0FDFC; border: 1px solid #14b8a6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h2 style="color: #1E293B; margin-top: 0;">Your Class Details</h2>
+    <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self-Defense Class'}</p>
+    <p><strong>Date:</strong> ${formattedDate}</p>
+    <p><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</p>
+    <p><strong>Location:</strong> ${classData?.fields?.Location || 'Walnut Creek, CA'}</p>
+    <p><strong>Participants:</strong> ${booking.fields['Number of Participants'] || 1}</p>
+    <p><strong>Total Paid:</strong> $${booking.fields['Total Amount'] || 0}</p>
+  </div>
+  
+  <div style="margin: 30px 0;">
+    <h2 style="color: #1E293B;">Prepare for Success</h2>
+    <p style="text-align: center;">
+      <a href="${gcalURL}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px;">Add to Google Calendar</a>
+    </p>
+    ${scheduleData?.fields?.['Waiver URL'] ? `
+    <p style="text-align: center;">
+      <a href="${scheduleData.fields['Waiver URL']}" style="display: inline-block; border: 2px solid #14b8a6; color: #14b8a6; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px;">Complete Waiver Form</a>
+    </p>
+    <p style="font-size: 14px; color: #6B7280; text-align: center;"><strong>Important:</strong> Each participant must complete the waiver form before attending class.</p>
+    ` : ''}
+  </div>
+  
+  <h2 style="color: #1E293B;">What to Bring</h2>
+  <ul style="color: #1E293B;">
+    <li>Comfortable athletic clothing (yoga pants, t-shirt, etc.)</li>
+    <li>Water bottle to stay hydrated</li>
+    <li>Athletic shoes (no sandals or flip-flops)</li>
+    <li>Open mind and willingness to learn!</li>
+  </ul>
 
+
+  
+  <p>Questions? Visit <a href="https://www.streetwiseselfdefense.com" style="color: #14b8a6;">streetwiseselfdefense.com</a> or reply to this email.</p>
+
+  <p>Need to reschedule or cancel? Review our <a href="https://www.streetwiseselfdefense.com/public-class-policies" style="color: #14b8a6; text-decoration: underline;">cancellation and reschedule policy</a>.
+  </p>
+  
+  <p>We're proud of you for taking this important step toward empowerment. See you in class!</p>
+  <p><strong>The Streetwise Self Defense Team</strong></p>
+  
+  <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
+  
+  <p style="text-align: center; font-size: 14px; color: #6B7280;">
+    Empowering women and vulnerable populations through practical self-defense training.<br>
+    Streetwise Self Defense | Walnut Creek, CA<br>
+    © 2025 Streetwise Self Defense. All rights reserved.
+  </p>
+</body>
+</html>
+`;
+          
+          await resend.emails.send({
+            from: FROM_EMAIL,
+            to: booking.fields['Contact Email'],
+            cc: 'confirmations@streetwiseselfdefense.com', 
+            subject: 'Your Self-Defense Class Registration is Confirmed!',
+            html: emailHTML,
+            attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
+          });
+          
+          console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
+        }
+      } catch (emailErr) {
+        console.error('[EMAIL] Failed:', emailErr);
+        // Don't fail the request if email fails
+      }
+
+      // FIXED: Return booking data using scheduleData instead of undefined 'schedule'
       return res.json({
         success: true,
         booking: {
-          className: classData?.fields?.['Class Name'] || classData?.fields?.['Title'] || 'Self-Defense Class',
-          classDate: scheduleData?.fields?.Date,
-          startTime: scheduleData?.fields?.['Start Time'],
-          endTime: scheduleData?.fields?.['End Time'],
-          location: scheduleData?.fields?.Location || classData?.fields?.Location,
-          participantCount: booking.fields['Number of Participants'],
-          totalAmount: booking.fields['Total Amount']
+          className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+          classDate: scheduleData?.fields?.Date || null,
+          startTime: scheduleData?.fields?.['Start Time New'] || null,
+          endTime: scheduleData?.fields?.['End Time New'] || null,
+          location: scheduleData?.fields?.Location || null,
+          participantCount: booking.fields['Number of Participants'] || 1,
+          totalAmount: booking.fields['Total Amount'] || 0,
+          waiverUrl: scheduleData?.fields?.['Waiver URL'] || null
         }
       });
 
