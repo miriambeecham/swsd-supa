@@ -234,14 +234,19 @@ const ClassPrepPage = () => {
             <div className="p-8">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <p className="text-gray-700 text-lg mb-4">
-                    <strong>{formatDate(classData.date)}, {startTimeDisplay} - {endTimeDisplay}</strong>
-                    {classData.arrivalInstructions && (
-                      <span className="block text-base text-gray-600 mt-1">
-                        ({classData.arrivalInstructions})
-                      </span>
-                    )}
-                  </p>
+             <div className="text-gray-700 text-lg mb-4">
+  <p className="mb-2">
+    <strong>{formatDate(classData.date)}</strong>
+  </p>
+  <p className="mb-2">
+    <strong>{startTimeDisplay} - {endTimeDisplay}</strong>
+  </p>
+  {classData.arrivalInstructions && (
+    <span className="block text-base text-gray-600 mt-1">
+      ({classData.arrivalInstructions})
+    </span>
+  )}
+</div>
                   
                   {classData.venueName && (
                     <p className="text-gray-700 text-lg mb-4">
