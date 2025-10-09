@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const lookbackTime = new Date(Date.now() - (LOOKBACK_HOURS * 60 * 60 * 1000)).toISOString();
     
     const bookingsResponse = await fetch(
-    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND({Status}='Confirmed',{Payment Date}>'${lookbackTime}',{Zoho Synced}=FALSE())`
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND({Status}='Confirmed',{Payment Date}>'${lookbackTime}',{Zoho Synced}=FALSE())`,
       { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
     );
 
