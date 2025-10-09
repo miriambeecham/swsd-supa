@@ -117,17 +117,17 @@ const AdminClassPrepLinksPage = () => {
                       {classItem.className}
                     </h3>
                     
-                    <div className="space-y-1 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(classItem.date)}</span>
-                      </div> <br></br>
-                      {classItem.startTime && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatTime(classItem.startTime)}</span>
-                        </div>
-                      )}
+                  <div className="space-y-2 text-sm text-gray-600 mb-3">
+  <div className="flex items-center gap-2">
+    <Calendar className="w-4 h-4" />
+    <span>{formatDate(classItem.date)}</span>
+  </div>
+  {classItem.startTime && (
+    <div className="flex items-center gap-2">
+      <Clock className="w-4 h-4" />
+      <span>{formatTime(classItem.startTime)}</span>
+    </div>
+  )}
                       {classItem.location && (
                         <div className="flex items-center gap-2">
                           <span className="w-4 h-4 text-center">📍</span>
