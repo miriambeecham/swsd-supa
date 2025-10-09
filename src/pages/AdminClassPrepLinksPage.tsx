@@ -121,7 +121,7 @@ const AdminClassPrepLinksPage = () => {
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         <span>{formatDate(classItem.date)}</span>
-                      </div><br>
+                      </div> <br></br>
                       {classItem.startTime && (
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
