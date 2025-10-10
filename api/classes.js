@@ -35,10 +35,7 @@ export default async function handler(req, res) {
       id: record.id,
       fields: {
         'Class Name': record.fields['Class Name'] || record.fields.Title,
-        'Description': record.fields.Description,
         'Type': record.fields.Type,
-        'Age Range': record.fields['Age Range'],
-        'Duration': record.fields.Duration,
         'Max Participants': record.fields['Max Participants'],
         'Location': record.fields.Location,
         'City': record.fields.City,
@@ -46,7 +43,6 @@ export default async function handler(req, res) {
         'Price': record.fields.Price,
         'Partner Organization': record.fields['Partner Organization'],
         'Booking Method': record.fields['Booking Method'],
-        'Registration Instructions': record.fields['Registration Instructions'],
         'Is Active': record.fields['Is Active'],
       }
     }));
