@@ -12,7 +12,6 @@ interface ClassSchedule {
   city?: string;
   instructor: string;
   price: number;
-  pricing_unit: string;
   partner_organization?: string;
   booking_method: 'external' | 'contact' | 'swsd website';
   date: string;
@@ -76,7 +75,6 @@ const PublicClassesPage = () => {
       start_time: classData.start_time_new,
       end_time: classData.end_time_new,
       price: classData.price,
-      pricing_unit: classData.pricing_unit,
       location: classData.location
     };
 
@@ -128,7 +126,6 @@ const PublicClassesPage = () => {
             city: classRecord.fields['City'] || '',
             instructor: classRecord.fields['Instructor'] || '',
             price: classRecord.fields['Price'] || 0,
-            pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
             partner_organization: classRecord.fields['Partner Organization'],
             booking_method: classRecord.fields['Booking Method']?.toLowerCase() || 'contact',
             date: scheduleRecord.fields['Date'] || '',
