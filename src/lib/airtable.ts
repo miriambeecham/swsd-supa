@@ -6,10 +6,7 @@
 export interface Class {
   id: string;
   title: string;
-  description: string;
   type: 'mothers-daughters' | 'adult-teen' | 'corporate' | 'cbo';
-  age_range: string;
-  duration_minutes: number;
   max_participants: number;
   price_dollars: number;
   instructor_id?: string;
