@@ -6,10 +6,7 @@ import { Calendar, Clock, Users, MapPin, ExternalLink, Mail } from 'lucide-react
 interface ClassSchedule {
   id: string;
   class_name: string;
-  description: string;
   type: string;
-  age_range: string;
-  duration: number;
   max_participants?: number;
   location: string;
   city?: string;
@@ -18,10 +15,7 @@ interface ClassSchedule {
   pricing_unit: string;
   partner_organization?: string;
   booking_method: 'external' | 'contact' | 'swsd website';
-  registration_instructions: string;
   date: string;
-  start_time: string;
-  end_time: string;
   booking_url?: string;
   registration_opens?: string;
   is_cancelled: boolean;
@@ -129,10 +123,7 @@ const PublicClassesPage = () => {
           return {
             id: scheduleRecord.id,
             class_name: classRecord.fields['Class Name'] || '',
-            description: classRecord.fields['Description'] || '',
             type: classRecord.fields['Type']?.toLowerCase() || 'public',
-            age_range: classRecord.fields['Age Range'] || '',
-            duration: classRecord.fields['Duration'] || 60,
             max_participants: classRecord.fields['Max Participants'],
             location: classRecord.fields['Location'] || '',
             city: classRecord.fields['City'] || '',
@@ -141,10 +132,7 @@ const PublicClassesPage = () => {
             pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
             partner_organization: classRecord.fields['Partner Organization'],
             booking_method: classRecord.fields['Booking Method']?.toLowerCase() || 'contact',
-            registration_instructions: classRecord.fields['Registration Instructions'] || '',
             date: scheduleRecord.fields['Date'] || '',
-            start_time: scheduleRecord.fields['Start Time'] || '',
-            end_time: scheduleRecord.fields['End Time'] || '',
             start_time_new: scheduleRecord.fields['Start Time New'],
             end_time_new: scheduleRecord.fields['End Time New'],
             booking_url: scheduleRecord.fields['Booking URL'],
