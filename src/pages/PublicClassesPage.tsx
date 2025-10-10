@@ -350,15 +350,17 @@ const PublicClassesPage = () => {
                 </div>
               </div>
               
-              <div className="flex items-start gap-2 min-h-[24px]">
-                <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-                <span className="text-md font-medium text-gray-700 leading-tight">
-                  {classData.start_time_new ? 
-                  `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
-                  `${classData.start_time} - ${classData.end_time}`
-                  }
-                </span>
-              </div>
+          <span className="text-md font-medium text-gray-700 leading-tight">
+  {new Date(classData.start_time_new).toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })} - {new Date(classData.end_time_new).toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })}
+</span>
 
               {classData.location && (
                 <button
