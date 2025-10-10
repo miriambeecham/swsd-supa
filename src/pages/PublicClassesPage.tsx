@@ -7,10 +7,7 @@ import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLef
 interface ClassSchedule {
   id: string;
   class_name: string;
-  description: string;
   type: string;
-  age_range: string;
-  duration: number;
   max_participants?: number;
   location: string;
   instructor: string;
@@ -18,7 +15,6 @@ interface ClassSchedule {
   pricing_unit: string;
   partner_organization?: string;
   booking_method: 'external' | 'contact' | 'swsd website';
-  registration_instructions: string;
   date: string;
   start_time: string;
   end_time: string;
