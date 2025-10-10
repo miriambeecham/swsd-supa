@@ -1,0 +1,129 @@
+Table Name,Field Name,Field Type,Field Options,Linked Record Relationships,Formula (if any),Completely Unpopulated
+Classes,ID,Single line text,,,,false
+Classes,Class Name,Single line text,,,,false
+Classes,Description,Long text,,,,true
+Classes,Type,Single select,"Public: Adult & Teen, Public: Mother & Daughter, Private, Corporate, Community",,,false
+Classes,Age Range,Single line text,,,,false
+Classes,Duration,Number (integer),,,,false
+Classes,Max Participants,Number (integer),,,,false
+Classes,Location,Single line text,,,,false
+Classes,Instructor,Single line text,,,,false
+Classes,Price,Number (integer),,,,false
+Classes,Booking Method,Single select,"External, Contact, SWSD website",,,false
+Classes,Registration Instructions,Single line text,,,,true
+Classes,Is Active,Checkbox,,,,false
+Classes,Class Schedules,Linked record,,Links to Class Schedules (Id),,false
+Classes,Partner Organization,Single select,"City of Walnut Creek -- Arts & Recreation, Diablo Valley College, Streetwise Self Defense",,,false
+Classes,City,Single select,"Walnut Creek, Pleasant Hill, Richmond, San Francisco, San Jose",,,false
+Class Schedules,Id,Autonumber,,,,false
+Class Schedules,Date,Date,,,,false
+Class Schedules,Start Time,Single line text,,,,false
+Class Schedules,End Time,Single line text,,,,false
+Class Schedules,Is Cancelled,Checkbox,,,,true
+Class Schedules,Special Notes,Long text,,,,true
+Class Schedules,Created time,Date (formula),,,CREATED_TIME(),false
+Class Schedules,Last modified time,Date (formula),,,LAST_MODIFIED_TIME(),false
+Class Schedules,Class,Linked record,,Links to Classes (ID),,false
+Class Schedules,Booking URL,Single line text,,,,false
+Class Schedules,Pricing Unit,Single select,"Per Person, Per Mother/Daughter Pair",,,false
+Class Schedules,Registration Opens,Date,,,,false
+Class Schedules,Bookings,Linked record,,Links to Bookings (Booking ID),,false
+Class Schedules,Available Spots,Number (integer),,,,false
+Class Schedules,Booked Spots,Number (integer),,,,false
+Class Schedules,Remaining Spots,Number (formula),,,Available Spots - Booked Spots,false
+Class Schedules,Start Time New,Date,,,,false
+Class Schedules,End Time New,Date,,,,false
+Class Schedules,Waiver URL,Single line text,,,,true
+Testimonials,ID,Single line text,,,,true
+Testimonials,Content,Long text,,,,false
+Testimonials,Rating,Single select,"1, 2, 3, 4, 5",,,false
+Testimonials,Class Type,Single select,"Public Classes, Private Sessions, Corporate Training, Community Programs",,,true
+Testimonials,Platform,Single select,"google, yelp, facebook, trustpilot, linkedin, nextdoor, website, survey, ye",,,false
+Testimonials,Review Date,Date,,,,false
+Testimonials,Profile Picture,Attachment,,,,true
+Testimonials,Platform Screenshot,Attachment,,,,true
+Testimonials,Original Review URL,Single line text,,,,false
+Testimonials,Profile Image URL,Single line text,,,,false
+Testimonials,Is Featured,Checkbox,,,,false
+Testimonials,Is Published,Checkbox,,,,false
+Testimonials,Status,Single select,"Active, Hidden, Archived",,,false
+Testimonials,Internal Notes,Long text,,,,true
+Testimonials,Created time,Date (formula),,,CREATED_TIME(),false
+Testimonials,Last modified time,Date (formula),,,LAST_MODIFIED_TIME(),false
+Testimonials,Name,Single line text,,,,false
+Testimonials,Homepage position,Single select,"Quote 1, Quote 2, Quote 3, Quote 4, Quote 5, Quote 6, None, cbo1, cbo2, corporate1, corporate2",,,false
+Form Submissions,First Name,Single line text,,,,false
+Form Submissions,Last Name,Single line text,,,,false
+Form Submissions,Email,Single line text,,,,false
+Form Submissions,Phone,Phone number,,,,false
+Form Submissions,Form Type,Single select,"Private Training, Workplace Safety, Community Organizations",,,false
+Form Submissions,Submitted Date,Date,,,,true
+Form Submissions,Status,Single select,"New, Contacted, Scheduled, Converted, Closed",,,true
+Form Submissions,Newsletter Signup,Checkbox,,,,false
+Form Submissions,Notes,Long text,,,,true
+Form Submissions,Follow-up Date,Date,,,,true
+Form Submissions,ID,Autonumber,,,,false
+Form Submissions,Web Lead Message,Long text,,,,false
+Form Submissions,City,Single line text,,,,false
+Form Submissions,State,Single line text,,,,false
+Form Submissions,Organization,Single line text,,,,false
+Form Submissions,Title,Single line text,,,,false
+Categories,Category Name,Single line text,,,,false
+Categories,Display Order,Number (integer),,,,false
+Categories,Is Active,Checkbox,,,,false
+Categories,Description,Long text,,,,true
+Categories,Created Date,Date (formula),,,CREATED_TIME(),false
+Categories,FAQ,Linked record,,Links to FAQ (ID),,false
+Categories,FAQ copy,Single line text,,,,true
+Categories,WhatToExpect Content CWC 15+ copy,Single line text,,,,true
+FAQ,ID,Autonumber,,,,false
+FAQ,Question,Single line text,,,,false
+FAQ,Answer,Long text,,,,false
+FAQ,Category,Linked record,,Links to Categories (Category Name),,false
+FAQ,Question Order,Number (integer),,,,false
+FAQ,Is Published,Checkbox,,,,false
+FAQ,Created Date,Date (formula),,,CREATED_TIME(),false
+FAQ,Last Modified,Date (formula),,,LAST_MODIFIED_TIME(),false
+FAQ,Categories copy,Single line text,,,,true
+Bookings,Booking ID,Autonumber,,,,false
+Bookings,Class Schedule,Linked record,,Links to Class Schedules (Id),,false
+Bookings,Booking Date,Date,,,,false
+Bookings,Status,Single select,"Pending Payment, Confirmed, Cancelled, Refunded, Aborted",,,false
+Bookings,Contact First Name,Single line text,,,,false
+Bookings,Contact Last Name,Single line text,,,,false
+Bookings,Contact Email,Single line text,,,,false
+Bookings,Contact Phone,Phone number,,,,false
+Bookings,Contact Is Participant,Checkbox,,,,true
+Bookings,Number of Participants,Number (integer),,,,false
+Bookings,Total Amount,Number (currency),,,,false
+Bookings,Stripe Payment Intent ID,Single line text,,,,false
+Bookings,Payment Status,Single select,"Pending, Completed, Refunded, Failed, Expired",,,false
+Bookings,Payment Date,Date,,,,false
+Bookings,Age Validation Status,Single select,"Valid, Needs Review",,,true
+Bookings,Validation Notes,Long text,,,,true
+Bookings,Refund Status,Single select,"None, Partial, Full",,,true
+Bookings,Refund Amount,Number (currency),,,,true
+Bookings,Refund Date,Date,,,,true
+Bookings,Refund Reason,Single select,"Customer Request, Class Cancelled, Other",,,true
+Bookings,Refund Notes,Long text,,,,true
+Bookings,Created time,Date (formula),,,CREATED_TIME(),false
+Bookings,Last modified time,Date (formula),,,LAST_MODIFIED_TIME(),false
+Bookings,Participants,Linked record,,Links to Participants (Participant ID),,false
+Bookings,Stripe Checkout Session ID,Single line text,,,,false
+Bookings,Participants JSON,Long text,,,,true
+Bookings,Hold Expires At,Date,,,,true
+Bookings,Class (from Class Schedule),Linked record (lookup),,Lookup to Classes (ID) via Class Schedules,,false
+Bookings,Zoho Synced,Checkbox,,,,true
+Participants,Participant ID,Autonumber,,,,false
+Participants,Booking,Linked record,,Links to Bookings (Booking ID),,false
+Participants,First Name,Single line text,,,,false
+Participants,Last Name,Single line text,,,,false
+Participants,Age Group,Single select,"Under 12, 12-15, 16+",,,false
+Participants,Participant Number,Number (integer),,,,false
+Participants,Created time,Date (formula),,,CREATED_TIME(),false
+Participants,Special Needs,Long text,,,,true
+Participants,Guardian Name,Single line text,,,,true
+Participants,Dietary Requirements,Long text,,,,true
+Participants,Contact Email,Single line text,,,,true
+Participants,Emergency Contact Number,Phone number,,,,true
+Participants,Contact Email (from Booking),Single line text (lookup),,Lookup to Bookings (Contact Email),,false

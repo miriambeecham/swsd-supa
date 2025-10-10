@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Calendar, Clock, Users, ArrowLeft, MapPin, ExternalLink, Mail, ArrowLeftRight } from 'lucide-react';
-
+import { Calendar, Clock, Users, MapPin, ExternalLink, Mail } from 'lucide-react';
 
 interface ClassSchedule {
   id: string;
@@ -10,6 +9,7 @@ interface ClassSchedule {
   type: string;
   max_participants?: number;
   location: string;
+  city?: string;
   instructor: string;
   price: number;
   pricing_unit: string;
@@ -22,19 +22,47 @@ interface ClassSchedule {
   registration_opens?: string;
   is_cancelled: boolean;
   special_notes?: string;
+  start_time_new?: string;
+  end_time_new?: string;
 }
 
 const PublicClassesPage = () => {
   const navigate = useNavigate();
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
   const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
+  const [selectedCity, setSelectedCity] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isRegistrationClosed = (startTimeNew: string) => {
+    if (!startTimeNew) return false;
+    
+    try {
+      const classDateTime = new Date(startTimeNew);
+   
+      const nowPacific = new Date().toLocaleString("en-US", {
+        timeZone: "America/Los_Angeles"
+      });
+      const now = new Date(nowPacific);
+      const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+      
+      return classDateTime <= fourHoursFromNow;
+    } catch (error) {
+      console.error('Date parsing error:', error);
+      return false;
+    }
+  };
+  
   useEffect(() => {
     fetchClassesFromAirtable();
+    
+    // Cleanup expired bookings occasionally
+    if (Math.random() < 0.1) {
+      fetch('/api/cleanup-expired-bookings', { method: 'POST' }).catch(() => {});
+    }
   }, []);
 
+  
   const handleBookNow = (classData: ClassSchedule) => {
     if (!classData?.id) {
       console.error('Missing class id for booking');
@@ -47,8 +75,8 @@ const PublicClassesPage = () => {
       description: classData.description,
       type: classData.type === 'public: mother & daughter' ? 'mother-daughter' : 'adult',
       date: classData.date,
-      start_time: classData.start_time,
-      end_time: classData.end_time,
+      start_time: classData.start_time_new,
+      end_time: classData.end_time_new,
       price: classData.price,
       pricing_unit: classData.pricing_unit,
       max_participants: classData.max_participants,
@@ -64,26 +92,24 @@ const PublicClassesPage = () => {
     navigate(path, { state: { classSchedule: bookingData } });
   };
 
- 
-
-      
-
-
-    
-
-   
-
   const fetchClassesFromAirtable = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Import API functions directly from lib
-      const { getClasses, getSchedules } = await import('../lib/api');
+      // Fetch classes and schedules from our API endpoints
+      const [classesResponse, schedulesResponse] = await Promise.all([
+        fetch('/api/classes'),
+        fetch('/api/schedules')
+      ]);
+
+      if (!classesResponse.ok || !schedulesResponse.ok) {
+        throw new Error('Failed to fetch class data');
+      }
 
       const [classesData, schedulesData] = await Promise.all([
-        getClasses(),
-        getSchedules()
+        classesResponse.json(),
+        schedulesResponse.json()
       ]);
 
       // Combine classes with their schedules
@@ -105,6 +131,7 @@ const PublicClassesPage = () => {
             duration: classRecord.fields['Duration'] || 60,
             max_participants: classRecord.fields['Max Participants'],
             location: classRecord.fields['Location'] || '',
+            city: classRecord.fields['City'] || '',
             instructor: classRecord.fields['Instructor'] || '',
             price: classRecord.fields['Price'] || 0,
             pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
@@ -114,6 +141,8 @@ const PublicClassesPage = () => {
             date: scheduleRecord.fields['Date'] || '',
             start_time: scheduleRecord.fields['Start Time'] || '',
             end_time: scheduleRecord.fields['End Time'] || '',
+            start_time_new: scheduleRecord.fields['Start Time New'],
+            end_time_new: scheduleRecord.fields['End Time New'],
             booking_url: scheduleRecord.fields['Booking URL'],
             registration_opens: scheduleRecord.fields['Registration Opens'],
             is_cancelled: scheduleRecord.fields['Is Cancelled'] || false,
@@ -122,21 +151,82 @@ const PublicClassesPage = () => {
         })
         .filter(Boolean)
         .filter(classData => {
-          // Only show future classes (including today)
-          const classDate = new Date(classData.date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0); // Start of today
-          return classDate >= today;
+          // Show classes until their actual start time (not just date)
+          if (classData.start_time_new) {
+            // Use the new datetime field
+            const classDateTime = new Date(classData.start_time_new);
+            const now = new Date();
+            return classDateTime > now;
+          } else {
+            // Fallback to date-only filtering for old data
+            const classDate = new Date(classData.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return classDate >= today;
+          }
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       setClassSchedules(combinedData);
+      
+      // Debug: Log city data
+      console.log('Classes with city data:', combinedData.map(c => ({ 
+        name: c.class_name, 
+        city: c.city,
+        location: c.location 
+      })));
     } catch (err) {
       console.error('Error fetching classes:', err);
       setError('Failed to load class schedule. Please try again later.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const AvailabilityDisplay = ({ classScheduleId, maxParticipants }: { classScheduleId: string; maxParticipants: number }) => {
+    const [remaining, setRemaining] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const checkAvailability = async () => {
+        try {
+          const response = await fetch('/api/check-availability', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ classScheduleId, requestedSeats: 1 })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setRemaining(data.remaining);
+          }
+        } catch (error) {
+          console.error('Error checking availability:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      checkAvailability();
+    }, [classScheduleId]);
+
+    if (loading || remaining === null) return null;
+
+    const isFilling = remaining <= (maxParticipants * 0.5);
+
+    return (
+      <div className="mt-2 text-sm text-center">
+        {isFilling ? (
+          <span className="text-orange-600 font-medium">
+            Only {remaining} spot{remaining !== 1 ? 's' : ''} left! • Filling up fast
+          </span>
+        ) : (
+          <span className="text-gray-600">
+            {remaining} spot{remaining !== 1 ? 's' : ''} available • Great for groups
+          </span>
+        )}
+      </div>
+    );
   };
 
   const formatRegistrationDate = (dateTime: string) => {
@@ -148,12 +238,12 @@ const PublicClassesPage = () => {
     }) + ' at ' + date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
-      hour12: true 
+      hour12: true,
+      timeZone: 'America/Los_Angeles'
     });
   };
 
   const formatClassDate = (dateString: string) => {
-    // Add noon time to prevent timezone issues
     const date = new Date(dateString + 'T12:00:00');
     return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -183,131 +273,215 @@ const PublicClassesPage = () => {
     window.open(mapUrl, '_blank');
   };
 
-  // Filter classes by type for different sections
-  const motherDaughterClasses = classSchedules.filter(c => 
-    c.type === 'public: mother & daughter'
-  );
+  const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
+    const [isFull, setIsFull] = useState(false);
+    const [checkingAvailability, setCheckingAvailability] = useState(true);
 
-  const adultTeenClasses = classSchedules.filter(c => 
-    c.type === 'public: adult & teen'
-  );
+    useEffect(() => {
+      const checkIfFull = async () => {
+        // Only check availability for SWSD website bookings
+        if (!classData.max_participants || 
+            classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
+          setCheckingAvailability(false);
+          return;
+        }
 
-  const ClassCard = ({ classData }: { classData: ClassSchedule }) => (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          {/* Class Title */}
-          <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
+        // Mother-daughter classes require 2 spots minimum
+        const isMotherDaughter = classData.type === 'public: mother & daughter';
+        const requiredSeats = isMotherDaughter ? 2 : 1;
 
-          {/* Partner Organization - Always show if present */}
-          {classData.partner_organization && (
-            <p className="text-sm text-gray-500 mb-2">
-              Hosted by {classData.partner_organization}
-            </p>
-          )}
+        try {
+          const response = await fetch('/api/check-availability', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              classScheduleId: classData.id, 
+              requestedSeats: requiredSeats
+            })
+          });
+          
+          if (response.status === 409) {
+            // Class is full
+            setIsFull(true);
+          } else if (response.ok) {
+            const data = await response.json();
+            // For mother-daughter, mark full if 1 or fewer spots
+            // For adult classes, mark full if 0 spots
+            if (isMotherDaughter) {
+              setIsFull(data.remaining <= 1);
+            } else {
+              setIsFull(data.remaining <= 0);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking availability:', error);
+        } finally {
+          setCheckingAvailability(false);
+        }
+      };
 
-          {/* Date, Time & Location - All in one container */}
-          <div className="mb-4 space-y-2">
-            <div className="flex items-start gap-2 min-h-[24px]">
-              <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-              <span className="text-md font-semibold text-gray-700 leading-tight">
-                {formatClassDate(classData.date)}
-              </span>
-            </div>
-            <div className="flex items-start gap-2 min-h-[24px]">
-              <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-              <span className="text-md font-medium text-gray-700 leading-tight">
-                {classData.start_time} - {classData.end_time}
-              </span>
-            </div>
+      checkIfFull();
+    }, [classData.id, classData.max_participants, classData.booking_method, classData.type]);
 
-            {classData.location && (
-              <button
-                onClick={() => handleLocationClick(classData.location)}
-                className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
-              >
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span className="text-md font-medium underline leading-tight">{classData.location}</span>
-              </button>
+    const registrationClosed = isRegistrationClosed(classData.start_time_new);
+
+    return (
+      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            {/* Class Title */}
+            <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
+
+            {/* Partner Organization - Always show if present */}
+            {classData.partner_organization && (
+              <p className="text-sm text-gray-500 mb-2">
+                Hosted by {classData.partner_organization}
+              </p>
             )}
 
-            {!classData.location && classData.special_notes && (
+            {/* Date, Time & Location - All in one container */}
+            <div className="mb-4 space-y-2">
               <div className="flex items-start gap-2 min-h-[24px]">
-                <MapPin className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="text-md font-semibold text-gray-700 leading-tight">
+                    {formatClassDate(classData.date)}
+                  </span>
+                  {/* Full Badge - positioned right under the date */}
+                  {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' && (
+                    <div className="mt-1">
+                      <span className="inline-block bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs font-medium">
+                        Full
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2 min-h-[24px]">
+                <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
                 <span className="text-md font-medium text-gray-700 leading-tight">
-                  {classData.special_notes}
+                  {classData.start_time_new ? 
+                  `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
+                  `${classData.start_time} - ${classData.end_time}`
+                  }
                 </span>
               </div>
+
+              {classData.location && (
+                <button
+                  onClick={() => handleLocationClick(classData.location)}
+                  className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
+                >
+                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span className="text-md font-medium underline leading-tight">{classData.location}</span>
+                </button>
+              )}
+
+              {!classData.location && classData.special_notes && (
+                <div className="flex items-start gap-2 min-h-[24px]">
+                  <MapPin className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-md font-medium text-gray-700 leading-tight">
+                    {classData.special_notes}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Button/Registration Area */}
+          <div className="ml-4">
+            {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
+              // Class is full - disabled button
+              <button
+                disabled
+                className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
+                title="This class is at capacity"
+              >
+                Class Full
+              </button>
+            ) : registrationClosed ? (
+              // Registration closed - disabled button
+              <button
+                disabled
+                className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
+                title="Registration has closed for this class"
+              >
+                Registration Closed
+              </button>
+            ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+              classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+              // SWSD internal booking
+              <button
+                onClick={() => handleBookNow(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+              >
+                Register
+              </button>
+            ) : (classData.booking_method === 'external' && classData.booking_url) ? (
+              // External partner registration
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Register <ExternalLink className="w-4 h-4" />
+              </button>
+            ) : classData.booking_method === 'contact' ? (
+              // Contact us flow
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Contact Us <Mail className="w-4 h-4" />
+              </button>
+            ) : classData.registration_opens ? (
+              // Coming soon
+              <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+                <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                  Coming Soon
+                </div>
+                <div>
+                  Registration opens<br />
+                  <span className="font-medium">
+                    {formatRegistrationDate(classData.registration_opens)}
+                  </span>
+                </div>
+              </div>
+            ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
+              // SWSD class without website booking — show phone
+              <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
+                <div className="mb-2">Call us to register:</div>
+                
+                <a href="tel:9255329953"
+                  className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
+                >
+                  (925) 532-9953
+                </a>
+              </div>
+            ) : (
+              // Fallback
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Contact Us <Mail className="w-4 h-4" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Button/Registration Area */}
-        {/* Button/Registration Area */}
-        <div className="ml-4">
-          {(classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-            classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // ✅ SWSD internal booking — route to our booking pages
-            <button
-              onClick={() => handleBookNow(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-            >
-              Register
-            </button>
-          ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-            // External partner registration
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Register <ExternalLink className="w-4 h-4" />
-            </button>
-          ) : classData.booking_method === 'contact' ? (
-            // Contact us flow
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Contact Us <Mail className="w-4 h-4" />
-            </button>
-          ) : classData.registration_opens ? (
-            // “Coming soon”
-            <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
-              <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
-                Coming Soon
-              </div>
-              <div>
-                Registration opens<br />
-                <span className="font-medium">
-                  {formatRegistrationDate(classData.registration_opens)}
-                </span>
-              </div>
-            </div>
-          ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-            // SWSD class without website booking — show phone
-            <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-              <div className="mb-2">Call us to register:</div>
-              <a
-                href="tel:9255329953"
-                className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-              >
-                (925) 532-9953
-              </a>
-            </div>
-          ) : (
-            // Fallback
-            <button
-              onClick={() => handleBooking(classData)}
-              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
-            >
-              Contact Us <Mail className="w-4 h-4" />
-            </button>
-          )}
-        </div>  
-       </div>
+        {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
+        {classData.max_participants && classData.start_time_new && 
+         classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+         !isFull && !registrationClosed && (
+          <AvailabilityDisplay 
+            classScheduleId={classData.id} 
+            maxParticipants={classData.max_participants} 
+          />
+        )}
       </div>
-    
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -339,6 +513,33 @@ const PublicClassesPage = () => {
       </div>
     );
   }
+
+  // Get unique cities - moved inside render to ensure classSchedules is available
+  const availableCities = (() => {
+    const cities = new Set<string>();
+    classSchedules.forEach(classData => {
+      if (classData.city && classData.city !== 'Unknown') {
+        cities.add(classData.city);
+      }
+    });
+    const result = ['All', ...Array.from(cities).sort()];
+    console.log('Available cities:', result);
+    return result;
+  })();
+
+  // Filter classes by type and city
+  const getFilteredClasses = (type: string) => {
+    let filtered = classSchedules.filter(c => c.type === type);
+    
+    if (selectedCity !== 'All') {
+      filtered = filtered.filter(c => c.city === selectedCity);
+    }
+    
+    return filtered;
+  };
+
+  const filteredAdultTeenClasses = getFilteredClasses('public: adult & teen');
+  const filteredMotherDaughterClasses = getFilteredClasses('public: mother & daughter');
 
   return (
     <div className="min-h-screen bg-white">
@@ -464,14 +665,64 @@ const PublicClassesPage = () => {
                 </div>
               </div>
 
+              {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
+              {availableCities.length > 1 && (
+                <div className="mb-6">
+                  {/* Mobile Dropdown */}
+                  <div className="md:hidden">
+                    <label htmlFor="city-filter-adult" className="block text-sm font-medium text-gray-700 mb-2">
+                      Filter by City:
+                    </label>
+                    <select
+                      id="city-filter-adult"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                    >
+                      {availableCities.map(city => (
+                        <option key={city} value={city}>
+                          {city === 'All' ? 'All Cities' : city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Desktop Horizontal Chips */}
+                  <div className="hidden md:block">
+                    <div className="mb-3">
+                      <span className="text-sm font-medium text-gray-700">Filter by City:</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableCities.map(city => (
+                        <button
+                          key={city}
+                          onClick={() => setSelectedCity(city)}
+                          className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                            selectedCity === city
+                              ? 'bg-accent-primary text-white shadow-md'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {city === 'All' ? 'All Cities' : city}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {adultTeenClasses.length === 0 ? (
+                {filteredAdultTeenClasses.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No upcoming Adults & Teens classes scheduled.</p>
+                    <p className="text-gray-600">
+                      {selectedCity === 'All' 
+                        ? 'No upcoming Adults & Teens classes scheduled.' 
+                        : `No upcoming Adults & Teens classes in ${selectedCity}.`}
+                    </p>
                   </div>
                 ) : (
-                  adultTeenClasses.map((classData) => (
+                  filteredAdultTeenClasses.map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}
@@ -505,14 +756,64 @@ const PublicClassesPage = () => {
                 </div>
               </div>
 
+              {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
+              {availableCities.length > 1 && (
+                <div className="mb-6">
+                  {/* Mobile Dropdown */}
+                  <div className="md:hidden">
+                    <label htmlFor="city-filter-mother-daughter" className="block text-sm font-medium text-gray-700 mb-2">
+                      Filter by City:
+                    </label>
+                    <select
+                      id="city-filter-mother-daughter"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                    >
+                      {availableCities.map(city => (
+                        <option key={city} value={city}>
+                          {city === 'All' ? 'All Cities' : city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Desktop Horizontal Chips */}
+                  <div className="hidden md:block">
+                    <div className="mb-3">
+                      <span className="text-sm font-medium text-gray-700">Filter by City:</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {availableCities.map(city => (
+                        <button
+                          key={city}
+                          onClick={() => setSelectedCity(city)}
+                          className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                            selectedCity === city
+                              ? 'bg-accent-primary text-white shadow-md'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {city === 'All' ? 'All Cities' : city}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {motherDaughterClasses.length === 0 ? (
+                {filteredMotherDaughterClasses.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">No upcoming Mother & Daughter Classes scheduled.</p>
+                    <p className="text-gray-600">
+                      {selectedCity === 'All' 
+                        ? 'No upcoming Mother & Daughter Classes scheduled.' 
+                        : `No upcoming Mother & Daughter Classes in ${selectedCity}.`}
+                    </p>
                   </div>
                 ) : (
-                  motherDaughterClasses.map((classData) => (
+                  filteredMotherDaughterClasses.map((classData) => (
                     <ClassCard key={classData.id} classData={classData} />
                   ))
                 )}

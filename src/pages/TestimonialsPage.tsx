@@ -25,10 +25,10 @@ const TestimonialsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Platform configurations with React Icons - brand colors for icon+name, teal for CTAs
+  // Platform configurations...
   const platformConfig = {
     google: { name: 'Google', icon: FaGoogle, color: 'text-blue-600' },
-    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' }, // Yelp brand red
+    yelp: { name: 'Yelp', icon: SiYelp, color: 'text-red-600' },
     facebook: { name: 'Facebook', icon: FaFacebook, color: 'text-blue-700' },
     trustpilot: { name: 'Trustpilot', icon: SiTrustpilot, color: 'text-green-600' },
     linkedin: { name: 'LinkedIn', icon: FaLinkedin, color: 'text-blue-800' },
@@ -38,9 +38,17 @@ const TestimonialsPage = () => {
     default: { name: 'Review', icon: FaComment, color: 'text-gray-600' }
   };
 
-  const response = await fetch('/api/testimonials', {
-    method: 'GET',
-  });
+  const fetchTestimonialsFromAirtable = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch('/api/testimonials', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch testimonials: ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -71,6 +79,7 @@ const TestimonialsPage = () => {
     }
   };
 
+  // Rest of your component...
   useEffect(() => {
     document.title = 'Student Success Stories - Streetwise Self Defense';
     fetchTestimonialsFromAirtable();
@@ -184,14 +193,14 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 2+ reviews</div>
-              <a
+              <div className="text-sm text-gray-600 mb-3">Based on 3+ reviews</div>
+               <a
                 href="https://google.com/search?q=streetwise+self+defense+reviews"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Google →
+                Leave a Google review →
               </a>
             </div>
 
@@ -206,15 +215,15 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 11+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 12+ reviews</div>
               {/* CTA link in site teal color */}
               <a
-                href="https://yelp.com/biz/streetwise-self-defense"
+                href="https://www.yelp.com/biz/streetwise-self-defense-walnut-creek"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Yelp →
+                Leave a Yelp review →
               </a>
             </div>
 
@@ -226,13 +235,13 @@ const TestimonialsPage = () => {
               <div className="text-2xl font-bold text-navy mb-1">100% Recommended</div>
              
               <div className="text-sm text-gray-600 mb-3">Based on 28+ reviews</div>
-              <a
+             <p></p><br></br> <a
                 href="https://www.facebook.com/StreetwiseWomen?mibextid=wwXIfr"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-accent-primary hover:text-accent-primary-dark text-sm font-medium"
               >
-                View on Facebook →
+                Leave a Facebook review →
               </a>
             </div>
           </div>

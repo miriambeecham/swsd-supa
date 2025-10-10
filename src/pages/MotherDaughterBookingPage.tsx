@@ -225,6 +225,28 @@ const MotherDaughterBookingPage = () => {
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
+const formatDisplayTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return 'TBD';
+  
+  if (timeStr.includes('T')) {
+    try {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
+        });
+      }
+    } catch (e) {
+      console.error('Error parsing time:', e);
+    }
+  }
+  
+  return timeStr;
+};
+
   const allErrors = showValidation ? [...formErrors(), ...hardErrors] : [];
 
   return (
@@ -249,7 +271,7 @@ const MotherDaughterBookingPage = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {pageError && (
             <div className="lg:col-span-3 bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 mb-6">
-              <div className="font-medium">We couldn’t complete your booking:</div>
+              <div className="font-medium">We couldn't complete your booking:</div>
               <div className="text-sm mt-1">{pageError}</div>
             </div>
           )}
@@ -467,6 +489,10 @@ const MotherDaughterBookingPage = () => {
                   By proceeding with your booking, you agree to our{' '}
                   <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
                     Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                    Booking Policies
                   </a>.
                 </p>
               </div>
@@ -485,9 +511,9 @@ const MotherDaughterBookingPage = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
-                    <span className="text-gray-700">
-                      {classSchedule.start_time} - {classSchedule.end_time}
-                    </span>
+                 <span className="text-gray-700">
+  {formatDisplayTime(classSchedule.start_time)} - {formatDisplayTime(classSchedule.end_time)}
+</span>
                   </div>
                   {classSchedule.location && (
                     <div className="flex items-center gap-3">
@@ -502,9 +528,9 @@ const MotherDaughterBookingPage = () => {
                 <h3 className="font-semibold text-navy mb-4">Booking Summary</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Participants: </span>
+                    <span className="text-gray-600">Participants:  </span>
                     <span className="text-gray-900">
-                      {totalParticipants} (Mother + {totalParticipants - 1} daughter{totalParticipants > 2 ? 's' : ''})
+                      {totalParticipants} 
                     </span>
                   </div>
                   <div className="flex justify-between">

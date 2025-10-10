@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/zoho-sync-final",
+      "schedule": "*/10 * * * *"
+    }
+  ]
+}

@@ -1,16 +1,154 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { MapPin, Phone, Users, Shield, Clock, Camera, AlertCircle, CheckCircle, Home } from 'lucide-react';
 
-const PrivateClassStaticPage = () => {
-  const address = "1948 Oak Park Blvd, Pleasant Hill, CA 94523";
+interface ClassPrepData {
+  className: string;
+  classType: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  startTimeNew?: string;
+  endTimeNew?: string;
+  location: string;
+  venueName?: string;
+  city?: string;
+  arrivalInstructions?: string;
+  specialNotes?: string;
+  partnerOrganization?: string;
+  instructorName?: string;
+  instructorPhone?: string;
+  waiverUrl?: string;
+}
+
+const ClassPrepPage = () => {
+  const { scheduleId } = useParams<{ scheduleId: string }>();
+  const [classData, setClassData] = useState<ClassPrepData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (scheduleId) {
+      fetchClassPrepData();
+    }
+  }, [scheduleId]);
+
+  const fetchClassPrepData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch schedule data
+      const scheduleResponse = await fetch(`/api/schedules`);
+      if (!scheduleResponse.ok) throw new Error('Failed to fetch schedule');
+      
+      const schedulesData = await scheduleResponse.json();
+      const schedule = schedulesData.records.find((s: any) => s.id === scheduleId);
+      
+      if (!schedule) throw new Error('Class not found');
+
+      // Fetch class data
+      const classesResponse = await fetch(`/api/classes`);
+      if (!classesResponse.ok) throw new Error('Failed to fetch class info');
+      
+      const classesData = await classesResponse.json();
+      const classId = schedule.fields['Class']?.[0];
+      const classInfo = classesData.records.find((c: any) => c.id === classId);
+
+      if (!classInfo) throw new Error('Class information not found');
+
+      setClassData({
+        className: classInfo.fields['Class Name'] || 'Self-Defense Class',
+        classType: classInfo.fields['Type']?.toLowerCase() || '',
+        date: schedule.fields['Date'] || '',
+        startTime: schedule.fields['Start Time'] || '',
+        endTime: schedule.fields['End Time'] || '',
+        startTimeNew: schedule.fields['Start Time New'],
+        endTimeNew: schedule.fields['End Time New'],
+        location: schedule.fields['Location'] || classInfo.fields['Location'] || '',
+        venueName: schedule.fields['Venue Name'] || '',
+        city: schedule.fields['City'] || classInfo.fields['City'] || 'Walnut Creek',
+        arrivalInstructions: schedule.fields['Arrival Instructions'] || 'Please arrive 15 minutes early',
+        specialNotes: schedule.fields['Special Notes'] || '',
+        partnerOrganization: classInfo.fields['Partner Organization'] || '',
+        instructorName: classInfo.fields['Instructor'] || 'Jay Beecham',
+        instructorPhone: '925-532-9953',
+        waiverUrl: schedule.fields['Waiver URL']
+      });
+    } catch (err) {
+      console.error('Error fetching class prep data:', err);
+      setError('Unable to load class information. Please contact us if this issue persists.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString?: string) => {
+    if (!timeString) return '';
+    try {
+      return new Date(timeString).toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'America/Los_Angeles'
+      });
+    } catch {
+      return timeString;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading class information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !classData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-red-500 mb-4">
+            <AlertCircle className="w-16 h-16 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Class Not Found</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <a
+            href={`tel:${classData?.instructorPhone || '925-532-9953'}`}
+            className="bg-accent-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors inline-block"
+          >
+            Contact Us
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const address = classData.location;
   const encodedAddress = encodeURIComponent(address);
+  const startTimeDisplay = formatTime(classData.startTimeNew) || classData.startTime;
+  const endTimeDisplay = formatTime(classData.endTimeNew) || classData.endTime;
 
   return (
     <div className="min-h-screen bg-white">
       <Helmet>
-        <title>Class Preparation - Public Self Defense Training</title>
-        <meta name="description" content="Everything you need to know to prepare for your private self-defense class with Streetwise Self Defense." />
+        <title>Class Preparation - {classData.className}</title>
+        <meta name="description" content={`Everything you need to know to prepare for your ${classData.className} class with Streetwise Self Defense.`} />
         <meta name="robots" content="noindex" />
       </Helmet>
 
@@ -19,7 +157,7 @@ const PrivateClassStaticPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-2">Preparing for Your</h1>
-            <h1 className="text-4xl font-bold text-accent-primary mb-6">Public Self Defense Class</h1>
+            <h1 className="text-4xl font-bold text-accent-primary mb-6">{classData.className}</h1>
             <p className="text-xl opacity-90">With Streetwise Self Defense</p>
           </div>
         </div>
@@ -47,19 +185,34 @@ const PrivateClassStaticPage = () => {
               </div>
             </div>
 
-            <div className="bg-accent-primary/10 border-l-4 border-accent-primary p-4 rounded-r-lg">
-              <p className="text-gray-700 mb-3">
-                Please also make sure to <strong>take care of the electronic activity waiver</strong> (link in text message or email I sent you), 
-                please be sure to check your spam folder if you can't find it, and come prepared to have fun and laugh a lot…
-              </p>
-            </div>
+        <div className="bg-accent-primary/10 border-l-4 border-accent-primary p-4 rounded-r-lg">
+  {classData.waiverUrl ? (
+    <p className="text-gray-700 mb-3">
+      Please make sure to complete the{' '}
+      <a 
+        href={classData.waiverUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-accent-primary font-semibold underline hover:text-accent-dark"
+      >
+        electronic activity waiver
+      </a>{' '}
+      before class, and come prepared to have fun and laugh a lot…
+    </p>
+  ) : (
+    <p className="text-gray-700 mb-3">
+      Please also make sure to <strong>take care of the electronic activity waiver</strong> (link in text message or email I sent you), 
+      please be sure to check your spam folder if you can't find it, and come prepared to have fun and laugh a lot…
+    </p>
+  )}
+</div>
 
             <div className="mt-6 text-center">
               <p className="text-gray-600">Thank You! ~jhb</p>
-              <p className="text-gray-600 font-medium">Jay Beecham (Founder/Instructor)</p>
+              <p className="text-gray-600 font-medium">{classData.instructorName} (Founder/Instructor)</p>
               <p className="text-sm text-gray-500 mt-2">
-                Any problems? Please call/text me (Jay) at 
-                <a href="tel:925-532-9953" className="text-accent-primary font-semibold"> 925-532-9953</a>
+                Any problems? Please call/text me at 
+                <a href={`tel:${classData.instructorPhone}`} className="text-accent-primary font-semibold"> {classData.instructorPhone}</a>
               </p>
             </div>
           </div>
@@ -81,11 +234,26 @@ const PrivateClassStaticPage = () => {
             <div className="p-8">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <p className="text-gray-700 text-lg mb-4">
-                    <strong>Saturday, August 16, 12 - 3 pm</strong> (Please arrive by 11:45 am to ensure an on-time start)</p>
-                  <p className="text-gray-700 text-lg mb-4">
-                    We will be training at a dance studio called <strong>Desired Effect Firehouse Studios</strong> in Pleasant Hill.
-                  </p>
+             <div className="text-gray-700 text-lg mb-4">
+  <p className="mb-2">
+    <strong>{formatDate(classData.date)}</strong>
+  </p>
+  <p className="mb-2">
+    <strong>{startTimeDisplay} - {endTimeDisplay}</strong>
+  </p>
+  {classData.arrivalInstructions && (
+    <span className="block text-base text-gray-600 mt-1">
+      ({classData.arrivalInstructions})
+    </span>
+  )}
+</div>
+                  
+                  {classData.venueName && (
+                    <p className="text-gray-700 text-lg mb-4">
+                      We will be training at <strong>{classData.venueName}</strong> in {classData.city}.
+                    </p>
+                  )}
+                  
                   <div className="mb-4">
                     <p className="text-gray-700 mb-2">
                       The address is <strong>{address}</strong>
@@ -111,18 +279,30 @@ const PrivateClassStaticPage = () => {
                       </a>
                     </div>
                   </div>
-                  <p className="text-gray-700 mb-4">
-                    Note: No outside food or drink, except water, is allowed in the studio. There is one flight of stairs to reach the studio.
-                  </p>
+
+                  {classData.specialNotes && (
+                    <p className="text-gray-700 mb-4">
+                      <strong>Note:</strong> {classData.specialNotes}
+                    </p>
+                  )}
+
+                  {classData.venueName?.toLowerCase().includes('yoga') && (
+                    <p className="text-gray-700 mb-4">
+                      Note: No outside food or drink, except water, is allowed in the studio.
+                    </p>
+                  )}
+                  
                   <div className="mt-4 text-sm text-gray-600">
-                    <p>Please call/text me (Jay) with updates or questions:</p>
-                    <a href="tel:925-532-9953" className="text-accent-primary font-semibold text-lg">925.532.9953</a>
+                    <p>Please call/text me with updates or questions:</p>
+                    <a href={`tel:${classData.instructorPhone}`} className="text-accent-primary font-semibold text-lg">
+                      {classData.instructorPhone}
+                    </a>
                   </div>
                 </div>
                 <div className="relative">
                   <img
-                    src="/adult-teen.png"
-                    alt="Private Self Defense Class"
+                    src={classData.classType.includes('mother') ? "/mothers-daughters.png" : "/adult-teen.png"}
+                    alt={classData.className}
                     className="w-full h-full object-cover rounded-lg shadow-md"
                   />
                 </div>
@@ -150,7 +330,6 @@ const PrivateClassStaticPage = () => {
                     <div className="w-2 h-2 bg-accent-primary rounded-full"></div>
                     <span>Water Bottle</span>
                   </li>
-                 
                   <li className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-accent-primary rounded-full"></div>
                     <span>Note pad (optional)</span>
@@ -221,7 +400,7 @@ const PrivateClassStaticPage = () => {
                   </div>
                   <div className="relative">
                     <img
-                      src="/mothers-daughters.png"
+                      src={classData.classType.includes('mother') ? "/mothers-daughters.png" : "/adult-teen.png"}
                       alt="Self Defense Training"
                       className="w-full h-48 object-cover rounded-lg shadow-md"
                     />
@@ -274,43 +453,27 @@ const PrivateClassStaticPage = () => {
             <Phone className="w-12 h-12 text-accent-primary mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-4">Questions About Your Class?</h3>
             <p className="text-xl opacity-90 mb-6">
-              Contact Jay directly for any questions or concerns.
+              Contact {classData.instructorName} directly for any questions or concerns.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="tel:925-532-9953"
+                href={`tel:${classData.instructorPhone}`}
                 className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg"
               >
-                Call: (925) 532-9953
+                Call: {classData.instructorPhone}
               </a>
               <a
-                href="sms:925-532-9953"
+                href={`sms:${classData.instructorPhone}`}
                 className="bg-white/20 hover:bg-white/30 text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg print:bg-gray-200 print:text-black"
               >
-                Text: (925) 532-9953
+                Text: {classData.instructorPhone}
               </a>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Print Styles */}
-      <style jsx>{`
-        @media print {
-          .print\\:bg-white { background-color: white !important; }
-          .print\\:text-black { color: black !important; }
-          .print\\:bg-gray-100 { background-color: #f3f4f6 !important; }
-          .print\\:bg-gray-200 { background-color: #e5e7eb !important; }
-
-          /* Hide unnecessary elements when printing */
-          .no-print { display: none !important; }
-
-          /* Ensure good contrast for printing */
-          .shadow-lg { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
-        }
-      `}</style>
     </div>
   );
 };
 
-export default PrivateClassStaticPage;
+export default ClassPrepPage;
