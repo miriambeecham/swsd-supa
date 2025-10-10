@@ -7,7 +7,7 @@ interface ClassSchedule {
   id: string;
   class_name: string;
   type: string;
-  max_participants?: number;
+  available_spots?: number;
   location: string;
   city?: string;
   instructor: string;
@@ -77,7 +77,6 @@ const PublicClassesPage = () => {
       end_time: classData.end_time_new,
       price: classData.price,
       pricing_unit: classData.pricing_unit,
-      max_participants: classData.max_participants,
       location: classData.location
     };
 
@@ -124,7 +123,7 @@ const PublicClassesPage = () => {
             id: scheduleRecord.id,
             class_name: classRecord.fields['Class Name'] || '',
             type: classRecord.fields['Type']?.toLowerCase() || 'public',
-            max_participants: classRecord.fields['Max Participants'],
+            available_spots: scheduleRecord.fields['Available Spots'],
             location: classRecord.fields['Location'] || '',
             city: classRecord.fields['City'] || '',
             instructor: classRecord.fields['Instructor'] || '',
@@ -175,7 +174,7 @@ const PublicClassesPage = () => {
     }
   };
 
-  const AvailabilityDisplay = ({ classScheduleId, maxParticipants }: { classScheduleId: string; maxParticipants: number }) => {
+  const AvailabilityDisplay = ({ classScheduleId, availableSpots }: { classScheduleId: string; availableSpots: number }) => {
     const [remaining, setRemaining] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -204,7 +203,7 @@ const PublicClassesPage = () => {
 
     if (loading || remaining === null) return null;
 
-    const isFilling = remaining <= (maxParticipants * 0.5);
+    const isFilling = remaining <= (availableSpots * 0.5);
 
     return (
       <div className="mt-2 text-sm text-center">
@@ -272,7 +271,7 @@ const PublicClassesPage = () => {
     useEffect(() => {
       const checkIfFull = async () => {
         // Only check availability for SWSD website bookings
-        if (!classData.max_participants || 
+        if (!classData.availableSpots || 
             classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
           setCheckingAvailability(false);
           return;
@@ -313,7 +312,7 @@ const PublicClassesPage = () => {
       };
 
       checkIfFull();
-    }, [classData.id, classData.max_participants, classData.booking_method, classData.type]);
+    }, [classData.id, classData.availaable_spots, classData.booking_method, classData.type]);
 
     const registrationClosed = isRegistrationClosed(classData.start_time_new);
 
@@ -465,14 +464,14 @@ const PublicClassesPage = () => {
         </div>
 
         {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
-        {classData.max_participants && classData.start_time_new && 
-         classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-         !isFull && !registrationClosed && (
-          <AvailabilityDisplay 
-            classScheduleId={classData.id} 
-            maxParticipants={classData.max_participants} 
-          />
-        )}
+       {classData.available_spots && classData.start_time_new && 
+ classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+ !isFull && !registrationClosed && (
+  <AvailabilityDisplay 
+    classScheduleId={classData.id} 
+    availableSpots={classData.available_spots} 
+  />
+)}
       </div>
     );
   };
