@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
-import type { ClassSchedule } from '../lib/supabase';
+import type { ClassSchedule } from '../lib/airtable';
 
 interface ClassCardProps {
   classData: ClassSchedule & { class?: any };
