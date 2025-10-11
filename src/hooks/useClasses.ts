@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getUpcomingSchedules } from '../lib/api';
-import type { ClassSchedule } from '../lib/supabase';
+import type { ClassSchedule } from '../lib/airtable';
 
 export function useMotherDaughterClasses() {
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
