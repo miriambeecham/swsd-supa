@@ -199,7 +199,7 @@ const classPrepUrl = scheduleId
   
   <p>Dear ${booking.fields['Contact First Name'] || 'Valued Customer'},</p>
   
-  <p>Congratulations on taking this empowering step! Your registration for our self defense class has been confirmed, and we're excited to support you on your journey from fear to confidence.</p>
+  <p>Congratulations on taking this empowering step! Your registration for our self defense class has been confirmed.</p>
   
   <p>You're not just learning techniques – you're building strength, awareness, and the confidence that comes with knowing you can protect yourself.</p>
   
