@@ -221,9 +221,7 @@ const classPrepUrl = scheduleId
     <p style="font-size: 14px; color: #6B7280; text-align: center; margin-bottom: 20px;"><strong>Important:</strong> Please visit the prep page above for important details about what to wear, what to bring, and to complete your required waiver form.</p>
     ` : ''}
     
-    <p style="text-align: center;">
-      <a href="${gcalURL}" style="display: inline-block; border: 2px solid #14b8a6; color: #14b8a6; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; font-weight: bold;">Add to Calendar</a>
-    </p>
+    
   </div>
   
   <h2 style="color: #1E293B;">What to Expect</h2>
