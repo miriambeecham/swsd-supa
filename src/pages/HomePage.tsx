@@ -4,6 +4,7 @@ import { Star, Shield, Users, Award, Calendar, Phone, Mail, MapPin } from 'lucid
 import { FaGoogle, FaFacebook, FaLinkedin, FaHome, FaComment, FaClipboardList } from 'react-icons/fa';
 import { SiTrustpilot, SiYelp } from 'react-icons/si';
 import { Helmet } from 'react-helmet-async';
+import PromoBanner from '../components/PromoBanner';
 
 interface Testimonial {
   id: string;
@@ -157,6 +158,8 @@ const HomePage = () => {
         <meta name="twitter:description" content="Professional self-defense training for women, families, and workplaces in the SF Bay Area." />
         <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
+          {/* ADD THIS: Promotional Banner */}
+    <PromoBanner />
       {/* Mobile Hero - Vertical Layout */}
       <section className="relative min-h-screen flex items-center overflow-hidden md:hidden">
         <div className="absolute inset-0 z-0">
