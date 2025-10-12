@@ -70,8 +70,10 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
               </p>
             ) : (
               // Desktop version - full text
-              <p className="text-sm sm:text-base font-medium">
-                <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates!</span> <br /> Get 4+ friends or family together, provide a training location, and save big. Limited time only.</span> 
+           <p className="text-sm sm:text-base font-medium">
+                <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates!</span>
+                <br />
+                Get 4+ friends or family together, provide a training location, and save big. Limited time only.
                 <Link 
                   to="/contact" 
                   className="underline font-semibold ml-2 hover:text-accent-light"
