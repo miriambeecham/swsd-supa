@@ -7,17 +7,14 @@ interface ClassSchedule {
   id: string;
   class_name: string;
   type: string;
-  max_participants?: number;
+  available_spots?: number;
   location: string;
   city?: string;
   instructor: string;
   price: number;
-  pricing_unit: string;
   partner_organization?: string;
   booking_method: 'external' | 'contact' | 'swsd website';
   date: string;
-  start_time: string;
-  end_time: string;
   booking_url?: string;
   registration_opens?: string;
   is_cancelled: boolean;
@@ -78,8 +75,6 @@ const PublicClassesPage = () => {
       start_time: classData.start_time_new,
       end_time: classData.end_time_new,
       price: classData.price,
-      pricing_unit: classData.pricing_unit,
-      max_participants: classData.max_participants,
       location: classData.location
     };
 
@@ -125,22 +120,15 @@ const PublicClassesPage = () => {
           return {
             id: scheduleRecord.id,
             class_name: classRecord.fields['Class Name'] || '',
-            description: classRecord.fields['Description'] || '',
             type: classRecord.fields['Type']?.toLowerCase() || 'public',
-            age_range: classRecord.fields['Age Range'] || '',
-            duration: classRecord.fields['Duration'] || 60,
-            max_participants: classRecord.fields['Max Participants'],
+            available_spots: scheduleRecord.fields['Available Spots'],
             location: classRecord.fields['Location'] || '',
             city: classRecord.fields['City'] || '',
             instructor: classRecord.fields['Instructor'] || '',
             price: classRecord.fields['Price'] || 0,
-            pricing_unit: scheduleRecord.fields['Pricing Unit'] || 'per person',
             partner_organization: classRecord.fields['Partner Organization'],
             booking_method: classRecord.fields['Booking Method']?.toLowerCase() || 'contact',
-            registration_instructions: classRecord.fields['Registration Instructions'] || '',
             date: scheduleRecord.fields['Date'] || '',
-            start_time: scheduleRecord.fields['Start Time'] || '',
-            end_time: scheduleRecord.fields['End Time'] || '',
             start_time_new: scheduleRecord.fields['Start Time New'],
             end_time_new: scheduleRecord.fields['End Time New'],
             booking_url: scheduleRecord.fields['Booking URL'],
@@ -183,7 +171,7 @@ const PublicClassesPage = () => {
     }
   };
 
-  const AvailabilityDisplay = ({ classScheduleId, maxParticipants }: { classScheduleId: string; maxParticipants: number }) => {
+  const AvailabilityDisplay = ({ classScheduleId, availableSpots }: { classScheduleId: string; availableSpots: number }) => {
     const [remaining, setRemaining] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -212,7 +200,7 @@ const PublicClassesPage = () => {
 
     if (loading || remaining === null) return null;
 
-    const isFilling = remaining <= (maxParticipants * 0.5);
+    const isFilling = remaining <= (availableSpots * 0.5);
 
     return (
       <div className="mt-2 text-sm text-center">
@@ -280,7 +268,7 @@ const PublicClassesPage = () => {
     useEffect(() => {
       const checkIfFull = async () => {
         // Only check availability for SWSD website bookings
-        if (!classData.max_participants || 
+        if (!classData.availableSpots || 
             classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
           setCheckingAvailability(false);
           return;
@@ -321,7 +309,7 @@ const PublicClassesPage = () => {
       };
 
       checkIfFull();
-    }, [classData.id, classData.max_participants, classData.booking_method, classData.type]);
+    }, [classData.id, classData.availaable_spots, classData.booking_method, classData.type]);
 
     const registrationClosed = isRegistrationClosed(classData.start_time_new);
 
@@ -358,15 +346,17 @@ const PublicClassesPage = () => {
                 </div>
               </div>
               
-              <div className="flex items-start gap-2 min-h-[24px]">
-                <Clock className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
-                <span className="text-md font-medium text-gray-700 leading-tight">
-                  {classData.start_time_new ? 
-                  `${new Date(classData.start_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(classData.end_time_new).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` :
-                  `${classData.start_time} - ${classData.end_time}`
-                  }
-                </span>
-              </div>
+          <span className="text-md font-medium text-gray-700 leading-tight">
+  {new Date(classData.start_time_new).toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })} - {new Date(classData.end_time_new).toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  })}
+</span>
 
               {classData.location && (
                 <button
@@ -471,14 +461,14 @@ const PublicClassesPage = () => {
         </div>
 
         {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
-        {classData.max_participants && classData.start_time_new && 
-         classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
-         !isFull && !registrationClosed && (
-          <AvailabilityDisplay 
-            classScheduleId={classData.id} 
-            maxParticipants={classData.max_participants} 
-          />
-        )}
+       {classData.available_spots && classData.start_time_new && 
+ classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+ !isFull && !registrationClosed && (
+  <AvailabilityDisplay 
+    classScheduleId={classData.id} 
+    availableSpots={classData.available_spots} 
+  />
+)}
       </div>
     );
   };
