@@ -103,9 +103,12 @@ export default async function handler(req, res) {
 
       // ====== SEND CONFIRMATION EMAIL ======
      // Class prep URL (define BEFORE email block so it's available in return statement)
-      const classPrepUrl = scheduleId 
-        ? `https://www.streetwiseselfdefense.com/class-prep/${scheduleId}`
-        : null;
+     // Class prep URL - dynamic based on environment
+const host = req.headers.host || 'www.streetwiseselfdefense.com';
+const protocol = host.includes('localhost') ? 'http' : 'https';
+const classPrepUrl = scheduleId 
+  ? `${protocol}://${host}/class-prep/${scheduleId}`
+  : null;
      
       try {
         const { Resend } = await import('resend');
