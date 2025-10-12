@@ -86,12 +86,10 @@ export default async function handler(req, res) {
         const scheduleResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${scheduleId}`, {
           headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
         });
-        
         if (scheduleResponse.ok) {
           scheduleData = await scheduleResponse.json();
           
-          // Get class details too
-          const classId = scheduleData.fields?.Class?.[0];
+          const classId = scheduleData.fields['Class']?.[0];
           if (classId) {
             const classResponse = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`, {
               headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
@@ -104,6 +102,14 @@ export default async function handler(req, res) {
       }
 
       // ====== SEND CONFIRMATION EMAIL ======
+     // Class prep URL (define BEFORE email block so it's available in return statement)
+     // Class prep URL - dynamic based on environment
+const host = req.headers.host || 'www.streetwiseselfdefense.com';
+const protocol = host.includes('localhost') ? 'http' : 'https';
+const classPrepUrl = scheduleId 
+  ? `${protocol}://${host}/class-prep/${scheduleId}`
+  : null;
+     
       try {
         const { Resend } = await import('resend');
         const { default: ical } = await import('ical-generator');
@@ -114,16 +120,14 @@ export default async function handler(req, res) {
         if (RESEND_API_KEY && booking.fields['Contact Email']) {
           const resend = new Resend(RESEND_API_KEY);
           
-          // Helper: Convert time to ISO - UPDATED to use new time fields
+          // Helper: Convert time to ISO
           const convertToISO = (dateStr, timeStr) => {
             if (!dateStr || !timeStr) return new Date().toISOString();
             
-            // Handle ISO datetime format (from Start Time New / End Time New)
             if (timeStr.includes('T')) {
               return new Date(timeStr).toISOString();
             }
             
-            // Handle legacy time format "10:00 AM"
             const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
             if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
             
@@ -141,7 +145,6 @@ export default async function handler(req, res) {
           const formatTimeForDisplay = (timeStr) => {
             if (!timeStr) return 'TBD';
             
-            // If it's ISO format, parse it
             if (timeStr.includes('T')) {
               const date = new Date(timeStr);
               return date.toLocaleTimeString('en-US', {
@@ -152,7 +155,6 @@ export default async function handler(req, res) {
               });
             }
             
-            // If it's already formatted, return as-is
             return timeStr;
           };
           
@@ -165,16 +167,17 @@ export default async function handler(req, res) {
           const displayEndTime = formatTimeForDisplay(scheduleData?.fields?.['End Time New']);
           
           // Google Calendar URL
-          const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self-Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self-defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
+          const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
           
+                   
           // iCal file
           const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
           cal.createEvent({
             start: new Date(startISO),
             end: new Date(endISO),
-            summary: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+            summary: classData?.fields?.['Class Name'] || 'Self Defense Class',
             location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
-            description: 'Self-defense class confirmed'
+            description: 'Self defense class confirmed'
           });
           
           // Format date for email
@@ -196,11 +199,13 @@ export default async function handler(req, res) {
   
   <p>Dear ${booking.fields['Contact First Name'] || 'Valued Customer'},</p>
   
-  <p>Congratulations on taking this empowering step! Your registration for our self-defense class has been confirmed.</p>
+  <p>Congratulations on taking this empowering step! Your registration for our self defense class has been confirmed.</p>
+  
+  <p>You're not just learning techniques – you're building strength, awareness, and the confidence that comes with knowing you can protect yourself.</p>
   
   <div style="background: #F0FDFC; border: 1px solid #14b8a6; border-radius: 8px; padding: 20px; margin: 20px 0;">
     <h2 style="color: #1E293B; margin-top: 0;">Your Class Details</h2>
-    <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self-Defense Class'}</p>
+    <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self Defense Class'}</p>
     <p><strong>Date:</strong> ${formattedDate}</p>
     <p><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</p>
     <p><strong>Location:</strong> ${classData?.fields?.Location || 'Walnut Creek, CA'}</p>
@@ -209,32 +214,27 @@ export default async function handler(req, res) {
   </div>
   
   <div style="margin: 30px 0;">
-    <h2 style="color: #1E293B;">Prepare for Success</h2>
+    ${classPrepUrl ? `
     <p style="text-align: center;">
-      <a href="${gcalURL}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px;">Add to Google Calendar</a>
+      <a href="${classPrepUrl}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; font-weight: bold;">View Class Prep & Complete Waiver</a>
     </p>
-    ${scheduleData?.fields?.['Waiver URL'] ? `
-    <p style="text-align: center;">
-      <a href="${scheduleData.fields['Waiver URL']}" style="display: inline-block; border: 2px solid #14b8a6; color: #14b8a6; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px;">Complete Waiver Form</a>
-    </p>
-    <p style="font-size: 14px; color: #6B7280; text-align: center;"><strong>Important:</strong> Each participant must complete the waiver form before attending class.</p>
+    <p style="font-size: 14px; color: #6B7280; text-align: center; margin-bottom: 20px;"><strong>Important:</strong> Please visit the prep page above for important details about what to wear, what to bring, and to complete your required waiver form.</p>
     ` : ''}
+    
+    
   </div>
   
-  <h2 style="color: #1E293B;">What to Bring</h2>
+  <h2 style="color: #1E293B;">What to Expect</h2>
+  <p>Our classes are designed to be empowering, supportive, and safe. You'll learn practical techniques that work for real-world situations. Here's what you can look forward to:</p>
   <ul style="color: #1E293B;">
-    <li>Comfortable athletic clothing (yoga pants, t-shirt, etc.)</li>
-    <li>Water bottle to stay hydrated</li>
-    <li>Athletic shoes (no sandals or flip-flops)</li>
-    <li>Open mind and willingness to learn!</li>
+    <li>Evidence-based self defense strategies backed by research</li>
+    <li>Hands-on practice with supportive instructors</li>
+    <li>A safe, judgment-free environment</li>
+    <li>Techniques that work regardless of size or strength</li>
+    <li>Confidence-building exercises and scenario training</li>
   </ul>
-
-
   
   <p>Questions? Visit <a href="https://www.streetwiseselfdefense.com" style="color: #14b8a6;">streetwiseselfdefense.com</a> or reply to this email.</p>
-
-  <p>Need to reschedule or cancel? Review our <a href="https://www.streetwiseselfdefense.com/public-class-policies" style="color: #14b8a6; text-decoration: underline;">cancellation and reschedule policy</a>.
-  </p>
   
   <p>We're proud of you for taking this important step toward empowerment. See you in class!</p>
   <p><strong>The Streetwise Self Defense Team</strong></p>
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
   <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
   
   <p style="text-align: center; font-size: 14px; color: #6B7280;">
-    Empowering women and vulnerable populations through practical self-defense training.<br>
+    Empowering women and vulnerable populations through practical self defense training.<br>
     Streetwise Self Defense | Walnut Creek, CA<br>
     © 2025 Streetwise Self Defense. All rights reserved.
   </p>
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
             from: FROM_EMAIL,
             to: booking.fields['Contact Email'],
             cc: 'confirmations@streetwiseselfdefense.com', 
-            subject: 'Your Self-Defense Class Registration is Confirmed!',
+            subject: 'Your Self Defense Class Registration is Confirmed!',
             html: emailHTML,
             attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
           });
@@ -266,18 +266,18 @@ export default async function handler(req, res) {
         // Don't fail the request if email fails
       }
 
-      // FIXED: Return booking data using scheduleData instead of undefined 'schedule'
+      // Return booking data with class prep URL
       return res.json({
         success: true,
         booking: {
-          className: classData?.fields?.['Class Name'] || 'Self-Defense Class',
+          className: classData?.fields?.['Class Name'] || 'Self Defense Class',
           classDate: scheduleData?.fields?.Date || null,
           startTime: scheduleData?.fields?.['Start Time New'] || null,
           endTime: scheduleData?.fields?.['End Time New'] || null,
           location: scheduleData?.fields?.Location || null,
           participantCount: booking.fields['Number of Participants'] || 1,
           totalAmount: booking.fields['Total Amount'] || 0,
-          waiverUrl: scheduleData?.fields?.['Waiver URL'] || null
+          classPrepUrl: classPrepUrl
         }
       });
 

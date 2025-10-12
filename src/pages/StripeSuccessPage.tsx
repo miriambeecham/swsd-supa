@@ -10,7 +10,7 @@ type BookingInfo = {
   location?: string | null;
   participantCount?: number | null;
   totalAmount?: number | null;
-  waiverUrl?: string | null;
+  classPrepUrl?: string | null;  // Changed from waiverUrl
 };
 
 export default function StripeSuccessPage() {
@@ -22,7 +22,7 @@ export default function StripeSuccessPage() {
   const [booking, setBooking] = useState<BookingInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [copiedWaiver, setCopiedWaiver] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   useEffect(() => {
     const run = async () => {
@@ -114,97 +114,119 @@ export default function StripeSuccessPage() {
                 If this keeps happening, please email support with booking ID <code>{bookingId}</code>.
               </p>
             )}
-            <div className="mt-4">
-              <Link to="/public-classes" className="underline">Back to classes</Link>
-            </div>
           </div>
+          <Link to="/classes" className="text-teal-600 hover:text-teal-700 font-medium">
+            Back to classes
+          </Link>
         </>
       )}
 
       {!loading && !error && booking && (
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-full mb-4">
-              <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
+        <>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Registration Confirmed!
+                </h1>
+                <p className="text-gray-700">
+                  Payment successful. Check your email for confirmation details.
+                </p>
+              </div>
             </div>
-            <h1 className="text-3xl font-semibold text-gray-900">Registration Confirmed!</h1>
-            <p className="text-gray-600 mt-2">You're all set for your self-defense class</p>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">{booking.className}</h2>
-            <div className="space-y-3 text-gray-700">
-              <div className="flex">
-                <span className="font-medium w-32 flex-shrink-0">Date:</span>
-                <span>{booking.classDate || 'TBD'}</span>
+          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Class Details</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-600">Class:</span>
+                <span className="font-medium text-gray-900">{booking.className}</span>
               </div>
-              
-              <div className="flex">
-                <span className="font-medium w-32 flex-shrink-0">Time:</span>
-                <span>
-                  {formatDisplayTime(booking.startTime)} – {formatDisplayTime(booking.endTime)}
-                </span>
-              </div>
-              
-              <div className="flex">
-                <span className="font-medium w-32 flex-shrink-0">Location:</span>
-                <span className="flex-1">{booking.location || 'TBD'}</span>
-              </div>
-              
-              <div className="flex">
-                <span className="font-medium w-32 flex-shrink-0">Participants:</span>
-                <span>{booking.participantCount ?? 1}</span>
-              </div>
-              
-              <div className="flex">
-                <span className="font-medium w-32 flex-shrink-0">Total Paid:</span>
-                <span className="text-teal-600 font-semibold">${booking.totalAmount?.toFixed?.(2) ?? '0.00'}</span>
-              </div>
-              
-              {bookingId && (
-                <div className="pt-2 mt-2 border-t border-gray-100">
-                  <span className="text-sm text-gray-500">Booking ID: {bookingId}</span>
+              {booking.classDate && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Date:</span>
+                  <span className="font-medium text-gray-900">
+                    {startDT?.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
                 </div>
               )}
+              {booking.startTime && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Time:</span>
+                  <span className="font-medium text-gray-900">
+                    {startDT?.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    {endDT && ` - ${endDT.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                  </span>
+                </div>
+              )}
+              {booking.location && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Location:</span>
+                  <span className="font-medium text-gray-900">{booking.location}</span>
+                </div>
+              )}
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-600">Participants:</span>
+                <span className="font-medium text-gray-900">{booking.participantCount || 1}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Total Paid:</span>
+                <span className="font-semibold text-gray-900">${booking.totalAmount || 0}</span>
+              </div>
             </div>
           </div>
 
           {startDT && endDT && (
-            <div className="space-y-3">
-              <h3 className="font-medium text-gray-900">Add to Your Calendar</h3>
-              <div className="flex flex-col sm:flex-row gap-3">
-
-                <a
-                  className="inline-flex items-center justify-center px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
-                  href={makeGoogleCalendarUrl({
-                    title: booking.className,
-                    start: startDT,
-                    end: endDT,
-                    description: `Streetwise Self-Defense booking${
-                      booking.participantCount ? ` for ${booking.participantCount} participant(s)` : ''
-                    }.`,
-                    location: booking.location || '',
-                  })}
-                  target="_blank"
-                  rel="noreferrer"
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Add to Calendar</h3>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={() =>
+                    window.open(
+                      `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+                        booking.className
+                      )}&dates=${startDT.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}/${endDT
+                        .toISOString()
+                        .replace(/[-:]/g, '')
+                        .replace(/\.\d{3}/, '')}&details=${encodeURIComponent(
+                        `Confirmed${
+                          booking.participantCount && booking.participantCount > 1
+                            ? ` for ${booking.participantCount} participant(s)`
+                            : ''
+                        }.`
+                      )}&location=${encodeURIComponent(booking.location || '')}&ctz=America/Los_Angeles`,
+                      '_blank'
+                    )
+                  }
+                  className="inline-flex items-center justify-center px-4 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors text-sm"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"></path>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                   </svg>
                   Google Calendar
-                </a>
+                </button>
 
                 <button
-                  className="inline-flex items-center justify-center px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors"
                   onClick={() =>
                     downloadICS({
                       title: booking.className,
                       start: startDT,
                       end: endDT,
-                      description: `Streetwise Self-Defense booking${
-                        booking.participantCount ? ` for ${booking.participantCount} participant(s)` : ''
+                      description: `Confirmed${
+                        booking.participantCount && booking.participantCount > 1
+                          ? ` for ${booking.participantCount} participant(s)`
+                          : ''
                       }.`,
                       location: booking.location || '',
                     })
@@ -224,24 +246,24 @@ export default function StripeSuccessPage() {
             <ul className="text-sm text-gray-700 space-y-1 mb-4">
               <li>✓ Check your email for confirmation details</li>
               <li>✓ Add the class to your calendar</li>
-              {booking.waiverUrl && (
-                <li>✓ Complete the waiver form below (required for each participant)</li>
+              {booking.classPrepUrl && (
+                <li>✓ Visit the class prep page to complete your waiver (required)</li>
               )}
-              <li>✓ Wear comfortable athletic clothing (no shorts or jewelry, please)</li>
+              <li>✓ Wear comfortable athletic clothing</li>
             </ul>
 
-            {booking.waiverUrl && (
+            {booking.classPrepUrl && (
               <div className="mt-4 pt-4 border-t border-gray-300">
                 <div className="flex items-start gap-2 mb-2">
                   <svg className="w-5 h-5 text-gray-700 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">Waiver Required</p>
+                    <p className="font-medium text-gray-900">Class Prep & Waiver</p>
                     <p className="text-sm text-gray-700">
-                      Each participant must complete a waiver before class. 
+                      Visit your class prep page for important details and to complete your required waiver.
                       {booking.participantCount && booking.participantCount > 1 && (
-                        <span className="font-medium"> Please share this link with everyone in your party.</span>
+                        <span className="font-medium"> Each participant must complete a separate waiver.</span>
                       )}
                     </p>
                   </div>
@@ -249,7 +271,7 @@ export default function StripeSuccessPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 mt-3">
                   <a
-                    href={booking.waiverUrl}
+                    href={booking.classPrepUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center px-4 py-2 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors text-sm"
@@ -257,22 +279,22 @@ export default function StripeSuccessPage() {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
-                    Open Waiver Form
+                    View Class Prep & Complete Waiver
                   </a>
                   
                   <button
                     onClick={async () => {
                       try {
-                        await navigator.clipboard.writeText(booking.waiverUrl!);
-                        setCopiedWaiver(true);
-                        setTimeout(() => setCopiedWaiver(false), 2000);
+                        await navigator.clipboard.writeText(booking.classPrepUrl!);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
                       } catch (err) {
                         console.error('Failed to copy:', err);
                       }
                     }}
                     className="inline-flex items-center justify-center px-4 py-2 bg-white text-teal-700 font-medium rounded-lg border-2 border-teal-600 hover:bg-teal-50 transition-colors text-sm"
                   >
-                    {copiedWaiver ? (
+                    {copiedLink ? (
                       <>
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -293,155 +315,69 @@ export default function StripeSuccessPage() {
             )}
           </div>
 
-          <div className="text-center pt-6">
-            <Link
-              to="/public-classes"
-              className="text-teal-600 hover:text-teal-700 font-medium underline"
-            >
+          <div className="mt-6 text-center">
+            <Link to="/classes" className="text-teal-600 hover:text-teal-700 font-medium">
               ← Back to classes
             </Link>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-/* ===================== helpers (module scope) ===================== */
-
-function formatDisplayTime(timeStr: string | null | undefined): string {
-  if (!timeStr) return 'TBD';
-  
-  // If it's an ISO datetime string (YYYY-MM-DDTHH:mm:ss), extract and format the time
-  if (timeStr.includes('T')) {
-    try {
-      const date = new Date(timeStr);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'America/Los_Angeles'
-        });
-      }
-    } catch (e) {
-      console.error('Error parsing time:', e);
-    }
-  }
-  
-  // If it's already formatted nicely (e.g., "10:00 AM"), return as-is
-  if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(timeStr)) {
-    return timeStr;
-  }
-  
-  // Try to parse with parseTimeString as fallback
-  const parsed = parseTimeString(timeStr);
-  if (parsed) {
-    const { hh, mm } = parsed;
-    const hour12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    return `${hour12}:${String(mm).padStart(2, '0')} ${ampm}`;
-  }
-  
-  return timeStr; // Fallback to whatever we received
-}
-
-function normalizeDate(dateStr: string | null): string | null {
-  if (!dateStr) return null;
-  const s = String(dateStr);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
-}
-
-function parseTimeString(t: string | null): { hh: number; mm: number } | null {
-  if (!t) return null;
-  const s = String(t).trim().toUpperCase();
-
-  let m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-  if (m) {
-    const hh = parseInt(m[1], 10);
-    const mm = parseInt(m[2], 10);
-    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { hh, mm };
-  }
-
-  m = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/);
-  if (m) {
-    let hh = parseInt(m[1], 10);
-    const mm = parseInt(m[2] || '0', 10);
-    const mer = m[3] as 'AM' | 'PM';
-    if (hh === 12 && mer === 'AM') hh = 0;
-    if (hh < 12 && mer === 'PM') hh += 12;
-    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) return { hh, mm };
-  }
-
-  return null;
+// Helper functions below (keep all existing helper functions)
+function normalizeDate(d: string | null): string | null {
+  if (!d) return null;
+  const m = d.match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : null;
 }
 
 function buildDateTime(dateStr: string | null, timeStr: string | null): Date | null {
-  const d = normalizeDate(dateStr);
-  if (!d) return null;
-  const tm = parseTimeString(timeStr);
-  if (!tm) return null;
-  const hh = String(tm.hh).padStart(2, '0');
-  const mm = String(tm.mm).padStart(2, '0');
-  const iso = `${d}T${hh}:${mm}:00`;
-  const out = new Date(iso);
-  return isNaN(out.getTime()) ? null : out;
+  if (!dateStr || !timeStr) return null;
+  if (!timeStr.includes('T')) return null;
+  return new Date(timeStr);
 }
 
-function minutesBetween(dateStr: string | null, start: string | null, end: string | null): number {
-  const s = buildDateTime(dateStr, start);
-  const e = buildDateTime(dateStr, end);
-  if (s && e && e > s) return Math.round((e.getTime() - s.getTime()) / 60000);
-  return 90;
+function minutesBetween(
+  dateStr: string | null,
+  startStr: string | null,
+  endStr: string | null
+): number {
+  const s = buildDateTime(dateStr, startStr);
+  const e = buildDateTime(dateStr, endStr);
+  if (!s || !e) return 120;
+  return Math.round((e.getTime() - s.getTime()) / 60000);
 }
 
-function pad(n: number) { return String(n).padStart(2, '0'); }
-function toIcsDate(dt: Date) {
-  const y = dt.getUTCFullYear();
-  const m = pad(dt.getUTCMonth() + 1);
-  const d = pad(dt.getUTCDate());
-  const h = pad(dt.getUTCHours());
-  const mi = pad(dt.getUTCMinutes());
-  const s = pad(dt.getUTCSeconds());
-  return `${y}${m}${d}T${h}${mi}${s}Z`;
-}
-
-function makeGoogleCalendarUrl(opts: { title: string; start: Date; end: Date; description?: string; location?: string; }) {
-  const base = 'https://calendar.google.com/calendar/render';
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: opts.title || 'Class',
-    dates: `${toIcsDate(opts.start)}/${toIcsDate(opts.end)}`,
-    location: opts.location || '',
-    details: opts.description || '',
-  });
-  return `${base}?${params.toString()}`;
-}
-
-function downloadICS(opts: { title: string; start: Date; end: Date; description?: string; location?: string; }) {
-  const ics =
-`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Streetwise Self-Defense//Booking//EN
-BEGIN:VEVENT
-DTSTAMP:${toIcsDate(new Date())}
-DTSTART:${toIcsDate(opts.start)}
-DTEND:${toIcsDate(opts.end)}
-SUMMARY:${(opts.title || 'Class').replace(/\n/g, ' ')}
-DESCRIPTION:${(opts.description || '').replace(/\n/g, ' ')}
-LOCATION:${(opts.location || '').replace(/\n/g, ' ')}
-END:VEVENT
-END:VCALENDAR`;
-
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+function downloadICS(evt: {
+  title: string;
+  start: Date;
+  end: Date;
+  description?: string;
+  location?: string;
+}) {
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'BEGIN:VEVENT',
+    `DTSTART:${fmt(evt.start)}`,
+    `DTEND:${fmt(evt.end)}`,
+    `SUMMARY:${evt.title}`,
+    evt.description ? `DESCRIPTION:${evt.description}` : '',
+    evt.location ? `LOCATION:${evt.location}` : '',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ]
+    .filter(Boolean)
+    .join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'class.ics';
-  document.body.appendChild(a);
+  a.download = 'class-event.ics';
   a.click();
-  a.remove();
   URL.revokeObjectURL(url);
 }
