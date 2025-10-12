@@ -60,18 +60,18 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
             {isMobile ? (
               // Mobile version - shorter text
               <p className="text-sm font-medium">
-                <span className="font-bold">Limited Time:</span> Private class pricing on public classes! 
+                <span className="font-bold">Limited Time:</span> Private Classes at Public Class Rates -- 4+ people at a location you provide! Expires 11/7/25 
                 <Link 
-                  to="/private-classes" 
+                  to="/contact" 
                   className="underline font-semibold ml-1 hover:text-accent-light"
                 >
-                  Learn more
+                  Book now
                 </Link>
               </p>
             ) : (
               // Desktop version - full text
               <p className="text-sm sm:text-base font-medium">
-                <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates! Get 4+ friends together, pick your location, and save big. Limited time only - expires Nov 7, 2025.</span> 
+                <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates! Get 4+ friends or family together, provide a training location, and save big. Limited time only.</span> 
                 <Link 
                   to="/contact" 
                   className="underline font-semibold ml-2 hover:text-accent-light"
