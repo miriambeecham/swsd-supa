@@ -71,7 +71,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
             ) : (
               // Desktop version - full text
               <p className="text-sm sm:text-base font-medium">
-                <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates!</span><span>Get 4+ friends or family together, provide a training location, and save big. Limited time only.</span> 
+                <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates!</span><br><span>Get 4+ friends or family together, provide a training location, and save big. Limited time only.</span> 
                 <Link 
                   to="/contact" 
                   className="underline font-semibold ml-2 hover:text-accent-light"
@@ -79,7 +79,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
                   Book now
                 </Link>
                 <span className="text-xs ml-2 opacity-90">Expires Nov 7, 2025</span>
-              </p>
+              </br></p>
             )}
           </div>
 
