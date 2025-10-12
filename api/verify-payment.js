@@ -102,6 +102,11 @@ export default async function handler(req, res) {
       }
 
       // ====== SEND CONFIRMATION EMAIL ======
+     // Class prep URL (define BEFORE email block so it's available in return statement)
+      const classPrepUrl = scheduleId 
+        ? `https://www.streetwiseselfdefense.com/class-prep/${scheduleId}`
+        : null;
+     
       try {
         const { Resend } = await import('resend');
         const { default: ical } = await import('ical-generator');
@@ -161,11 +166,7 @@ export default async function handler(req, res) {
           // Google Calendar URL
           const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
           
-          // Class prep URL (dynamic page for this specific class)
-          const classPrepUrl = scheduleId 
-            ? `https://www.streetwiseselfdefense.com/class-prep/${scheduleId}`
-            : null;
-          
+                   
           // iCal file
           const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
           cal.createEvent({
