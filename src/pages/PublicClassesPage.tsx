@@ -379,7 +379,7 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
-          {/* Button/Registration Area */}
+    {/* Button/Registration Area */}
           <div className="ml-4">
             {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
               // Class is full - disabled button
@@ -401,13 +401,29 @@ const PublicClassesPage = () => {
               </button>
             ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
               classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-              // SWSD internal booking
-              <button
-                onClick={() => handleBookNow(classData)}
-                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
-              >
-                Register
-              </button>
+              // Check if registration hasn't opened yet for SWSD internal booking
+              classData.registration_opens && new Date() < new Date(classData.registration_opens) ? (
+                // Coming soon - registration not yet open
+                <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
+                  <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
+                    Coming Soon
+                  </div>
+                  <div>
+                    Registration opens<br />
+                    <span className="font-medium">
+                      {formatRegistrationDate(classData.registration_opens)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                // SWSD internal booking - registration is open
+                <button
+                  onClick={() => handleBookNow(classData)}
+                  className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
+                >
+                  Register
+                </button>
+              )
             ) : (classData.booking_method === 'external' && classData.booking_url) ? (
               // External partner registration
               <button
@@ -425,7 +441,7 @@ const PublicClassesPage = () => {
                 Contact Us <Mail className="w-4 h-4" />
               </button>
             ) : classData.registration_opens ? (
-              // Coming soon
+              // Coming soon - for other booking methods
               <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
                 <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
                   Coming Soon
@@ -438,27 +454,24 @@ const PublicClassesPage = () => {
                 </div>
               </div>
             ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-              // SWSD class without website booking — show phone
-              <div className="text-center text-gray-700 text-sm font-medium max-w-[140px]">
-                <div className="mb-2">Call us to register:</div>
-                
-                <a href="tel:9255329953"
-                  className="text-accent-primary hover:text-accent-dark font-semibold text-base underline"
-                >
-                  (925) 532-9953
-                </a>
-              </div>
-            ) : (
-              // Fallback
+              // SWSD classes without specific booking method - show contact
               <button
                 onClick={() => handleBooking(classData)}
-                className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              >
+                Contact Us <Mail className="w-4 h-4" />
+              </button>
+            ) : (
+              // Fallback - contact us
+              <button
+                onClick={() => handleBooking(classData)}
+                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
               >
                 Contact Us <Mail className="w-4 h-4" />
               </button>
             )}
           </div>
-        </div>
+          //note</div>
 
         {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
        {classData.available_spots && classData.start_time_new && 
@@ -472,7 +485,7 @@ const PublicClassesPage = () => {
       </div>
     );
   };
-
+//note
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
