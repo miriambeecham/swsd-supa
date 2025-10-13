@@ -379,7 +379,7 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
-{/* Button/Registration Area */}
+    {/* Button/Registration Area */}
           <div className="ml-4">
             {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
               // Class is full - disabled button
@@ -471,7 +471,6 @@ const PublicClassesPage = () => {
               </button>
             )}
           </div>
-          //note</div>
 
         {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
        {classData.available_spots && classData.start_time_new && 
