@@ -481,6 +481,7 @@ const PublicClassesPage = () => {
               </button>
             )}
           </div>
+          //note</div>
 
         {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
         {classData.max_participants && classData.start_time_new && 
