@@ -152,9 +152,6 @@ const PrivateClassesPage = () => {
   return (
     <div className="min-h-screen bg-white">
   
-    
-    {/* Header section continues... */}
-    <section className="relative h-80 lg:h-96 flex items-center">
       <Helmet>
         <title>Private Self Defense Training | Mobile Service | East Bay & SF Bay Area</title>
         <meta name="description" content="Private self defense training at your location in Oakland, San Francisco, Berkeley, Lafayette, Pleasant Hill, Orinda, Pleasanton, Dublin, and throughout the East Bay. Customized for individuals and families. We come to you." />
