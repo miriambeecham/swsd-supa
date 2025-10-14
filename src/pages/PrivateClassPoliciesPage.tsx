@@ -27,6 +27,7 @@ const PrivateClassPolicies = () => {
                 View Public Class Policies →
               </a>
             </p>
+            </div>
           </div>
         </div>
       </section>
