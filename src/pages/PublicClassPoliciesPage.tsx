@@ -27,7 +27,7 @@ export const PublicClassPolicySummary = () => {
         </li>
       </ul>
       <div className="mt-3 pt-3 border-t border-blue-200">
-        <a
+        
           href="/public-class-policies"
           target="_blank"
           rel="noopener noreferrer"
@@ -55,13 +55,13 @@ const PublicClassPolicies = () => {
               Public Class Booking Policies
             </h1>
             <p className="text-lg md:text-xl text-gray-600 mb-6">
-              We want signing up for class to be easy and stress-free. Here’s how we handle changes if plans shift.
+              We want signing up for class to be easy and stress-free. Here's how we handle changes if plans shift.
             </p>
 
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
                 ⚠️ <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{` `}
-                <a
+                
                   href="https://www.walnut-creek.org/departments/parks-recreation"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -94,58 +94,63 @@ const PublicClassPolicies = () => {
               </div>
             </div>
             <div className="p-6 bg-white">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">14+ days before class:</strong> Choose a full refund or move to another date for free. (Additional reschedules are $20 each.)
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">3–13 days before class:</strong> We’ll issue a class credit (valid for 12 months) so you can rebook when you’re ready.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Less than 3 days (72 hours):</strong> We’re not able to refund or reschedule this close in, but substitutions are welcome.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                  <span className="text-gray-700 flex-1">
-                    <strong className="text-navy">Substitutions:</strong> Send a friend or family member in your place (age/eligibility apply). Email{` `}
+              {/* Two-column table layout - stacks on mobile */}
+              <div className="space-y-3">
+                {/* Row 1 */}
+                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-3">
+                  <div className="md:w-1/3 mb-2 md:mb-0">
+                    <span className="font-bold text-navy">14+ days before class</span>
+                  </div>
+                  <div className="md:w-2/3 text-gray-700">
+                    Choose a full refund or move to another date for free. (Additional reschedules are $20 each.)
+                  </div>
+                </div>
+
+                {/* Row 2 */}
+                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-3">
+                  <div className="md:w-1/3 mb-2 md:mb-0">
+                    <span className="font-bold text-navy">3–13 days before class</span>
+                  </div>
+                  <div className="md:w-2/3 text-gray-700">
+                    We'll issue a class credit (valid for 12 months) so you can rebook when you're ready.
+                  </div>
+                </div>
+
+                {/* Row 3 */}
+                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-3">
+                  <div className="md:w-1/3 mb-2 md:mb-0">
+                    <span className="font-bold text-navy">Less than 3 days (72 hours)</span>
+                  </div>
+                  <div className="md:w-2/3 text-gray-700">
+                    We're not able to refund or reschedule this close in, but substitutions are welcome.
+                  </div>
+                </div>
+
+                {/* Row 4 */}
+                <div className="flex flex-col md:flex-row md:gap-6 pb-3">
+                  <div className="md:w-1/3 mb-2 md:mb-0">
+                    <span className="font-bold text-navy">Substitutions</span>
+                  </div>
+                  <div className="md:w-2/3 text-gray-700">
+                    Send a friend or family member in your place (age/eligibility apply). Email{` `}
                     <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                       support@streetwiseselfdefense.com
                     </a>{` `}
                     with their name and email.
-                  </span>
-                </li>
-              </ul>
-
-              <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
-                <p className="text-gray-700 mb-3">
-                  <strong className="text-navy">Need to make a change?</strong> Email us at{` `}
-                  <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
-                    support@streetwiseselfdefense.com
-                  </a>.
-                </p>
-                <p className="text-sm text-gray-600">
-                  Please include: the email you used to register, your current class date, your preferred new date (for reschedules), and participant names.
-                </p>
+                  </div>
+                </div>
               </div>
 
+              {/* Combined callout for reschedule/cancel */}
               <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
-                  <strong className="text-navy">Need to cancel?</strong> Email us at{` `}
+                  <strong className="text-navy">Need to reschedule or cancel?</strong> Email us at{` `}
                   <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                     support@streetwiseselfdefense.com
                   </a>.
                 </p>
                 <p className="text-sm text-gray-600">
-                  Please include: the email you used to register, the class date, and which participant(s) are canceling.
+                  Please include: the email you used to register, your current class date, and participant names. For reschedules, also include your preferred new date.
                 </p>
               </div>
             </div>
@@ -167,19 +172,17 @@ const PublicClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      If we ever have to cancel (illness, emergency, unsafe conditions), you’ll get a full refund or priority rescheduling—your choice.
+                      If we ever have to cancel (illness, emergency, unsafe conditions), you'll get a full refund or priority rescheduling—your choice.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      Classes require a minimum number of participants. If we need to cancel, you’ll be notified at least 48 hours ahead and offered a full refund or transfer to another date.
+                      Classes require a minimum number of participants. If we need to cancel, you'll be notified at least 48 hours ahead and offered a full refund or transfer to another date.
                     </span>
                   </li>
                 </ul>
               </div>
-
-             
             </div>
           </div>
 
@@ -190,16 +193,16 @@ const PublicClassPolicies = () => {
               </div>
               <h3 className="text-2xl font-bold text-navy mb-4">Questions About These Policies?</h3>
               <p className="text-gray-600 mb-6 text-lg">
-                We’re here to help! If you have a unique situation or just want to talk it through, reach out any time.
+                We're here to help! If you have a unique situation or just want to talk it through, reach out any time.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
+                
                   href="mailto:support@streetwiseselfdefense.com"
                   className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
                   Email Us
                 </a>
-                <a
+                
                   href="/private-class-policies"
                   className="border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
@@ -216,3 +219,4 @@ const PublicClassPolicies = () => {
 };
 
 export default PublicClassPolicies;
+
