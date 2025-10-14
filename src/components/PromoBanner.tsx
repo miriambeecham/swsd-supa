@@ -73,7 +73,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
            <p className="text-sm sm:text-base font-medium">
                 <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates!</span>
                 <br />
-                Get 4+ friends or family together, provide a training location (e.g., park, gym, or home), and save big. Limited time only.
+                Get 4+ friends or family together, provide a training location <ital>(e.g., park, gym, or home)</ital>, and save big. Limited time only.
                 <Link 
                   to="/contact" 
                   className="underline font-semibold ml-2 hover:text-accent-light"
