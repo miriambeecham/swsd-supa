@@ -33,7 +33,7 @@ export const PublicClassPolicySummary = () => {
           rel="noopener noreferrer"
           className="text-accent-primary hover:text-accent-dark font-medium text-sm underline"
         >
-          View full booking policies →
+          View full booking policies &rarr;
         </a>
       </div>
     </div>
@@ -60,21 +60,21 @@ const PublicClassPolicies = () => {
 
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
-                ⚠️ <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{` `}
+                ⚠️ <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{' '}
                 
                   href="https://www.walnut-creek.org/departments/parks-recreation"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-yellow-700"
                 >
-                  View City of Walnut Creek policies →
+                  View City of Walnut Creek policies &rarr;
                 </a>
               </p>
             </div>
 
             <p className="text-base">
               <a href="/private-class-policies" className="text-accent-primary hover:text-accent-dark underline font-medium">
-                View Private Class Policies →
+                View Private Class Policies &rarr;
               </a>
             </p>
           </div>
@@ -127,10 +127,10 @@ const PublicClassPolicies = () => {
                     <span className="font-bold text-navy">Substitutions</span>
                   </div>
                   <div className="md:w-2/3 text-gray-700">
-                    Send a friend or family member in your place (age/eligibility apply). Email{` `}
+                    Send a friend or family member in your place (age/eligibility apply). Email{' '}
                     <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                       support@streetwiseselfdefense.com
-                    </a>{` `}
+                    </a>{' '}
                     with their name and email.
                   </div>
                 </div>
@@ -138,7 +138,7 @@ const PublicClassPolicies = () => {
 
               <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
-                  <strong className="text-navy">Need to reschedule or cancel?</strong> Email us at{` `}
+                  <strong className="text-navy">Need to reschedule or cancel?</strong> Email us at{' '}
                   <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                     support@streetwiseselfdefense.com
                   </a>
