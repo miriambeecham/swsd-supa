@@ -152,13 +152,8 @@ const PrivateClassesPage = () => {
   return (
     <div className="min-h-screen bg-white">
       return (
-  <div className="min-h-screen bg-white">
-    <Helmet>
-      {/* ... existing Helmet content ... */}
-    </Helmet>
-    
-    {/* Add the promo banner here */}
-    <PromoBanner />
+
+  
     
     {/* Header section continues... */}
     <section className="relative h-80 lg:h-96 flex items-center">
@@ -172,6 +167,11 @@ const PrivateClassesPage = () => {
         <meta property="og:url" content="https://streetwiseselfdefense.com/private-classes" />
         <link rel="canonical" href="https://streetwiseselfdefense.com/private-classes" />
       </Helmet>
+
+        
+    {/* Add the promo banner here */}
+    <PromoBanner />
+      
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
