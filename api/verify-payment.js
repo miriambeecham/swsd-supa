@@ -115,7 +115,7 @@ const classPrepUrl = scheduleId
         const { default: ical } = await import('ical-generator');
         
         const RESEND_API_KEY = process.env.RESEND_API_KEY;
-        const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
         
         if (RESEND_API_KEY && booking.fields['Contact Email']) {
           const resend = new Resend(RESEND_API_KEY);
