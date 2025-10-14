@@ -6,7 +6,7 @@ export const PublicClassPolicySummary = () => {
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
       <h4 className="font-semibold text-navy mb-3 flex items-center gap-2">
         <Info className="w-5 h-5" />
-        Booking Policies – Quick Summary
+        Booking Policies - Quick Summary
       </h4>
       <ul className="text-sm text-gray-700 space-y-2">
         <li className="flex items-start gap-2">
@@ -33,7 +33,7 @@ export const PublicClassPolicySummary = () => {
           rel="noopener noreferrer"
           className="text-accent-primary hover:text-accent-dark font-medium text-sm underline"
         >
-          View full booking policies &rarr;
+          View full booking policies
         </a>
       </div>
     </div>
@@ -55,26 +55,26 @@ const PublicClassPolicies = () => {
               Public Class Booking Policies
             </h1>
             <p className="text-lg md:text-xl text-gray-600 mb-6">
-              We want signing up for class to be easy and stress-free. Here's how we handle changes if plans shift.
+              We want signing up for class to be easy and stress-free. Here is how we handle changes if plans shift.
             </p>
 
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
-                ⚠️ <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{' '}
+                <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{' '}
                 
                   href="https://www.walnut-creek.org/departments/parks-recreation"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-yellow-700"
                 >
-                  View City of Walnut Creek policies &rarr;
+                  View City of Walnut Creek policies
                 </a>
               </p>
             </div>
 
             <p className="text-base">
               <a href="/private-class-policies" className="text-accent-primary hover:text-accent-dark underline font-medium">
-                View Private Class Policies &rarr;
+                View Private Class Policies
               </a>
             </p>
           </div>
@@ -90,7 +90,7 @@ const PublicClassPolicies = () => {
                 <div className="bg-white/20 p-3 rounded-lg">
                   <Calendar className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl font-bold">Reschedule &amp; Cancellation</h2>
+                <h2 className="text-2xl font-bold">Reschedule and Cancellation</h2>
               </div>
             </div>
             <div className="p-6 bg-white">
@@ -106,10 +106,10 @@ const PublicClassPolicies = () => {
 
                 <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-4">
                   <div className="md:w-1/3 mb-2 md:mb-0">
-                    <span className="font-bold text-navy">3–13 days before class</span>
+                    <span className="font-bold text-navy">3-13 days before class</span>
                   </div>
                   <div className="md:w-2/3 text-gray-700">
-                    We'll issue a class credit (valid for 12 months) so you can rebook when you're ready.
+                    We will issue a class credit (valid for 12 months) so you can rebook when you are ready.
                   </div>
                 </div>
 
@@ -118,7 +118,7 @@ const PublicClassPolicies = () => {
                     <span className="font-bold text-navy">Less than 3 days (72 hours)</span>
                   </div>
                   <div className="md:w-2/3 text-gray-700">
-                    We're not able to refund or reschedule this close in, but substitutions are welcome.
+                    We are not able to refund or reschedule this close in, but substitutions are welcome.
                   </div>
                 </div>
 
@@ -166,13 +166,13 @@ const PublicClassPolicies = () => {
                   <li className="flex items-start gap-3">
                     <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      If we ever have to cancel (illness, emergency, unsafe conditions), you'll get a full refund or priority rescheduling—your choice.
+                      If we ever have to cancel (illness, emergency, unsafe conditions), you will get a full refund or priority rescheduling - your choice.
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-accent-primary font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
-                      Classes require a minimum number of participants. If we need to cancel, you'll be notified at least 48 hours ahead and offered a full refund or transfer to another date.
+                      Classes require a minimum number of participants. If we need to cancel, you will be notified at least 48 hours ahead and offered a full refund or transfer to another date.
                     </span>
                   </li>
                 </ul>
@@ -187,7 +187,7 @@ const PublicClassPolicies = () => {
               </div>
               <h3 className="text-2xl font-bold text-navy mb-4">Questions About These Policies?</h3>
               <p className="text-gray-600 mb-6 text-lg">
-                We're here to help! If you have a unique situation or just want to talk it through, reach out any time.
+                We are here to help! If you have a unique situation or just want to talk it through, reach out any time.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 
