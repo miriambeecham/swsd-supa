@@ -94,10 +94,8 @@ const PublicClassPolicies = () => {
               </div>
             </div>
             <div className="p-6 bg-white">
-              {/* Two-column table layout - stacks on mobile */}
-              <div className="space-y-3">
-                {/* Row 1 */}
-                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-3">
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-4">
                   <div className="md:w-1/3 mb-2 md:mb-0">
                     <span className="font-bold text-navy">14+ days before class</span>
                   </div>
@@ -106,8 +104,7 @@ const PublicClassPolicies = () => {
                   </div>
                 </div>
 
-                {/* Row 2 */}
-                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-3">
+                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-4">
                   <div className="md:w-1/3 mb-2 md:mb-0">
                     <span className="font-bold text-navy">3–13 days before class</span>
                   </div>
@@ -116,8 +113,7 @@ const PublicClassPolicies = () => {
                   </div>
                 </div>
 
-                {/* Row 3 */}
-                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-3">
+                <div className="flex flex-col md:flex-row md:gap-6 border-b border-gray-200 pb-4">
                   <div className="md:w-1/3 mb-2 md:mb-0">
                     <span className="font-bold text-navy">Less than 3 days (72 hours)</span>
                   </div>
@@ -126,8 +122,7 @@ const PublicClassPolicies = () => {
                   </div>
                 </div>
 
-                {/* Row 4 */}
-                <div className="flex flex-col md:flex-row md:gap-6 pb-3">
+                <div className="flex flex-col md:flex-row md:gap-6 pb-4">
                   <div className="md:w-1/3 mb-2 md:mb-0">
                     <span className="font-bold text-navy">Substitutions</span>
                   </div>
@@ -141,13 +136,12 @@ const PublicClassPolicies = () => {
                 </div>
               </div>
 
-              {/* Combined callout for reschedule/cancel */}
               <div className="mt-6 bg-gradient-to-r from-accent-primary/10 to-navy/10 border-l-4 border-accent-primary p-4 rounded">
                 <p className="text-gray-700 mb-3">
                   <strong className="text-navy">Need to reschedule or cancel?</strong> Email us at{` `}
                   <a href="mailto:support@streetwiseselfdefense.com" className="text-accent-primary hover:text-accent-dark underline font-semibold">
                     support@streetwiseselfdefense.com
-                  </a>.
+                  </a>
                 </p>
                 <p className="text-sm text-gray-600">
                   Please include: the email you used to register, your current class date, and participant names. For reschedules, also include your preferred new date.
@@ -219,4 +213,3 @@ const PublicClassPolicies = () => {
 };
 
 export default PublicClassPolicies;
-
