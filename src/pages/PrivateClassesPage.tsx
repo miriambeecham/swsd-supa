@@ -151,8 +151,6 @@ const PrivateClassesPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      return (
-
   
     
     {/* Header section continues... */}
