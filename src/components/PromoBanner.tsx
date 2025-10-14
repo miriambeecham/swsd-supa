@@ -47,7 +47,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-accent-primary to-accent-dark text-white relative">
+    <div className="bg-gradient-to-r from-accent-primary to-accent-dark text-white relative overflow-hidden animate-slide-down">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Icon - Hidden on mobile */}
@@ -70,7 +70,7 @@ const PromoBanner: React.FC<PromoBannerProps> = ({
               </p>
             ) : (
               // Desktop version - full text
-           <p className="text-sm sm:text-base font-medium">
+              <p className="text-sm sm:text-base font-medium">
                 <span className="font-bold">⚡ Special Offer: Private Training at Public Class Rates!</span>
                 <br />
                 Get 4+ friends or family together, provide a training location <em>(e.g., park, gym, or home)</em>, and save big. Limited time only.
