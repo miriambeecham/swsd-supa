@@ -220,7 +220,7 @@ const PrivateClassPolicies = () => {
                       Arrivals within 15 minutes may join the remaining class time, but we can&apos;t extend the session.
                     </span>
                   </li>
-                 /ul>
+                </ul>
               </div>
             </div>
           </div>
