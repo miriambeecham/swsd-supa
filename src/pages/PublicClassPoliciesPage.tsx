@@ -179,29 +179,7 @@ const PublicClassPolicies = () => {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-xl font-semibold text-navy mb-3">No-Show Policy</h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      If you don’t arrive within 15 minutes of the start time (and we haven’t heard from you), it counts as a cancellation.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      No refunds or reschedules are available for no-shows.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent-primary font-bold text-lg leading-6">•</span>
-                    <span className="text-gray-700 flex-1">
-                      Running late? Let us know—we’ll do our best to accommodate you.
-                    </span>
-                  </li>
-                </ul>
-              </div>
+             
             </div>
           </div>
 
