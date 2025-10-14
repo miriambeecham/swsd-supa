@@ -88,3 +88,18 @@
 .bg-yellow-light { background-color: var(--yellow-light); }
 .text-navy { color: var(--navy); }
 .text-yellow { color: var(--yellow); }
+
+@keyframes slide-down {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 1.5s ease-out;
+}

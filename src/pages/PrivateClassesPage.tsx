@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Users, Clock, CheckCircle, ArrowLeft, Star, Shield, ChevronDown, Calendar, Mail, X } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Helmet } from 'react-helmet-async';
+import PromoBanner from '../components/PromoBanner';
 
 const US_STATES = [
   { value: 'Alabama', label: 'Alabama' },
@@ -150,6 +151,7 @@ const PrivateClassesPage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+  
       <Helmet>
         <title>Private Self Defense Training | Mobile Service | East Bay & SF Bay Area</title>
         <meta name="description" content="Private self defense training at your location in Oakland, San Francisco, Berkeley, Lafayette, Pleasant Hill, Orinda, Pleasanton, Dublin, and throughout the East Bay. Customized for individuals and families. We come to you." />
@@ -160,6 +162,11 @@ const PrivateClassesPage = () => {
         <meta property="og:url" content="https://streetwiseselfdefense.com/private-classes" />
         <link rel="canonical" href="https://streetwiseselfdefense.com/private-classes" />
       </Helmet>
+
+        
+    {/* Add the promo banner here */}
+    <PromoBanner />
+      
       {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
