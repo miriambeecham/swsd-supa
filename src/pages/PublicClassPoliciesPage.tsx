@@ -1,3 +1,4 @@
+// src/pages/PublicClassPoliciesPage.tsx
 import React from 'react';
 import { Calendar, Info, Mail } from 'lucide-react';
 
@@ -27,7 +28,7 @@ export const PublicClassPolicySummary = () => {
         </li>
       </ul>
       <div className="mt-3 pt-3 border-t border-blue-200">
-        
+        <a
           href="/public-class-policies"
           target="_blank"
           rel="noopener noreferrer"
@@ -61,7 +62,7 @@ const PublicClassPolicies = () => {
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
               <p className="text-yellow-900 font-semibold text-sm md:text-base">
                 <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{' '}
-                
+                <a
                   href="https://www.walnut-creek.org/departments/parks-recreation"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -190,13 +191,13 @@ const PublicClassPolicies = () => {
                 We are here to help! If you have a unique situation or just want to talk it through, reach out any time.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                
+                <a
                   href="mailto:support@streetwiseselfdefense.com"
                   className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
                   Email Us
                 </a>
-                
+                <a
                   href="/private-class-policies"
                   className="border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-4 rounded-xl font-semibold transition-colors inline-block text-lg shadow-md hover:shadow-lg"
                 >
