@@ -27,7 +27,6 @@ const PrivateClassPolicies = () => {
                 View Public Class Policies →
               </a>
             </p>
-            </div>
           </div>
         </div>
       </section>
@@ -204,7 +203,30 @@ const PrivateClassPolicies = () => {
                 </ul>
               </div>
 
-           
+              <div>
+                <h3 className="text-xl font-semibold text-navy mb-3">No-Show Policy</h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <span className="text-navy font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      If you don&apos;t arrive within 15 minutes of the start time (and we haven&apos;t heard from you), it counts as a cancellation.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-navy font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      No refunds or reschedules are available for no-shows.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-navy font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      Running late? Let us know—we&apos;ll do our best to accommodate you.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
               <div>
                 <h3 className="text-xl font-semibold text-navy mb-3">Late Arrivals</h3>
                 <ul className="space-y-3">
@@ -218,6 +240,12 @@ const PrivateClassPolicies = () => {
                     <span className="text-navy font-bold text-lg leading-6">•</span>
                     <span className="text-gray-700 flex-1">
                       Arrivals within 15 minutes may join the remaining class time, but we can&apos;t extend the session.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-navy font-bold text-lg leading-6">•</span>
+                    <span className="text-gray-700 flex-1">
+                      More than 15 minutes late? For safety reasons participation may not be possible (see No-Show Policy).
                     </span>
                   </li>
                 </ul>
