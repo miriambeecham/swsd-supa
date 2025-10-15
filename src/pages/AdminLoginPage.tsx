@@ -149,10 +149,14 @@ const AdminLoginPage = () => {
           </div>
 
           <div className="flex justify-center">
-            <ReCAPTCHA
-              sitekey="6LCg7JArAAAAAJSqTBmdDCKBVc2dW3UyqQ037CMq"
-              onChange={(token) => setCaptchaToken(token)}
-            />
+      <ReCAPTCHA
+  sitekey={
+    import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+    (process.env as any).REACT_APP_RECAPTCHA_SITE_KEY ||
+    '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+  }
+  onChange={(token) => setCaptchaToken(token)}
+/>
           </div>
 
           <button
