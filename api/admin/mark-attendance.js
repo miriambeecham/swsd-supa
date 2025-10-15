@@ -80,4 +80,27 @@ export default async function handler(req, res) {
     });
 
     const results = await Promise.all(updatePromises);
-    const successCount = results.
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+
+    // Log audit trail (optional)
+    console.log('Attendance marked:', {
+      timestamp: new Date().toISOString(),
+      classScheduleId,
+      ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      successCount,
+      failureCount
+    });
+
+    return res.status(200).json({
+      success: true,
+      updated: successCount,
+      failed: failureCount,
+      results
+    });
+
+  } catch (error) {
+    console.error('Mark attendance error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
