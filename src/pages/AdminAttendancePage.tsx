@@ -86,63 +86,63 @@ const AdminAttendancePage = () => {
     checkAuth();
   }, [navigate]);
 
-// Fetch all class schedules
-useEffect(() => {
-  const fetchClasses = async () => {
-    try {
-      // Fetch both schedules and classes
-      const [schedulesResponse, classesResponse] = await Promise.all([
-        fetch('/api/schedules'),
-        fetch('/api/classes')
-      ]);
-      
-      if (!schedulesResponse.ok || !classesResponse.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      
-      const schedulesData = await schedulesResponse.json();
-      const classesData = await classesResponse.json();
-      
-      // Filter to only upcoming/recent classes and match with class names
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const filtered = schedulesData.records
-        .filter((schedule: any) => {
-          if (schedule.fields['Is Cancelled']) return false;
-          const classDate = new Date(schedule.fields.Date + 'T00:00:00');
-          return classDate >= today;
-        })
-        .map((schedule: any) => {
-          const classId = schedule.fields.Class?.[0];
-          const classRecord = classesData.records.find((c: any) => c.id === classId);
-          
-          return {
-            id: schedule.id,
-            className: classRecord?.fields['Class Name'] || 'Unknown Class',
-            date: schedule.fields.Date,
-            startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
-          };
-        })
-        .sort((a: ClassSchedule, b: ClassSchedule) => 
-          new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
+  // Fetch all class schedules
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        // Fetch both schedules and classes
+        const [schedulesResponse, classesResponse] = await Promise.all([
+          fetch('/api/schedules'),
+          fetch('/api/classes')
+        ]);
+        
+        if (!schedulesResponse.ok || !classesResponse.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        
+        const schedulesData = await schedulesResponse.json();
+        const classesData = await classesResponse.json();
+        
+        // Filter to only upcoming/recent classes and match with class names
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const filtered = schedulesData.records
+          .filter((schedule: any) => {
+            if (schedule.fields['Is Cancelled']) return false;
+            const classDate = new Date(schedule.fields.Date + 'T00:00:00');
+            return classDate >= today;
+          })
+          .map((schedule: any) => {
+            const classId = schedule.fields.Class?.[0];
+            const classRecord = classesData.records.find((c: any) => c.id === classId);
+            
+            return {
+              id: schedule.id,
+              className: classRecord?.fields['Class Name'] || 'Unknown Class',
+              date: schedule.fields.Date,
+              startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
+            };
+          })
+          .sort((a: ClassSchedule, b: ClassSchedule) => 
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
 
-      setAllClasses(filtered);
-      
-      // Set first class as default
-      if (filtered.length > 0) {
-        setCurrentClassId(filtered[0].id);
+        setAllClasses(filtered);
+        
+        // Set first class as default
+        if (filtered.length > 0) {
+          setCurrentClassId(filtered[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching classes:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchClasses();
-}, []);
+    fetchClasses();
+  }, []);
 
   // Fetch roster when class changes
   useEffect(() => {
@@ -193,10 +193,10 @@ useEffect(() => {
     }
   };
 
-  const handleAttendanceToggle = (participantId: string, isChecked: boolean) => {
+  const handleAttendanceChange = (participantId: string, value: string) => {
     setAttendanceState(prev => ({
       ...prev,
-      [participantId]: isChecked ? 'Absent' : 'Present'
+      [participantId]: value
     }));
   };
 
@@ -213,10 +213,20 @@ useEffect(() => {
     setSaveSuccess(false);
 
     try {
+      // Auto-mark "Not Recorded" as "Present" when saving
       const attendanceRecords = Object.entries(attendanceState).map(([participantId, attendance]) => ({
         participantId,
-        attendance
+        attendance: attendance === 'Not Recorded' ? 'Present' : attendance
       }));
+
+      // Update local state to reflect the auto-marking
+      const updatedState = { ...attendanceState };
+      Object.keys(updatedState).forEach(id => {
+        if (updatedState[id] === 'Not Recorded') {
+          updatedState[id] = 'Present';
+        }
+      });
+      setAttendanceState(updatedState);
 
       const response = await fetch('/api/admin/mark-attendance', {
         method: 'POST',
@@ -478,23 +488,20 @@ useEffect(() => {
                         Contact
                       </th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mark Absent
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
+                        Attendance
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {rosterData.roster.map((participant) => {
-                      const isAbsent = attendanceState[participant.id] === 'Absent';
-                      const statusColor = 
-                        attendanceState[participant.id] === 'Present' ? 'text-green-600' :
-                        attendanceState[participant.id] === 'Absent' ? 'text-red-600' :
-                        'text-gray-400';
+                      const currentStatus = attendanceState[participant.id] || 'Not Recorded';
+                      const rowColor = 
+                        currentStatus === 'Absent' ? 'bg-red-50' :
+                        currentStatus === 'Present' ? 'bg-green-50' :
+                        '';
 
                       return (
-                        <tr key={participant.id} className={isAbsent ? 'bg-red-50' : ''}>
+                        <tr key={participant.id} className={rowColor}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {participant.lastName}, {participant.firstName}
@@ -536,17 +543,19 @@ useEffect(() => {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isAbsent}
-                              onChange={(e) => handleAttendanceToggle(participant.id, e.target.checked)}
-                              className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded cursor-pointer"
-                            />
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`text-sm font-medium ${statusColor}`}>
-                              {attendanceState[participant.id]}
-                            </span>
+                            <select
+                              value={currentStatus}
+                              onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
+                              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
+                                currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
+                                currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
+                                'text-gray-600 bg-gray-50 border-gray-300'
+                              }`}
+                            >
+                              <option value="Not Recorded">Not Recorded</option>
+                              <option value="Present">Present</option>
+                              <option value="Absent">Absent</option>
+                            </select>
                           </td>
                         </tr>
                       );
