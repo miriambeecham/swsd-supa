@@ -86,50 +86,63 @@ const AdminAttendancePage = () => {
     checkAuth();
   }, [navigate]);
 
-  // Fetch all class schedules
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const response = await fetch('/api/schedules');
-        if (!response.ok) throw new Error('Failed to fetch schedules');
-        
-        const data = await response.json();
-        
-        // Filter to only upcoming/recent classes and sort by date
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const filtered = data.records
-          .filter((schedule: any) => {
-            if (schedule.fields['Is Cancelled']) return false;
-            const classDate = new Date(schedule.fields.Date + 'T00:00:00');
-            return classDate >= today;
-          })
-          .map((schedule: any) => ({
+// Fetch all class schedules
+useEffect(() => {
+  const fetchClasses = async () => {
+    try {
+      // Fetch both schedules and classes
+      const [schedulesResponse, classesResponse] = await Promise.all([
+        fetch('/api/schedules'),
+        fetch('/api/classes')
+      ]);
+      
+      if (!schedulesResponse.ok || !classesResponse.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      
+      const schedulesData = await schedulesResponse.json();
+      const classesData = await classesResponse.json();
+      
+      // Filter to only upcoming/recent classes and match with class names
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const filtered = schedulesData.records
+        .filter((schedule: any) => {
+          if (schedule.fields['Is Cancelled']) return false;
+          const classDate = new Date(schedule.fields.Date + 'T00:00:00');
+          return classDate >= today;
+        })
+        .map((schedule: any) => {
+          const classId = schedule.fields.Class?.[0];
+          const classRecord = classesData.records.find((c: any) => c.id === classId);
+          
+          return {
             id: schedule.id,
-            className: schedule.fields['Class Name'] || 'Unknown Class',
+            className: classRecord?.fields['Class Name'] || 'Unknown Class',
             date: schedule.fields.Date,
             startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
-          }))
-          .sort((a: ClassSchedule, b: ClassSchedule) => 
-            new Date(a.date).getTime() - new Date(b.date).getTime()
-          );
+          };
+        })
+        .sort((a: ClassSchedule, b: ClassSchedule) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
 
-        setAllClasses(filtered);
-        
-        // Set first class as default
-        if (filtered.length > 0) {
-          setCurrentClassId(filtered[0].id);
-        }
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      } finally {
-        setLoading(false);
+      setAllClasses(filtered);
+      
+      // Set first class as default
+      if (filtered.length > 0) {
+        setCurrentClassId(filtered[0].id);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchClasses();
-  }, []);
+  fetchClasses();
+}, []);
 
   // Fetch roster when class changes
   useEffect(() => {
