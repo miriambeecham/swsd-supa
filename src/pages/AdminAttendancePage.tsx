@@ -35,6 +35,9 @@ interface Participant {
   contactEmail: string;
   contactPhone: string;
   bookingId: string;
+  bookingNumber?: number;
+  isPrimaryContact: boolean;
+  bookingDate?: string;
 }
 
 interface ClassInfo {
@@ -289,17 +292,83 @@ const AdminAttendancePage = () => {
     }
   };
 
-  const handleDownloadCurrentClassCSV = () => {
-    if (!rosterData) return;
+const handleDownloadCurrentClassCSV = () => {
+  if (!rosterData) return;
 
-    const headers = ['Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
-    const rows = rosterData.roster.map(p => [
-      p.lastName,
-      p.firstName,
-      p.ageGroup,
-      attendanceState[p.id] || 'Not Recorded',
-      p.contactEmail,
-      p.contactPhone
+  const headers = ['Booking #', 'Primary Contact', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
+  const rows = rosterData.roster.map(p => [
+    p.bookingNumber || '',
+    p.isPrimaryContact ? 'Yes' : 'No',
+    p.lastName,
+    p.firstName,
+    p.ageGroup,
+    attendanceState[p.id] || 'Not Recorded',
+    p.contactEmail,
+    p.contactPhone
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell || ''}"`).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${rosterData.classInfo.className}_${rosterData.classInfo.date}_attendance.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+const handleDownloadAllClassesCSV = async () => {
+  try {
+    const allRosterData: Array<{
+      className: string;
+      date: string;
+      participant: any;
+      attendance: string;
+    }> = [];
+
+    // Fetch roster for each upcoming class
+    for (const cls of allClasses) {
+      try {
+        const response = await fetch(`/api/admin/class-roster?classScheduleId=${cls.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          data.roster.forEach((p: Participant) => {
+            allRosterData.push({
+              className: data.classInfo.className,
+              date: data.classInfo.date,
+              participant: p,
+              attendance: p.attendance
+            });
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching roster for class ${cls.id}:`, error);
+      }
+    }
+
+    if (allRosterData.length === 0) {
+      alert('No participant data found for upcoming classes.');
+      return;
+    }
+
+    const headers = ['Class Name', 'Date', 'Booking #', 'Primary Contact', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
+    const rows = allRosterData.map(item => [
+      item.className,
+      item.date,
+      item.participant.bookingNumber || '',
+      item.participant.isPrimaryContact ? 'Yes' : 'No',
+      item.participant.lastName,
+      item.participant.firstName,
+      item.participant.ageGroup,
+      item.attendance,
+      item.participant.contactEmail,
+      item.participant.contactPhone
     ]);
 
     const csvContent = [
@@ -311,79 +380,17 @@ const AdminAttendancePage = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${rosterData.classInfo.className}_${rosterData.classInfo.date}_attendance.csv`;
+    const today = new Date().toISOString().split('T')[0];
+    a.download = `All_Classes_Attendance_${today}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadAllClassesCSV = async () => {
-    try {
-      const allRosterData: Array<{
-        className: string;
-        date: string;
-        participant: any;
-        attendance: string;
-      }> = [];
-
-      // Fetch roster for each upcoming class
-      for (const cls of allClasses) {
-        try {
-          const response = await fetch(`/api/admin/class-roster?classScheduleId=${cls.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            data.roster.forEach((p: Participant) => {
-              allRosterData.push({
-                className: data.classInfo.className,
-                date: data.classInfo.date,
-                participant: p,
-                attendance: p.attendance
-              });
-            });
-          }
-        } catch (error) {
-          console.error(`Error fetching roster for class ${cls.id}:`, error);
-        }
-      }
-
-      if (allRosterData.length === 0) {
-        alert('No participant data found for upcoming classes.');
-        return;
-      }
-
-      const headers = ['Class Name', 'Date', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
-      const rows = allRosterData.map(item => [
-        item.className,
-        item.date,
-        item.participant.lastName,
-        item.participant.firstName,
-        item.participant.ageGroup,
-        item.attendance,
-        item.participant.contactEmail,
-        item.participant.contactPhone
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell || ''}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const today = new Date().toISOString().split('T')[0];
-      a.download = `All_Classes_Attendance_${today}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading all classes CSV:', error);
-      alert('Failed to download CSV. Please try again.');
-    }
-  };
+  } catch (error) {
+    console.error('Error downloading all classes CSV:', error);
+    alert('Failed to download CSV. Please try again.');
+  }
+};
 
   const copyToClipboard = (text: string, fieldId: string) => {
     navigator.clipboard.writeText(text);
@@ -535,55 +542,59 @@ const AdminAttendancePage = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3 mb-6">
-              <button
-                onClick={handleDownloadCurrentClassCSV}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Download This Class
-              </button>
-              <button
-                onClick={handleDownloadAllClassesCSV}
-                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Download All Classes
-              </button>
-              <div className="flex gap-3 ml-auto">
-                <button
-                  onClick={handleMarkAllPresent}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  Mark All as Present
-                </button>
-                <button
-                  onClick={handleSaveAttendance}
-                  disabled={saving}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
-                    saving
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : saveSuccess
-                      ? 'bg-green-600 text-white'
-                      : 'bg-accent-primary hover:bg-accent-dark text-white'
-                  }`}
-                >
-                  {saveSuccess ? (
-                    <>
-                      <Check className="w-5 h-5" />
-                      Saved!
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      {saving ? 'Saving...' : 'Save Attendance'}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+{/* Action Buttons */}
+<div className="flex flex-wrap items-center gap-4 mb-6">
+  <div className="flex items-center gap-4">
+    <button
+      onClick={handleDownloadCurrentClassCSV}
+      className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors text-sm font-medium"
+    >
+      <Download className="w-4 h-4" />
+      Download This Class
+    </button>
+    <span className="text-gray-300">|</span>
+    <button
+      onClick={handleDownloadAllClassesCSV}
+      className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors text-sm font-medium"
+    >
+      <Download className="w-4 h-4" />
+      Download All Classes
+    </button>
+  </div>
+  
+  <div className="flex gap-3 ml-auto">
+    <button
+      onClick={handleMarkAllPresent}
+      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+    >
+      <CheckCircle className="w-5 h-5" />
+      Mark All as Present
+    </button>
+    <button
+      onClick={handleSaveAttendance}
+      disabled={saving}
+      className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+        saving
+          ? 'bg-gray-400 cursor-not-allowed'
+          : saveSuccess
+          ? 'bg-green-600 text-white'
+          : 'bg-accent-primary hover:bg-accent-dark text-white'
+      }`}
+    >
+      {saveSuccess ? (
+        <>
+          <Check className="w-5 h-5" />
+          Saved!
+        </>
+      ) : (
+        <>
+          <Save className="w-5 h-5" />
+          {saving ? 'Saving...' : 'Save Attendance'}
+        </>
+      )}
+    </button>
+  </div>
+</div>
 
             {hasUnsavedChanges && (
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6 text-sm">
@@ -611,75 +622,95 @@ const AdminAttendancePage = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {rosterData.roster.map((participant) => {
-                      const currentStatus = attendanceState[participant.id] || 'Not Recorded';
-                      const rowColor = 
-                        currentStatus === 'Absent' ? 'bg-red-50' :
-                        currentStatus === 'Present' ? 'bg-green-50' :
-                        '';
+           <tbody className="bg-white divide-y divide-gray-200">
+  {rosterData.roster.map((participant, index) => {
+    const currentStatus = attendanceState[participant.id] || 'Not Recorded';
+    const rowColor = 
+      currentStatus === 'Absent' ? 'bg-red-50' :
+      currentStatus === 'Present' ? 'bg-green-50' :
+      '';
 
-                      return (
-                        <tr key={participant.id} className={rowColor}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {participant.lastName}, {participant.firstName}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {participant.ageGroup}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              <button
-                                onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
-                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
-                              >
-                                <Mail className="w-4 h-4" />
-                                <span className="truncate max-w-[200px]">{participant.contactEmail}</span>
-                                {copiedField === `email-${participant.id}` ? (
-                                  <Check className="w-4 h-4 text-green-600" />
-                                ) : (
-                                  <Copy className="w-4 h-4" />
-                                )}
-                              </button>
-                              {participant.contactPhone && (
-                                <button
-                                  onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
-                                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
-                                >
-                                  <Phone className="w-4 h-4" />
-                                  <span>{participant.contactPhone}</span>
-                                  {copiedField === `phone-${participant.id}` ? (
-                                    <Check className="w-4 h-4 text-green-600" />
-                                  ) : (
-                                    <Copy className="w-4 h-4" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <select
-                              value={currentStatus}
-                              onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
-                              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
-                                currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
-                                currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
-                                'text-gray-600 bg-gray-50 border-gray-300'
-                              }`}
-                            >
-                              <option value="Not Recorded">Not Recorded</option>
-                              <option value="Present">Present</option>
-                              <option value="Absent">Absent</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+    // Check if this is the start of a new booking group
+    const isNewBookingGroup = index === 0 || 
+      rosterData.roster[index - 1].bookingId !== participant.bookingId;
+
+    return (
+      <tr 
+        key={participant.id} 
+        className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-300' : ''}`}
+      >
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-medium text-gray-900">
+              {participant.lastName}, {participant.firstName}
+            </div>
+            {participant.isPrimaryContact && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
+                Primary Contact
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+            {participant.ageGroup}
+          </span>
+        </td>
+        <td className="px-6 py-4">
+          {participant.isPrimaryContact ? (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                <span className="truncate max-w-[200px]">{participant.contactEmail}</span>
+                {copiedField === `email-${participant.id}` ? (
+                  <Check className="w-4 h-4 text-green-600" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </button>
+              {participant.contactPhone && (
+                <button
+                  onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>{participant.contactPhone}</span>
+                  {copiedField === `phone-${participant.id}` ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400 italic">
+              See primary contact above
+            </div>
+          )}
+        </td>
+        <td className="px-6 py-4 text-center">
+          <select
+            value={currentStatus}
+            onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
+            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
+              currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
+              currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
+              'text-gray-600 bg-gray-50 border-gray-300'
+            }`}
+          >
+            <option value="Not Recorded">Not Recorded</option>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+          </select>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
                 </table>
               </div>
 
