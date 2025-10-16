@@ -105,30 +105,51 @@ if (bookingIds.length > 0) {
       }
     }
 
-    // Combine participant data with booking contact info
-    const roster = participants.map(participant => {
-      const booking = bookings.find(b => 
-        b.fields?.Participants?.includes(participant.id)
-      );
+  // Combine participant data with booking contact info
+const roster = participants.map(participant => {
+  const booking = bookings.find(b => 
+    b.fields?.Participants?.includes(participant.id)
+  );
 
-      return {
-        id: participant.id,
-        firstName: participant.fields['First Name'],
-        lastName: participant.fields['Last Name'],
-        ageGroup: participant.fields['Age Group'],
-        attendance: participant.fields['Attendance'] || 'Not Recorded',
-        contactEmail: booking?.fields['Contact Email'],
-        contactPhone: booking?.fields['Contact Phone'],
-        bookingId: booking?.id
-      };
-    });
+  // Check if this participant is the primary contact for the booking
+  const isPrimaryContact = 
+    participant.fields['First Name'] === booking?.fields['Contact First Name'] &&
+    participant.fields['Last Name'] === booking?.fields['Contact Last Name'];
 
-    // Sort roster by last name, then first name
-    roster.sort((a, b) => {
-      const lastNameCompare = (a.lastName || '').localeCompare(b.lastName || '');
-      if (lastNameCompare !== 0) return lastNameCompare;
-      return (a.firstName || '').localeCompare(b.firstName || '');
-    });
+  return {
+    id: participant.id,
+    firstName: participant.fields['First Name'],
+    lastName: participant.fields['Last Name'],
+    ageGroup: participant.fields['Age Group'],
+    attendance: participant.fields['Attendance'] || 'Not Recorded',
+    contactEmail: booking?.fields['Contact Email'],
+    contactPhone: booking?.fields['Contact Phone'],
+    bookingId: booking?.id,
+    bookingNumber: booking?.fields['Booking ID'],
+    isPrimaryContact,
+    bookingDate: booking?.fields['Booking Date']
+  };
+});
+
+// Sort by booking (keeps booking groups together), then put primary contact first
+roster.sort((a, b) => {
+  // First sort by booking ID
+  if (a.bookingId !== b.bookingId) {
+    // Sort bookings by booking date/number
+    const aBookingNum = a.bookingNumber || 0;
+    const bBookingNum = b.bookingNumber || 0;
+    return aBookingNum - bBookingNum;
+  }
+  
+  // Within same booking, put primary contact first
+  if (a.isPrimaryContact && !b.isPrimaryContact) return -1;
+  if (!a.isPrimaryContact && b.isPrimaryContact) return 1;
+  
+  // Then sort by name
+  const lastNameCompare = (a.lastName || '').localeCompare(b.lastName || '');
+  if (lastNameCompare !== 0) return lastNameCompare;
+  return (a.firstName || '').localeCompare(b.firstName || '');
+});
 
     // Prepare response
     const response = {
