@@ -62,8 +62,10 @@ const AdminAttendancePage = () => {
   const [currentClassId, setCurrentClassId] = useState<string>('');
   const [rosterData, setRosterData] = useState<RosterData | null>(null);
   const [attendanceState, setAttendanceState] = useState<Record<string, string>>({});
+  const [initialAttendanceState, setInitialAttendanceState] = useState<Record<string, string>>({});
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -86,11 +88,29 @@ const AdminAttendancePage = () => {
     checkAuth();
   }, [navigate]);
 
+  // Warn before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Track changes to attendance state
+  useEffect(() => {
+    const hasChanges = JSON.stringify(attendanceState) !== JSON.stringify(initialAttendanceState);
+    setHasUnsavedChanges(hasChanges);
+  }, [attendanceState, initialAttendanceState]);
+
   // Fetch all class schedules
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        // Fetch both schedules and classes
         const [schedulesResponse, classesResponse] = await Promise.all([
           fetch('/api/schedules'),
           fetch('/api/classes')
@@ -103,7 +123,6 @@ const AdminAttendancePage = () => {
         const schedulesData = await schedulesResponse.json();
         const classesData = await classesResponse.json();
         
-        // Filter to only upcoming/recent classes and match with class names
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -130,8 +149,13 @@ const AdminAttendancePage = () => {
 
         setAllClasses(filtered);
         
-        // Set first class as default
-        if (filtered.length > 0) {
+        // Find first class that is today or in the future
+        const todayStr = today.toISOString().split('T')[0];
+        const todayOrLaterClass = filtered.find((cls: ClassSchedule) => cls.date >= todayStr);
+        
+        if (todayOrLaterClass) {
+          setCurrentClassId(todayOrLaterClass.id);
+        } else if (filtered.length > 0) {
           setCurrentClassId(filtered[0].id);
         }
       } catch (error) {
@@ -156,12 +180,12 @@ const AdminAttendancePage = () => {
         const data = await response.json();
         setRosterData(data);
         
-        // Initialize attendance state from existing data
         const initialState: Record<string, string> = {};
         data.roster.forEach((participant: Participant) => {
           initialState[participant.id] = participant.attendance;
         });
         setAttendanceState(initialState);
+        setInitialAttendanceState(initialState);
       } catch (error) {
         console.error('Error fetching roster:', error);
       }
@@ -171,6 +195,11 @@ const AdminAttendancePage = () => {
   }, [currentClassId]);
 
   const handleLogout = async () => {
+    if (hasUnsavedChanges) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to logout?')) {
+        return;
+      }
+    }
     try {
       await fetch('/api/admin/logout', { method: 'POST' });
       navigate('/admin/login');
@@ -179,17 +208,26 @@ const AdminAttendancePage = () => {
     }
   };
 
+  const handleClassChange = (newClassId: string) => {
+    if (hasUnsavedChanges) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to switch classes?')) {
+        return;
+      }
+    }
+    setCurrentClassId(newClassId);
+  };
+
   const handlePreviousClass = () => {
     const currentIndex = allClasses.findIndex(c => c.id === currentClassId);
     if (currentIndex > 0) {
-      setCurrentClassId(allClasses[currentIndex - 1].id);
+      handleClassChange(allClasses[currentIndex - 1].id);
     }
   };
 
   const handleNextClass = () => {
     const currentIndex = allClasses.findIndex(c => c.id === currentClassId);
     if (currentIndex < allClasses.length - 1) {
-      setCurrentClassId(allClasses[currentIndex + 1].id);
+      handleClassChange(allClasses[currentIndex + 1].id);
     }
   };
 
@@ -200,7 +238,7 @@ const AdminAttendancePage = () => {
     }));
   };
 
-  const handleRecordNoAbsences = () => {
+  const handleMarkAllPresent = () => {
     const newState: Record<string, string> = {};
     rosterData?.roster.forEach(participant => {
       newState[participant.id] = 'Present';
@@ -213,13 +251,11 @@ const AdminAttendancePage = () => {
     setSaveSuccess(false);
 
     try {
-      // Auto-mark "Not Recorded" as "Present" when saving
       const attendanceRecords = Object.entries(attendanceState).map(([participantId, attendance]) => ({
         participantId,
         attendance: attendance === 'Not Recorded' ? 'Present' : attendance
       }));
 
-      // Update local state to reflect the auto-marking
       const updatedState = { ...attendanceState };
       Object.keys(updatedState).forEach(id => {
         if (updatedState[id] === 'Not Recorded') {
@@ -227,6 +263,7 @@ const AdminAttendancePage = () => {
         }
       });
       setAttendanceState(updatedState);
+      setInitialAttendanceState(updatedState);
 
       const response = await fetch('/api/admin/mark-attendance', {
         method: 'POST',
@@ -252,7 +289,7 @@ const AdminAttendancePage = () => {
     }
   };
 
-  const handleDownloadCSV = () => {
+  const handleDownloadCurrentClassCSV = () => {
     if (!rosterData) return;
 
     const headers = ['Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
@@ -279,6 +316,73 @@ const AdminAttendancePage = () => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadAllClassesCSV = async () => {
+    try {
+      const allRosterData: Array<{
+        className: string;
+        date: string;
+        participant: any;
+        attendance: string;
+      }> = [];
+
+      // Fetch roster for each upcoming class
+      for (const cls of allClasses) {
+        try {
+          const response = await fetch(`/api/admin/class-roster?classScheduleId=${cls.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            data.roster.forEach((p: Participant) => {
+              allRosterData.push({
+                className: data.classInfo.className,
+                date: data.classInfo.date,
+                participant: p,
+                attendance: p.attendance
+              });
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching roster for class ${cls.id}:`, error);
+        }
+      }
+
+      if (allRosterData.length === 0) {
+        alert('No participant data found for upcoming classes.');
+        return;
+      }
+
+      const headers = ['Class Name', 'Date', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
+      const rows = allRosterData.map(item => [
+        item.className,
+        item.date,
+        item.participant.lastName,
+        item.participant.firstName,
+        item.participant.ageGroup,
+        item.attendance,
+        item.participant.contactEmail,
+        item.participant.contactPhone
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell || ''}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().split('T')[0];
+      a.download = `All_Classes_Attendance_${today}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading all classes CSV:', error);
+      alert('Failed to download CSV. Please try again.');
+    }
   };
 
   const copyToClipboard = (text: string, fieldId: string) => {
@@ -382,7 +486,7 @@ const AdminAttendancePage = () => {
 
             <select
               value={currentClassId}
-              onChange={(e) => setCurrentClassId(e.target.value)}
+              onChange={(e) => handleClassChange(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
             >
               {allClasses.map((cls) => (
@@ -434,43 +538,58 @@ const AdminAttendancePage = () => {
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 mb-6">
               <button
-                onClick={handleRecordNoAbsences}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <CheckCircle className="w-5 h-5" />
-                Record No Absences
-              </button>
-              <button
-                onClick={handleDownloadCSV}
+                onClick={handleDownloadCurrentClassCSV}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 <Download className="w-5 h-5" />
-                Download CSV
+                Download This Class
               </button>
               <button
-                onClick={handleSaveAttendance}
-                disabled={saving}
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ml-auto ${
-                  saving
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : saveSuccess
-                    ? 'bg-green-600 text-white'
-                    : 'bg-accent-primary hover:bg-accent-dark text-white'
-                }`}
+                onClick={handleDownloadAllClassesCSV}
+                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                {saveSuccess ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    Saved!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5" />
-                    {saving ? 'Saving...' : 'Save Attendance'}
-                  </>
-                )}
+                <Download className="w-5 h-5" />
+                Download All Classes
               </button>
+              <div className="flex gap-3 ml-auto">
+                <button
+                  onClick={handleMarkAllPresent}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Mark All as Present
+                </button>
+                <button
+                  onClick={handleSaveAttendance}
+                  disabled={saving}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+                    saving
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : saveSuccess
+                      ? 'bg-green-600 text-white'
+                      : 'bg-accent-primary hover:bg-accent-dark text-white'
+                  }`}
+                >
+                  {saveSuccess ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Saved!
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      {saving ? 'Saving...' : 'Save Attendance'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {hasUnsavedChanges && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6 text-sm">
+                ⚠️ You have unsaved changes. Remember to click "Save Attendance" before leaving this page.
+              </div>
+            )}
 
             {/* Roster Table */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
