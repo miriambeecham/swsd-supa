@@ -20,6 +20,8 @@ import AdminClassPrepLinksPage from './pages/AdminClassPrepLinksPage';
 import ClassPrepPage from './pages/ClassPrepPage';
 import PublicClassPoliciesPage from './pages/PublicClassPoliciesPage';
 import PrivateClassPoliciesPage from './pages/PrivateClassPoliciesPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminAttendancePage from './pages/AdminAttendancePage';
 
 
 
@@ -57,6 +59,8 @@ function App() {
             <Route path="/class-prep/:scheduleId" element={<ClassPrepPage />} />
             <Route path="/public-class-policies" element={<PublicClassPoliciesPage />} />
             <Route path="/private-class-policies" element={<PrivateClassPoliciesPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin/attendance" element={<AdminAttendancePage />} />
             
           </Routes>
         </Layout>
