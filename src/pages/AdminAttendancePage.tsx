@@ -35,6 +35,9 @@ interface Participant {
   contactEmail: string;
   contactPhone: string;
   bookingId: string;
+  bookingNumber?: number;
+  isPrimaryContact: boolean;
+  bookingDate?: string;
 }
 
 interface ClassInfo {
@@ -611,75 +614,95 @@ const AdminAttendancePage = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {rosterData.roster.map((participant) => {
-                      const currentStatus = attendanceState[participant.id] || 'Not Recorded';
-                      const rowColor = 
-                        currentStatus === 'Absent' ? 'bg-red-50' :
-                        currentStatus === 'Present' ? 'bg-green-50' :
-                        '';
+           <tbody className="bg-white divide-y divide-gray-200">
+  {rosterData.roster.map((participant, index) => {
+    const currentStatus = attendanceState[participant.id] || 'Not Recorded';
+    const rowColor = 
+      currentStatus === 'Absent' ? 'bg-red-50' :
+      currentStatus === 'Present' ? 'bg-green-50' :
+      '';
 
-                      return (
-                        <tr key={participant.id} className={rowColor}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {participant.lastName}, {participant.firstName}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {participant.ageGroup}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              <button
-                                onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
-                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
-                              >
-                                <Mail className="w-4 h-4" />
-                                <span className="truncate max-w-[200px]">{participant.contactEmail}</span>
-                                {copiedField === `email-${participant.id}` ? (
-                                  <Check className="w-4 h-4 text-green-600" />
-                                ) : (
-                                  <Copy className="w-4 h-4" />
-                                )}
-                              </button>
-                              {participant.contactPhone && (
-                                <button
-                                  onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
-                                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
-                                >
-                                  <Phone className="w-4 h-4" />
-                                  <span>{participant.contactPhone}</span>
-                                  {copiedField === `phone-${participant.id}` ? (
-                                    <Check className="w-4 h-4 text-green-600" />
-                                  ) : (
-                                    <Copy className="w-4 h-4" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <select
-                              value={currentStatus}
-                              onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
-                              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
-                                currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
-                                currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
-                                'text-gray-600 bg-gray-50 border-gray-300'
-                              }`}
-                            >
-                              <option value="Not Recorded">Not Recorded</option>
-                              <option value="Present">Present</option>
-                              <option value="Absent">Absent</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+    // Check if this is the start of a new booking group
+    const isNewBookingGroup = index === 0 || 
+      rosterData.roster[index - 1].bookingId !== participant.bookingId;
+
+    return (
+      <tr 
+        key={participant.id} 
+        className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-300' : ''}`}
+      >
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-medium text-gray-900">
+              {participant.lastName}, {participant.firstName}
+            </div>
+            {participant.isPrimaryContact && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent-primary text-white">
+                Primary Contact
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+            {participant.ageGroup}
+          </span>
+        </td>
+        <td className="px-6 py-4">
+          {participant.isPrimaryContact ? (
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                <span className="truncate max-w-[200px]">{participant.contactEmail}</span>
+                {copiedField === `email-${participant.id}` ? (
+                  <Check className="w-4 h-4 text-green-600" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </button>
+              {participant.contactPhone && (
+                <button
+                  onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>{participant.contactPhone}</span>
+                  {copiedField === `phone-${participant.id}` ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400 italic">
+              See primary contact above
+            </div>
+          )}
+        </td>
+        <td className="px-6 py-4 text-center">
+          <select
+            value={currentStatus}
+            onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
+            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
+              currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
+              currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
+              'text-gray-600 bg-gray-50 border-gray-300'
+            }`}
+          >
+            <option value="Not Recorded">Not Recorded</option>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+          </select>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
                 </table>
               </div>
 
