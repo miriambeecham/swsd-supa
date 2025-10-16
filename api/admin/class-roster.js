@@ -66,24 +66,25 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fetch bookings for this schedule
-    const bookingIds = schedule.fields?.Bookings || [];
-    let bookings = [];
+    // Fetch bookings for this schedule (only Confirmed bookings)
+const bookingIds = schedule.fields?.Bookings || [];
+let bookings = [];
 
-    if (bookingIds.length > 0) {
-      const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-      const filterFormula = `OR(${orConditions})`;
-      
-      const bookingsResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
+if (bookingIds.length > 0) {
+  const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+  // Filter for only Confirmed bookings
+  const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+  
+  const bookingsResponse = await fetch(
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
+    { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+  );
 
-      if (bookingsResponse.ok) {
-        const bookingsData = await bookingsResponse.json();
-        bookings = bookingsData.records || [];
-      }
-    }
+  if (bookingsResponse.ok) {
+    const bookingsData = await bookingsResponse.json();
+    bookings = bookingsData.records || [];
+  }
+}
 
     // Fetch all participants for these bookings
     const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
