@@ -110,66 +110,104 @@ const AdminAttendancePage = () => {
     setHasUnsavedChanges(hasChanges);
   }, [attendanceState, initialAttendanceState]);
 
-  // Fetch all class schedules
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const [schedulesResponse, classesResponse] = await Promise.all([
-          fetch('/api/schedules'),
-          fetch('/api/classes')
-        ]);
-        
-        if (!schedulesResponse.ok || !classesResponse.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        
-        const schedulesData = await schedulesResponse.json();
-        const classesData = await classesResponse.json();
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const filtered = schedulesData.records
+ // ============================================
+// SECTION 1: Updated fetchClasses useEffect
+// ============================================
+// Replace the existing fetchClasses useEffect with this:
+
+useEffect(() => {
+  const fetchClasses = async () => {
+    try {
+      const [schedulesResponse, classesResponse] = await Promise.all([
+        fetch('/api/schedules'),
+        fetch('/api/classes')
+      ]);
+      
+      if (!schedulesResponse.ok || !classesResponse.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      
+      const schedulesData = await schedulesResponse.json();
+      const classesData = await classesResponse.json();
+      
+      // Calculate date 4 weeks ago
+      const fourWeeksAgo = new Date();
+      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+      fourWeeksAgo.setHours(0, 0, 0, 0);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Fetch all schedules with their roster data to check attendance
+      const classesWithAttendance = await Promise.all(
+        schedulesData.records
           .filter((schedule: any) => {
             if (schedule.fields['Is Cancelled']) return false;
             const classDate = new Date(schedule.fields.Date + 'T00:00:00');
-            return classDate >= today;
+            // Include classes from 4 weeks ago through the future
+            return classDate >= fourWeeksAgo;
           })
-          .map((schedule: any) => {
+          .map(async (schedule: any) => {
             const classId = schedule.fields.Class?.[0];
             const classRecord = classesData.records.find((c: any) => c.id === classId);
+            
+            // Fetch roster to check attendance status
+            let hasUnmarkedAttendance = false;
+            try {
+              const rosterResponse = await fetch(`/api/admin/class-roster?classScheduleId=${schedule.id}`);
+              if (rosterResponse.ok) {
+                const rosterData = await rosterResponse.json();
+                hasUnmarkedAttendance = rosterData.roster.some(
+                  (p: any) => p.attendance === 'Not Recorded' || !p.attendance
+                );
+              }
+            } catch (error) {
+              console.error(`Error fetching roster for class ${schedule.id}:`, error);
+            }
+            
+            const classDate = new Date(schedule.fields.Date + 'T00:00:00');
+            const isPast = classDate < today;
             
             return {
               id: schedule.id,
               className: classRecord?.fields['Class Name'] || 'Unknown Class',
               date: schedule.fields.Date,
-              startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
+              startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time'],
+              isPast,
+              hasUnmarkedAttendance
             };
           })
-          .sort((a: ClassSchedule, b: ClassSchedule) => 
-            new Date(a.date).getTime() - new Date(b.date).getTime()
-          );
+      );
 
-        setAllClasses(filtered);
-        
-        // Find first class that is today or in the future
-        const todayStr = today.toISOString().split('T')[0];
-        const todayOrLaterClass = filtered.find((cls: ClassSchedule) => cls.date >= todayStr);
-        
-        if (todayOrLaterClass) {
-          setCurrentClassId(todayOrLaterClass.id);
-        } else if (filtered.length > 0) {
-          setCurrentClassId(filtered[0].id);
-        }
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      } finally {
-        setLoading(false);
+      // Sort classes chronologically (oldest to newest)
+      const sortedClasses = classesWithAttendance.sort((a: any, b: any) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      setAllClasses(sortedClasses);
+      
+      // Set default class to the oldest past class (within 4 weeks) with unmarked attendance
+      // If none found, default to first future class, or first class overall
+      const oldestPastUnmarked = sortedClasses.find((cls: any) => 
+        cls.isPast && cls.hasUnmarkedAttendance
+      );
+      
+      const defaultClass = oldestPastUnmarked 
+        || sortedClasses.find((cls: any) => !cls.isPast) 
+        || sortedClasses[0];
+      
+      if (defaultClass) {
+        setCurrentClassId(defaultClass.id);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchClasses();
-  }, []);
+  fetchClasses();
+}, []);
 
   // Fetch roster when class changes
   useEffect(() => {
@@ -323,27 +361,50 @@ const handleDownloadCurrentClassCSV = () => {
   window.URL.revokeObjectURL(url);
 };
 
+// ============================================
+// SECTION 2: Updated handleDownloadAllClassesCSV function
+// ============================================
+// Replace the existing handleDownloadAllClassesCSV function with this:
+
 const handleDownloadAllClassesCSV = async () => {
   try {
+    // Calculate date 4 weeks ago
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    fourWeeksAgo.setHours(0, 0, 0, 0);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const allRosterData: Array<{
       className: string;
       date: string;
       participant: any;
       attendance: string;
+      isPast: boolean;
+      hasUnmarkedAttendance: boolean;
     }> = [];
 
-    // Fetch roster for each upcoming class
+    // Fetch roster for each class
     for (const cls of allClasses) {
       try {
         const response = await fetch(`/api/admin/class-roster?classScheduleId=${cls.id}`);
         if (response.ok) {
           const data = await response.json();
+          const classDate = new Date(data.classInfo.date + 'T00:00:00');
+          const isPast = classDate < today;
+          
           data.roster.forEach((p: Participant) => {
+            const attendance = p.attendance || 'Not Recorded';
+            const hasUnmarkedAttendance = attendance === 'Not Recorded';
+            
             allRosterData.push({
               className: data.classInfo.className,
               date: data.classInfo.date,
               participant: p,
-              attendance: p.attendance
+              attendance: attendance,
+              isPast,
+              hasUnmarkedAttendance: isPast && hasUnmarkedAttendance
             });
           });
         }
@@ -353,35 +414,87 @@ const handleDownloadAllClassesCSV = async () => {
     }
 
     if (allRosterData.length === 0) {
-      alert('No participant data found for upcoming classes.');
+      alert('No participant data found.');
       return;
     }
 
-    const headers = ['Class Name', 'Date', 'Booking #', 'Primary Contact', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
-    const rows = allRosterData.map(item => [
-      item.className,
-      item.date,
-      item.participant.bookingNumber || '',
-      item.participant.isPrimaryContact ? 'Yes' : 'No',
-      item.participant.lastName,
-      item.participant.firstName,
-      item.participant.ageGroup,
-      item.attendance,
-      item.participant.contactEmail,
-      item.participant.contactPhone
-    ]);
+    // Categorize data into three groups
+    const pastUnmarked = allRosterData.filter(item => 
+      item.isPast && item.hasUnmarkedAttendance
+    );
+    const future = allRosterData.filter(item => !item.isPast);
+    const pastMarked = allRosterData.filter(item => 
+      item.isPast && !item.hasUnmarkedAttendance
+    );
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell || ''}"`).join(','))
-    ].join('\n');
+    // Sort each group by date (oldest first)
+    const sortByDate = (a: any, b: any) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime();
+    
+    pastUnmarked.sort(sortByDate);
+    future.sort(sortByDate);
+    pastMarked.sort(sortByDate);
+
+    const headers = ['Class Name', 'Date', 'Booking #', 'Primary Contact', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
+    
+    const createRows = (items: typeof allRosterData) => 
+      items.map(item => [
+        item.className,
+        item.date,
+        item.participant.bookingNumber || '',
+        item.participant.isPrimaryContact ? 'Yes' : 'No',
+        item.participant.lastName,
+        item.participant.firstName,
+        item.participant.ageGroup,
+        item.attendance,
+        item.participant.contactEmail,
+        item.participant.contactPhone
+      ]);
+
+    // Build CSV with section headers
+    const csvRows: string[] = [];
+    
+    // Add main header
+    csvRows.push(headers.join(','));
+    
+    // Section 1: Past classes with unmarked attendance
+    if (pastUnmarked.length > 0) {
+      csvRows.push(''); // Empty row
+      csvRows.push('"=== PAST CLASSES - ATTENDANCE NOT MARKED ==="');
+      csvRows.push(headers.join(','));
+      createRows(pastUnmarked).forEach(row => {
+        csvRows.push(row.map(cell => `"${cell || ''}"`).join(','));
+      });
+    }
+    
+    // Section 2: Future classes
+    if (future.length > 0) {
+      csvRows.push(''); // Empty row
+      csvRows.push('"=== UPCOMING CLASSES ==="');
+      csvRows.push(headers.join(','));
+      createRows(future).forEach(row => {
+        csvRows.push(row.map(cell => `"${cell || ''}"`).join(','));
+      });
+    }
+    
+    // Section 3: Past classes with attendance marked
+    if (pastMarked.length > 0) {
+      csvRows.push(''); // Empty row
+      csvRows.push('"=== PAST CLASSES - ATTENDANCE MARKED ==="');
+      csvRows.push(headers.join(','));
+      createRows(pastMarked).forEach(row => {
+        csvRows.push(row.map(cell => `"${cell || ''}"`).join(','));
+      });
+    }
+
+    const csvContent = csvRows.join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const today = new Date().toISOString().split('T')[0];
-    a.download = `All_Classes_Attendance_${today}.csv`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    a.download = `All_Classes_Attendance_${todayStr}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
