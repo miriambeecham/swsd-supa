@@ -22,6 +22,7 @@ import PublicClassPoliciesPage from './pages/PublicClassPoliciesPage';
 import PrivateClassPoliciesPage from './pages/PrivateClassPoliciesPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminAttendancePage from './pages/AdminAttendancePage';
+import AdminClassSchedulesPage from './pages/AdminClassSchedulesPage';
 
 
 
@@ -61,6 +62,7 @@ function App() {
             <Route path="/private-class-policies" element={<PrivateClassPoliciesPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/attendance" element={<AdminAttendancePage />} />
+            <Route path="/admin/schedules" element={<AdminClassSchedulesPage />} />
             
           </Routes>
         </Layout>
