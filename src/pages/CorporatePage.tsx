@@ -416,9 +416,9 @@ const CorporatePage = () => {
             {/* First Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('corporate1', {
-                quote: "The corporate training session was transformative for our team. Not only did our employees learn valuable safety skills, but the collaborative nature of the training brought our departments closer together. The instructor was professional, knowledgeable, and created an environment where everyone felt comfortable participating.",
-                name: "Sarah Mitchell",
-                program: "HR Director, TechCorp Solutions"
+                quote: ""This is a truly wonderful and empowering class! I found Jay respectful, compassionate, and sensitive to the fear I brought with me. Jay hit all the right notes so that I not only felt safe emotionally, but began to learn some physical skills I want to remember. I highly recommend this experience! ",
+                name: "Catherine H.",
+                program: "Post-class Survey"
               });
 
               return (
@@ -469,9 +469,9 @@ const CorporatePage = () => {
             {/* Second Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('corporate2', {
-                quote: "As a company with a predominantly female workforce, this training was exactly what we needed. The practical techniques and confidence-building exercises have made a noticeable difference in how our team carries themselves both in and out of the workplace. Highly recommend for any organization.",
-                name: "Michael Rodriguez",
-                program: "CEO, Creative Marketing Agency"
+                quote: "This class was very empowering and made me feel much more confident. I know when and when not to use certain moves, and how to make it possible to get out of something bad. Jay is respectful and elegant with his work. I was impressed and intrigued by his skills. ",
+                name: "Cassidy C.",
+                program: "Post-class Survey"
               });
 
               return (
