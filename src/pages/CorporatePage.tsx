@@ -416,7 +416,7 @@ const CorporatePage = () => {
             {/* First Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('corporate1', {
-                quote: ""This is a truly wonderful and empowering class! I found Jay respectful, compassionate, and sensitive to the fear I brought with me. Jay hit all the right notes so that I not only felt safe emotionally, but began to learn some physical skills I want to remember. I highly recommend this experience! ",
+                quote: "This is a truly wonderful and empowering class! I found Jay respectful, compassionate, and sensitive to the fear I brought with me. Jay hit all the right notes so that I not only felt safe emotionally, but began to learn some physical skills I want to remember. I highly recommend this experience! ",
                 name: "Catherine H.",
                 program: "Post-class Survey"
               });
