@@ -92,8 +92,8 @@ export default async function handler(req, res) {
 
     const classData = await classResponse.json();
 
-    // Age validation for mother-daughter classes
-    if (classType === 'mother-daughter') {
+// Age validation for mother-daughter classes (including community classes)
+    if (classType === 'mother-daughter' || classType === 'community-mother-daughter') {
       const ageGroups = participants.map(p => p.ageGroup);
       const hasAdult = ageGroups.includes('16+');
       const has12to15 = ageGroups.includes('12-15');
