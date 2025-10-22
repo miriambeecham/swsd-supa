@@ -203,17 +203,17 @@ const CommunityMotherDaughterBookingPage = () => {
         body: JSON.stringify(bookingData)
       });
 
-      const result = await response.json();
+     const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Booking failed');
-      }
+if (!response.ok) {
+  throw new Error(result.error || 'Booking failed');
+}
 
-      if (result.stripeUrl) {
-        window.location.href = result.stripeUrl;
-      } else {
-        throw new Error('No payment URL received');
-      }
+if (!result?.checkoutUrl) {
+  throw new Error('No checkout URL received');
+}
+
+window.location.href = result.checkoutUrl;
     } catch (error: any) {
       console.error('Booking error:', error);
       setHardErrors([error.message || 'An error occurred. Please try again.']);
