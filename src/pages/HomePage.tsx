@@ -297,9 +297,9 @@ const HomePage = () => {
         <div className="max-w-4xl mx-auto px-4 text-center">
           {(() => {
             const testimonialData = renderTestimonial('Quote 1', {
-              quote: "This training didn't just teach me techniques – it transformed how I carry myself in the world. I feel confident, prepared, and empowered.",
-              name: "Sarah M.",
-              program: "Public Classes Graduate"
+              quote: "Fantastic mother/daughter self defense course. Jay was absolutely the perfect coach to help make women of all ages feel like this is approachable and necessary.",
+              name: "Deirdre P.",
+              program: ""
             });
 
             return (
@@ -466,9 +466,9 @@ const HomePage = () => {
         <div className="max-w-4xl mx-auto px-4 text-center">
           {(() => {
             const testimonialData = renderTestimonial('Quote 2', {
-              quote: "The corporate training session was eye-opening. Our entire team feels more confident and prepared.",
-              name: "Jennifer L.",
-              program: "Corporate Training Participant"
+              quote: "The class was informative, professional, respectful and FUN! Jay made everyone feel comfortable right from the beginning. We bonded with the other women there and came away feeling confident and powerful.",
+              name: "Rachel C.",
+              program: ""
             });
 
             return (
@@ -573,19 +573,19 @@ const HomePage = () => {
             {['Quote 3', 'Quote 4', 'Quote 5'].map((position, index) => {
               const fallbacks = [
                 {
-                  quote: "My daughter and I took the Mother-Daughter class together. It was an incredible bonding experience and we both learned so much about confidence and safety.",
-                  name: "Maria S.",
-                  program: "Mother-Daughter Program"
+                  quote: "...whether you're looking to build confidence, learn how to protect yourself, or just want to do something meaningful with your group. This class was a game-changer!",
+                  name: "Katee M.",
+                  program: ""
                 },
                 {
-                  quote: "The techniques I learned have already helped me feel safer walking to my car at night. This training is invaluable for every woman.",
-                  name: "Amanda R.",
-                  program: "Adult Public Classes"
+                  quote: "The girls leaned some great defensive moves, strategies and gained confidence. Great investment.",
+                  name: "Natasha T.",
+                  program: ""
                 },
                 {
-                  quote: "Our Girl Scout troop loved the community program. The girls learned important skills while having fun and building confidence.",
-                  name: "Lisa T.",
-                  program: "Community Organization"
+                  quote: "I left this class EXCITED!!! I feel more able to be aware & avoid a variety of potentially BAD SITUATIONS... I would give SO MUCH to have this information when I needed it. ",
+                  name: "Alicia D.",
+                  program: ""
                 }
               ];
 
