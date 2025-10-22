@@ -185,7 +185,7 @@ const CommunityMotherDaughterBookingPage = () => {
       ];
 
       const bookingData = {
-        scheduleId: classSchedule.id,
+        classScheduleId: classSchedule.id,
         contactInfo: {
           firstName: contactInfo.firstName,
           lastName: contactInfo.lastName,
