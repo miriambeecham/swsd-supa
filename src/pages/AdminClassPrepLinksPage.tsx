@@ -1,3 +1,4 @@
+// src/pages/AdminClassPrepLinksPage.tsx
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Copy, ExternalLink, Calendar, Clock } from 'lucide-react';
@@ -5,16 +6,19 @@ import { Copy, ExternalLink, Calendar, Clock } from 'lucide-react';
 interface ClassWithPrepLink {
   id: string;
   className: string;
+  classType: string;
   date: string;
   startTime: string;
   location: string;
   prepUrl: string;
+  bookingUrl?: string;
 }
 
 const AdminClassPrepLinksPage = () => {
   const [classes, setClasses] = useState<ClassWithPrepLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedType, setCopiedType] = useState<'prep' | 'booking' | null>(null);
 
   useEffect(() => {
     fetchClassLinks();
@@ -37,14 +41,20 @@ const AdminClassPrepLinksPage = () => {
         .map(schedule => {
           const classId = schedule.fields['Class']?.[0];
           const classRecord = classesData.records.find(c => c.id === classId);
+          const classType = classRecord?.fields['Type'] || '';
+          
+          // Determine if this is a community class that needs a booking URL
+          const isCommunityClass = classType.toLowerCase().includes('community');
           
           return {
             id: schedule.id,
             className: classRecord?.fields['Class Name'] || 'Unknown Class',
+            classType: classType,
             date: schedule.fields['Date'] || '',
             startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time'] || '',
             location: schedule.fields['Location'] || classRecord?.fields['Location'] || '',
-            prepUrl: `${window.location.origin}/class-prep/${schedule.id}`
+            prepUrl: `${window.location.origin}/class-prep/${schedule.id}`,
+            bookingUrl: isCommunityClass ? `${window.location.origin}/book-community-md/${schedule.id}` : undefined
           };
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -57,10 +67,14 @@ const AdminClassPrepLinksPage = () => {
     }
   };
 
-  const copyToClipboard = (url: string, id: string) => {
+  const copyToClipboard = (url: string, id: string, type: 'prep' | 'booking') => {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    setCopiedType(type);
+    setTimeout(() => {
+      setCopiedId(null);
+      setCopiedType(null);
+    }, 2000);
   };
 
   const formatDate = (dateString: string) => {
@@ -111,54 +125,102 @@ const AdminClassPrepLinksPage = () => {
           <div className="space-y-4">
             {classes.map((classItem) => (
               <div key={classItem.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-navy mb-2">
-                      {classItem.className}
-                    </h3>
-                    
-<div className="space-y-1 text-sm text-gray-600 mb-3">
-  <div className="flex items-center gap-2">
-    <Calendar className="w-4 h-4" />
-    <span>{formatDate(classItem.date)}</span>
-  </div>
-  {classItem.startTime && (
-    <div className="flex items-center gap-2 mt-2">
-      <Clock className="w-4 h-4" />
-      <span>{formatTime(classItem.startTime)}</span>
-    </div>
-  )}
-                      {classItem.location && (
+                <div className="flex flex-col gap-4">
+                  {/* Header */}
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold text-navy">
+                          {classItem.className}
+                        </h3>
+                        {classItem.bookingUrl && (
+                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                            Community
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
-                          <span className="w-4 h-4 text-center">📍</span>
-                          <span>{classItem.location}</span>
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(classItem.date)}</span>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="bg-gray-50 rounded p-3 font-mono text-sm break-all">
-                      {classItem.prepUrl}
+                        {classItem.startTime && (
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatTime(classItem.startTime)}</span>
+                          </div>
+                        )}
+                        {classItem.location && (
+                          <div className="flex items-center gap-2">
+                            <span className="w-4 h-4 text-center">📍</span>
+                            <span>{classItem.location}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => copyToClipboard(classItem.prepUrl, classItem.id)}
-                      className="flex items-center gap-2 bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      <Copy className="w-4 h-4" />
-                      {copiedId === classItem.id ? 'Copied!' : 'Copy URL'}
-                    </button>
-                    
-                    
-                      <a href={classItem.prepUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Open
-                    </a>
+                  {/* Booking URL (for community classes only) */}
+                  {classItem.bookingUrl && (
+                    <div className="border-t pt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Booking Page URL (share with community organizer)
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 bg-blue-50 border border-blue-200 rounded p-3 font-mono text-sm break-all">
+                          {classItem.bookingUrl}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => copyToClipboard(classItem.bookingUrl!, classItem.id, 'booking')}
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            <Copy className="w-4 h-4" />
+                            {copiedId === classItem.id && copiedType === 'booking' ? 'Copied!' : 'Copy'}
+                          </button>
+                          <a 
+                            href={classItem.bookingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Open
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Class Prep URL (always shown) */}
+                  <div className={classItem.bookingUrl ? 'border-t pt-4' : ''}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Class Prep Page URL {classItem.bookingUrl ? '(sent after booking)' : ''}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-gray-50 border border-gray-200 rounded p-3 font-mono text-sm break-all">
+                        {classItem.prepUrl}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => copyToClipboard(classItem.prepUrl, classItem.id, 'prep')}
+                          className="flex items-center gap-2 bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          <Copy className="w-4 h-4" />
+                          {copiedId === classItem.id && copiedType === 'prep' ? 'Copied!' : 'Copy'}
+                        </button>
+                        <a 
+                          href={classItem.prepUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Open
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
