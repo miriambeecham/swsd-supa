@@ -306,20 +306,20 @@ const CommunityMotherDaughterBookingPage = () => {
 
       {/* Header */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link
-            to="/public-classes"
-            className="inline-flex items-center text-accent-primary hover:text-accent-dark mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Classes
-          </Link>
-          <h1 className="text-3xl font-bold text-navy">
-            Community Mother & Daughter Self-Defense
-          </h1>
-          <p className="text-gray-600 mt-2">Private group registration</p>
-        </div>
-      </div>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <Link
+      to="/public-classes"
+      className="inline-flex items-center text-accent-primary hover:text-accent-dark mb-4"
+    >
+      <ArrowLeft className="w-4 h-4 mr-2" />
+      Back to Classes
+    </Link>
+    <h1 className="text-3xl font-bold text-navy">
+      {classSchedule.class_name}
+    </h1>
+    <p className="text-gray-600 mt-2">Private group registration</p>
+  </div>
+</div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Messages */}
