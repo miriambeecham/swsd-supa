@@ -36,7 +36,7 @@ const CommunityMotherDaughterBookingPage = () => {
   });
 
   // Daughters
-  const [additionalParticipants, setAdditionalParticipants] = useState
+  const [additionalParticipants, setAdditionalParticipants] = useState <
     { firstName: string; lastName: string; ageGroup: AgeGroup }[]
   >([{ firstName: '', lastName: '', ageGroup: '' }]);
 
