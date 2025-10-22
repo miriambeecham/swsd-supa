@@ -47,7 +47,6 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             
        
-            <Route path="/book-adult-class" element={AdultBookingPage} />
             <Route path="/book-mother-daughter-class/:id" element={<MotherDaughterBookingPage />} />
             <Route path="/book-adult-class/:id" element={<AdultBookingPage />} />
        
