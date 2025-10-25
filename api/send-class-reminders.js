@@ -164,6 +164,11 @@ export default async function handler(req, res) {
             const bookingParticipants = participantsMap.get(booking.id) || [];
             const participantCount = booking.fields['Number of Participants'] || bookingParticipants.length || 1;
             
+            // Build list of ALL participant names (including booker)
+            const allParticipantNames = bookingParticipants.length > 0
+              ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
+              : contactFirstName;
+            
             // Build list of other participants (excluding the booker)
             const otherParticipants = bookingParticipants.filter(p => {
               const isBooker = p.fields['First Name'] === booking.fields['Contact First Name'] && 
@@ -204,9 +209,14 @@ export default async function handler(req, res) {
             const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
             const location = schedule.fields?.Location || classData?.fields?.Location || 'Location TBD';
             
-            // Use class prep URL (waiver link)
-            const waiverUrl = 'https://www.streetwiseselfdefense.com/waiver';
-            const classPrepUrl = `https://www.streetwiseselfdefense.com/class-prep/${schedule.id}`;
+            // Use Waiver URL from schedule, fallback to general waiver page
+            const waiverUrl = schedule.fields?.['Waiver URL'] || 'https://www.streetwiseselfdefense.com/waiver';
+            
+            // Make class prep URL environment-aware
+            const host = req.headers?.host || 'www.streetwiseselfdefense.com';
+            const protocol = host.includes('localhost') ? 'http' : 'https';
+            const baseUrl = `${protocol}://${host}`;
+            const classPrepUrl = `${baseUrl}/class-prep/${schedule.id}`;
 
             // Build HTML email
             const emailHTML = `
@@ -249,19 +259,16 @@ export default async function handler(req, res) {
         <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; color: #1E293B;">${location}</td>
       </tr>
       <tr>
-        <td style="padding: 12px 8px; font-weight: bold; color: #2C3E50;">Participants:</td>
-        <td style="padding: 12px 8px; color: #1E293B;">${participantCount}</td>
+        <td style="padding: 12px 8px; font-weight: bold; color: #2C3E50;">Registered:</td>
+        <td style="padding: 12px 8px; color: #1E293B;">${allParticipantNames}</td>
       </tr>
     </table>
   </div>
   
   <!-- WAIVER WITH FORWARD REMINDER -->
   <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Action Required: Complete Your Waiver</h2>
-    ${participantCount > 1 ? `
-    <p style="font-weight: bold; color: #92400E; font-size: 16px; margin-bottom: 15px;">📧 If you booked for multiple people, please forward this email to everyone attending!</p>
-    ` : ''}
-    <p style="font-size: 15px; color: #78350F;"><strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in:</p>
+    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Action Needed: Complete Your Waiver</h2>
+    <p style="font-size: 15px; color: #78350F; line-height: 1.7;"><strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
     <p style="text-align: center; margin: 25px 0;">
       <a href="${waiverUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">Complete Waiver Now</a>
     </p>
@@ -298,25 +305,25 @@ export default async function handler(req, res) {
   </div>
   
   <!-- ENCOURAGEMENT -->
-  <div style="margin: 30px 0; padding: 25px; background: #F9FAFB; border-radius: 8px; border-left: 4px solid #20B2AA;">
-    <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
+  <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-left: 4px solid #20B2AA; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151; margin: 0;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
   </div>
   
   <!-- CONTACT INFO -->
-  <div style="text-align: center; padding: 25px; border-top: 2px solid #E5E7EB; margin-top: 30px;">
-    <p style="font-size: 16px;">If you have any last-minute questions, feel free to call or text:</p>
+  <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-size: 16px; margin-bottom: 15px;">If you have any last-minute questions, feel free to call or text:</p>
     <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
       <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">📱 (925) 532-9953</a>
     </p>
     <p style="margin-top: 20px; font-size: 16px;">I'm looking forward to working with you!</p>
-    <p style="font-weight: bold; margin-top: 20px; font-size: 18px; color: #2C3E50;">See you tomorrow! 🥋</p>
+    <p style="font-weight: bold; margin-top: 15px; font-size: 18px; color: #2C3E50;">See you tomorrow! 🥋</p>
   </div>
   
-  <!-- FOOTER -->
-  <div style="text-align: center; padding: 25px; border-top: 1px solid #E5E7EB; margin-top: 30px;">
-    <p style="font-weight: bold; font-size: 16px; color: #2C3E50;">Warm regards,</p>
-    <p style="font-size: 18px; margin: 12px 0; color: #2C3E50;">Jay Beecham</p>
-    <p style="color: #6B7280; font-size: 15px;">Streetwise Self Defense</p>
+  <!-- SIGNATURE -->
+  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Warm regards,</p>
+    <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
+    <p style="color: #6B7280; font-size: 15px; margin: 8px 0;">Streetwise Self Defense</p>
     <p style="color: #6B7280; font-size: 14px; line-height: 1.6; margin-top: 12px;">
       Empowering women and vulnerable populations through practical self-defense training<br>
       Walnut Creek, CA | (925) 532-9953
