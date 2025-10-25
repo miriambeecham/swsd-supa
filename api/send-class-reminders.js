@@ -273,7 +273,7 @@ export default async function handler(req, res) {
   <!-- WAIVER WITH FORWARD REMINDER -->
   <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
     <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Waiver</h2>
-    <p style="font-size: 15px; color: #78350F; line-height: 1.7;">IF you haven't already, please complete your waiver.<strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
+    <p style="font-size: 15px; color: #78350F; line-height: 1.7;">If you haven't already, please complete your waiver. <strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
     <p style="text-align: center; margin: 25px 0;">
       <a href="${waiverUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">Complete Waiver Now</a>
     </p>
