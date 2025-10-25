@@ -202,7 +202,7 @@ export default async function handler(req, res) {
               : 'TBD';
 
             const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
-            const location = schedule.fields?.Location || 'Location TBD';
+            const location = schedule.fields?.Location || classData?.fields?.Location || 'Location TBD';
             
             // Use class prep URL (waiver link)
             const waiverUrl = 'https://www.streetwiseselfdefense.com/waiver';
@@ -217,91 +217,107 @@ export default async function handler(req, res) {
     <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
   </div>
   
-  <h1 style="color: #1E293B; text-align: center;">Your Class is Tomorrow!</h1>
+  <h1 style="color: #2C3E50; text-align: center; font-size: 32px; margin-bottom: 10px;">Your Class is Tomorrow!</h1>
   
-  <p>Hi ${contactFirstName},</p>
+  <p style="font-size: 16px; line-height: 1.6;">Hi ${contactFirstName},</p>
   
-  <p>Get ready for an empowering experience! Your Streetwise Self-Defense workshop is coming up tomorrow.</p>
+  <p style="font-size: 16px; line-height: 1.6;">This is an <strong>eye-opening, fun, practical, and empowering</strong> experience that builds confidence from the get-go! You'll even practice your new striking skills against a real male "attacker" during simulated scenarios.</p>
   
-  ${participantCount > 1 ? `
-  <div style="background: #DBEAFE; border: 2px solid #3B82F6; border-radius: 8px; padding: 20px; margin: 20px 0;">
-    <h2 style="color: #1E40AF; margin-top: 0;">👥 You Registered ${participantCount} Participant${participantCount > 1 ? 's' : ''}</h2>
-    <p style="font-weight: bold; color: #1E40AF;">Please forward this email to everyone attending!</p>
-    ${otherParticipants.length > 0 ? `
-    <p>Since you made the booking, you received this reminder. Please share it with:</p>
-    <ul style="color: #1E40AF; line-height: 1.8;">
-      ${otherParticipantsList}
-    </ul>
+  <!-- Action Photo -->
+  <div style="text-align: center; margin: 30px 0;">
+    <img src="https://www.streetwiseselfdefense.com/self-defense-action.png" alt="Self-defense training in action" style="max-width: 100%; height: auto; border-radius: 8px;">
+  </div>
+  
+  <!-- CLASS DETAILS - 2 Column Table -->
+  <div style="background: #F0FDFC; border: 2px solid #20B2AA; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">📅 Your Class Details</h2>
+    <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; font-weight: bold; color: #2C3E50; width: 35%;">Class:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; color: #1E293B;">${className}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; font-weight: bold; color: #2C3E50;">Date:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; color: #1E293B;">${formattedDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; font-weight: bold; color: #2C3E50;">Time:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; color: #1E293B;">${displayStartTime} - ${displayEndTime}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; font-weight: bold; color: #2C3E50;">Location:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #14b8a6; color: #1E293B;">${location}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; font-weight: bold; color: #2C3E50;">Participants:</td>
+        <td style="padding: 12px 8px; color: #1E293B;">${participantCount}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <!-- WAIVER WITH FORWARD REMINDER -->
+  <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Action Required: Complete Your Waiver</h2>
+    ${participantCount > 1 ? `
+    <p style="font-weight: bold; color: #92400E; font-size: 16px; margin-bottom: 15px;">📧 If you booked for multiple people, please forward this email to everyone attending!</p>
     ` : ''}
-    <p style="margin-top: 15px;"><strong>Important:</strong> Each participant must complete their own waiver before class.</p>
-  </div>
-  ` : ''}
-  
-  <div style="background: #F0FDFC; border: 1px solid #14b8a6; border-radius: 8px; padding: 20px; margin: 20px 0;">
-    <h2 style="color: #1E293B; margin-top: 0;">📅 Your Class Details</h2>
-    <p><strong>Class:</strong> ${className}</p>
-    <p><strong>Date:</strong> ${formattedDate}</p>
-    <p><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</p>
-    <p><strong>Location:</strong> ${location}</p>
-    <p><strong>Participants:</strong> ${participantCount}</p>
-  </div>
-  
-  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 20px 0;">
-    <h2 style="color: #1E293B; margin-top: 0;">⚠️ Action Required: Complete Your Waiver</h2>
-    <p><strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in:</p>
-    <p style="text-align: center; margin: 20px 0;">
-      <a href="${waiverUrl}" style="background: #14b8a6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Complete Waiver Now</a>
+    <p style="font-size: 15px; color: #78350F;"><strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in:</p>
+    <p style="text-align: center; margin: 25px 0;">
+      <a href="${waiverUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">Complete Waiver Now</a>
     </p>
-    <p style="font-size: 14px; color: #92400E;"><strong>Important Waiver Instructions:</strong></p>
-    <ul style="font-size: 14px; color: #92400E; margin: 10px 0;">
+    <p style="font-size: 14px; color: #92400E; margin-top: 20px;"><strong>Important Waiver Instructions:</strong></p>
+    <ul style="font-size: 14px; color: #92400E; margin: 10px 0; line-height: 1.8;">
       <li><strong>Adults (18+):</strong> Select "Myself"</li>
       <li><strong>Teens (15-17):</strong> Select "Minors Only" (parent/guardian must sign)</li>
       <li><strong>Teens with parent:</strong> Select "Parent/Guardian & Minor"</li>
     </ul>
-    <p style="font-size: 14px; color: #92400E;"><em>Pro tip: On mobile, scroll down for the "Continue" button!</em></p>
+    <p style="font-size: 13px; color: #92400E; font-style: italic; margin-top: 15px;">Pro tip: On mobile, scroll down for the "Continue" button!</p>
   </div>
   
-  <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 20px; margin: 20px 0;">
-    <h2 style="color: #1E293B; margin-top: 0;">📋 What to Expect</h2>
-    <p>Review important details about your class experience:</p>
-    <ul style="line-height: 1.8;">
+  <!-- WHAT TO EXPECT -->
+  <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">📋 What to Expect</h2>
+    <p style="font-size: 15px; line-height: 1.7;">Review important details about your class experience:</p>
+    <ul style="line-height: 2; font-size: 15px;">
       <li>Workshop experience overview</li>
       <li>Detailed directions & parking info</li>
       <li>What to bring (and what NOT to bring)</li>
       <li>Recommended attire</li>
       <li>Photography policy</li>
     </ul>
-    <p style="text-align: center; margin: 20px 0;">
-      <a href="${classPrepUrl}" style="color: #14b8a6; font-weight: bold; text-decoration: underline;">View What to Expect Page</a>
+    <p style="text-align: center; margin: 25px 0;">
+      <a href="${classPrepUrl}" style="color: #20B2AA; font-weight: bold; text-decoration: underline; font-size: 16px;">View What to Expect Page</a>
     </p>
   </div>
   
-  <div style="background: #EFF6FF; border: 1px solid #3B82F6; border-radius: 8px; padding: 20px; margin: 20px 0;">
-    <h2 style="color: #1E293B; margin-top: 0;">📧 Quick Favor</h2>
-    <p>I've had some deliverability issues with these emails landing in spam. If you could briefly reply confirming you received this and plan to attend, it would help me out tremendously!</p>
-    <p style="font-size: 14px; color: #1E40AF;"><em>You can also respond to the text message reminder I may send.</em></p>
+  <!-- EMAIL CONFIRMATION REQUEST -->
+  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">📧 Quick Favor</h2>
+    <p style="font-size: 15px; line-height: 1.6;">I've had some deliverability issues with these emails landing in spam. If you could briefly reply confirming you received this and plan to attend, it would help me out tremendously!</p>
+    <p style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 12px;">You can also respond to the text message reminder I may send.</p>
   </div>
   
-  <div style="margin: 30px 0; padding: 20px; background: #F9FAFB; border-radius: 8px;">
-    <h2 style="color: #1E293B; margin-top: 0;">What You'll Experience Tomorrow</h2>
-    <p>${contactFirstName}, this is an <strong>eye-opening, fun, practical, and empowering</strong> experience that builds confidence from the get-go! You'll learn valuable techniques and even practice your new striking skills against a real male "attacker" during simulated scenarios.</p>
-    <p style="font-style: italic;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
+  <!-- ENCOURAGEMENT -->
+  <div style="margin: 30px 0; padding: 25px; background: #F9FAFB; border-radius: 8px; border-left: 4px solid #20B2AA;">
+    <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
   </div>
   
-  <div style="text-align: center; padding: 20px; border-top: 2px solid #E5E7EB; margin-top: 30px;">
-    <p>If you have any last-minute questions, feel free to call or text:</p>
-    <p style="font-size: 18px; font-weight: bold; color: #1E293B;">
-      <a href="tel:+19255329953" style="color: #14b8a6; text-decoration: none;">📱 (925) 532-9953</a>
+  <!-- CONTACT INFO -->
+  <div style="text-align: center; padding: 25px; border-top: 2px solid #E5E7EB; margin-top: 30px;">
+    <p style="font-size: 16px;">If you have any last-minute questions, feel free to call or text:</p>
+    <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
+      <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">📱 (925) 532-9953</a>
     </p>
-    <p style="margin-top: 20px;">I'm looking forward to working with you!</p>
-    <p style="font-weight: bold; margin-top: 20px;">See you tomorrow! 🥋</p>
+    <p style="margin-top: 20px; font-size: 16px;">I'm looking forward to working with you!</p>
+    <p style="font-weight: bold; margin-top: 20px; font-size: 18px; color: #2C3E50;">See you tomorrow! 🥋</p>
   </div>
   
-  <div style="text-align: center; padding: 20px; border-top: 1px solid #E5E7EB; margin-top: 30px;">
-    <p style="font-weight: bold;">Warm regards,</p>
-    <p style="font-size: 16px; margin: 10px 0;">Jay Beecham</p>
-    <p style="color: #6B7280;">Streetwise Self Defense</p>
-    <p style="color: #6B7280; font-size: 14px;">
+  <!-- FOOTER -->
+  <div style="text-align: center; padding: 25px; border-top: 1px solid #E5E7EB; margin-top: 30px;">
+    <p style="font-weight: bold; font-size: 16px; color: #2C3E50;">Warm regards,</p>
+    <p style="font-size: 18px; margin: 12px 0; color: #2C3E50;">Jay Beecham</p>
+    <p style="color: #6B7280; font-size: 15px;">Streetwise Self Defense</p>
+    <p style="color: #6B7280; font-size: 14px; line-height: 1.6; margin-top: 12px;">
       Empowering women and vulnerable populations through practical self-defense training<br>
       Walnut Creek, CA | (925) 532-9953
     </p>
