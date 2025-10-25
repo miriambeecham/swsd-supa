@@ -47,12 +47,13 @@ export default async function handler(req, res) {
     const schedulesData = await schedulesResponse.json();
     const allSchedules = schedulesData.records || [];
 
-    // Filter for tomorrow's date AND scheduled status in JavaScript
+    // Filter for tomorrow's date AND NOT cancelled in JavaScript
     const schedules = allSchedules.filter(schedule => {
       const scheduleDate = schedule.fields.Date;
-      const status = schedule.fields.Status;
+      const isCancelled = schedule.fields['Is Cancelled'];
       
-      if (!scheduleDate || status !== 'Scheduled') return false;
+      // Skip if no date or if cancelled
+      if (!scheduleDate || isCancelled) return false;
       
       // Handle different date formats - convert to YYYY-MM-DD
       const dateObj = new Date(scheduleDate);
