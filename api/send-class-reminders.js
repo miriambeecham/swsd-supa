@@ -34,9 +34,9 @@ export default async function handler(req, res) {
 
     console.log('[REMINDER-CRON] Looking for classes on:', tomorrowDateStr);
 
-    // Fetch all scheduled classes (simpler query to avoid formula issues)
+    // Fetch ALL class schedules (no filter - same approach as /api/admin/class-schedules.js)
     const schedulesResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules?filterByFormula={Status}='Scheduled'`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules`,
       { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
     );
 
@@ -47,10 +47,12 @@ export default async function handler(req, res) {
     const schedulesData = await schedulesResponse.json();
     const allSchedules = schedulesData.records || [];
 
-    // Filter for tomorrow's date in JavaScript
+    // Filter for tomorrow's date AND scheduled status in JavaScript
     const schedules = allSchedules.filter(schedule => {
       const scheduleDate = schedule.fields.Date;
-      if (!scheduleDate) return false;
+      const status = schedule.fields.Status;
+      
+      if (!scheduleDate || status !== 'Scheduled') return false;
       
       // Handle different date formats - convert to YYYY-MM-DD
       const dateObj = new Date(scheduleDate);
