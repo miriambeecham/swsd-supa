@@ -35,10 +35,10 @@ export default async function handler(req, res) {
     console.log('[REMINDER-CRON] Looking for classes on:', tomorrowDateStr);
 
     // Fetch class schedules for tomorrow
-    const schedulesResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules?filterByFormula=AND({Date}='${tomorrowDateStr}',{Status}='Scheduled')`,
-      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-    );
+   const schedulesResponse = await fetch(
+  `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules?filterByFormula=AND(IS_SAME({Date},DATEADD(TODAY(),1,'days'),'day'),{Status}='Scheduled')`,
+  { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+);
 
     if (!schedulesResponse.ok) {
       throw new Error(`Failed to fetch schedules: ${schedulesResponse.status}`);
