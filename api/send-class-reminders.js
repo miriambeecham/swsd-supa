@@ -245,10 +245,7 @@ export default async function handler(req, res) {
   
   <!-- CLASS DETAILS - 2 Column Table (Navy border for consistency) -->
   <div style="background: #F0F4F8; border: 2px solid #2C3E50; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">
-      <span style="display: inline-block; width: 20px; height: 20px; background: #2C3E50; border-radius: 3px; margin-right: 8px; vertical-align: middle;"></span>
-      Your Class Details
-    </h2>
+    <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Your Class Details</h2>
     <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
       <tr>
         <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50; width: 35%;">Class:</td>
@@ -275,11 +272,8 @@ export default async function handler(req, res) {
   
   <!-- WAIVER WITH FORWARD REMINDER -->
   <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">
-      <span style="display: inline-block; width: 20px; height: 20px; background: #F59E0B; border-radius: 50%; margin-right: 8px; vertical-align: middle; text-align: center; line-height: 20px; color: white; font-size: 14px; font-weight: bold;">!</span>
-      Action Needed: Complete Your Waiver
-    </h2>
-    <p style="font-size: 15px; color: #78350F; line-height: 1.7;"><strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
+    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Waiver</h2>
+    <p style="font-size: 15px; color: #78350F; line-height: 1.7;">IF you haven't already, please complete your waiver.<strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
     <p style="text-align: center; margin: 25px 0;">
       <a href="${waiverUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">Complete Waiver Now</a>
     </p>
@@ -294,10 +288,7 @@ export default async function handler(req, res) {
   
   <!-- WHAT TO EXPECT -->
   <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">
-      <span style="display: inline-block; width: 20px; height: 20px; background: #2C3E50; border-radius: 3px; margin-right: 8px; vertical-align: middle;"></span>
-      What to Expect
-    </h2>
+    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">What to Expect</h2>
     <p style="font-size: 15px; line-height: 1.7;">Review important details about your class experience:</p>
     <ul style="line-height: 2; font-size: 15px; color: #374151;">
       <li>Workshop experience overview</li>
@@ -313,29 +304,21 @@ export default async function handler(req, res) {
   
   <!-- EMAIL CONFIRMATION REQUEST -->
   <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">
-      <span style="display: inline-block; width: 20px; height: 20px; border: 2px solid #2C3E50; border-radius: 3px; margin-right: 8px; vertical-align: middle;"></span>
-      Quick Favor
-    </h2>
+    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">Quick Favor</h2>
     <p style="font-size: 15px; line-height: 1.6; color: #374151;">I've had some deliverability issues with these emails landing in spam. If you could briefly reply confirming you received this and plan to attend, it would help me out tremendously!</p>
     <p style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 12px;">You can also respond to the text message reminder I may send.</p>
   </div>
   
   <!-- ENCOURAGEMENT -->
   <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-left: 4px solid #20B2AA; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151; margin: 0;">
-      <span style="display: inline-block; width: 20px; height: 20px; background: #20B2AA; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
-      Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄
-    </p>
+    <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151; margin: 0;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
   </div>
   
   <!-- CONTACT INFO -->
   <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
     <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">If you have any last-minute questions, feel free to call or text:</p>
     <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
-      <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">
-        <span style="display: inline-block; margin-right: 6px;">📞</span>(925) 532-9953
-      </a>
+      <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">(925) 532-9953</a>
     </p>
     <p style="margin-top: 20px; font-size: 16px; color: #374151;">I'm looking forward to working with you!</p>
     <p style="font-weight: bold; margin-top: 15px; font-size: 18px; color: #2C3E50;">See you tomorrow!</p>
