@@ -116,19 +116,28 @@ const roster = participants.map(participant => {
     participant.fields['First Name'] === booking?.fields['Contact First Name'] &&
     participant.fields['Last Name'] === booking?.fields['Contact Last Name'];
 
-  return {
-    id: participant.id,
-    firstName: participant.fields['First Name'],
-    lastName: participant.fields['Last Name'],
-    ageGroup: participant.fields['Age Group'],
-    attendance: participant.fields['Attendance'] || 'Not Recorded',
-    contactEmail: booking?.fields['Contact Email'],
-    contactPhone: booking?.fields['Contact Phone'],
-    bookingId: booking?.id,
-    bookingNumber: booking?.fields['Booking ID'],
-    isPrimaryContact,
-    bookingDate: booking?.fields['Booking Date']
-  };
+return {
+  id: participant.id,
+  firstName: participant.fields['First Name'],
+  lastName: participant.fields['Last Name'],
+  ageGroup: participant.fields['Age Group'],
+  attendance: participant.fields['Attendance'] || 'Not Recorded',
+  contactEmail: booking?.fields['Contact Email'],
+  contactPhone: booking?.fields['Contact Phone'],
+  bookingId: booking?.id,
+  bookingNumber: booking?.fields['Booking ID'],
+  isPrimaryContact,
+  bookingDate: booking?.fields['Booking Date'],
+  // ✅ ADD EMAIL STATUS FIELDS FROM BOOKING:
+  confirmationEmailStatus: booking?.fields['Confirmation Email Status'],
+  confirmationEmailSentAt: booking?.fields['Confirmation Email Sent At'],
+  confirmationEmailDeliveredAt: booking?.fields['Confirmation Email Delivered At'],
+  confirmationEmailOpenedAt: booking?.fields['Confirmation Email Opened At'],
+  reminderEmailStatus: booking?.fields['Reminder Email Status'],
+  reminderEmailSentAt: booking?.fields['Reminder Email Sent At'],
+  reminderEmailDeliveredAt: booking?.fields['Reminder Email Delivered At'],
+  reminderEmailOpenedAt: booking?.fields['Reminder Email Opened At']
+};
 });
 
 // Sort by booking (keeps booking groups together), then put primary contact first
