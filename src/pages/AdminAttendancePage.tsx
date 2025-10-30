@@ -20,6 +20,50 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+// Email Status Badge Component
+const EmailStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+  if (!status || status === '') {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+        📭 No email sent
+      </span>
+    );
+  }
+  
+  const statusConfig: Record<string, { bg: string; text: string; icon: string; label: string }> = {
+    'Sent': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '📧', label: 'Sent (pending)' },
+    'Delivered': { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Delivered' },
+    'Opened': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '👁️', label: 'Opened' },
+    'Clicked': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🖱️', label: 'Clicked' },
+    'Bounced': { bg: 'bg-red-100', text: 'text-red-800', icon: '⚠️', label: 'Bounced' },
+    'Spam': { bg: 'bg-orange-100', text: 'text-orange-800', icon: '⚠️', label: 'Marked as spam' },
+    'Delayed': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '⏳', label: 'Delayed' }
+  };
+  
+  const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-600', icon: '❓', label: status };
+  
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      {config.icon} {config.label}
+    </span>
+  );
+};
+
+// Helper function to format Pacific Time
+const formatPacificTime = (isoTimestamp?: string): string | null => {
+  if (!isoTimestamp) return null;
+  
+  return new Date(isoTimestamp).toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
 interface ClassSchedule {
   id: string;
   className: string;
@@ -39,6 +83,15 @@ interface Participant {
   bookingNumber?: number;
   isPrimaryContact: boolean;
   bookingDate?: string;
+  // ✅ ADD EMAIL STATUS FIELDS:
+  confirmationEmailStatus?: string;
+  confirmationEmailSentAt?: string;
+  confirmationEmailDeliveredAt?: string;
+  confirmationEmailOpenedAt?: string;
+  reminderEmailStatus?: string;
+  reminderEmailSentAt?: string;
+  reminderEmailDeliveredAt?: string;
+  reminderEmailOpenedAt?: string;
 }
 
 interface ClassInfo {
@@ -695,22 +748,25 @@ const handleDownloadAllClassesCSV = async () => {
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Age Group
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Attendance
-                      </th>
-                    </tr>
-                  </thead>
+             <thead className="bg-gray-50">
+  <tr>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Name
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Age Group
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Contact
+    </th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Email Status
+    </th>
+    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+      Attendance
+    </th>
+  </tr>
+</thead>
            <tbody className="bg-white divide-y divide-gray-200">
   {rosterData.roster.map((participant, index) => {
     const currentStatus = attendanceState[participant.id] || 'Not Recorded';
@@ -781,6 +837,58 @@ const handleDownloadAllClassesCSV = async () => {
             </div>
           )}
         </td>
+        {/* Email Status column - shows BOTH confirmation and reminder */}
+<td className="px-6 py-4">
+  {participant.isPrimaryContact ? (
+    <div className="space-y-3">
+      {/* Confirmation Email */}
+      <div>
+        <div className="text-xs font-medium text-gray-500 mb-1">Confirmation:</div>
+        <EmailStatusBadge status={participant.confirmationEmailStatus} />
+        {participant.confirmationEmailDeliveredAt && (
+          <div className="text-xs text-gray-500 mt-1">
+            Delivered: {formatPacificTime(participant.confirmationEmailDeliveredAt)}
+          </div>
+        )}
+        {participant.confirmationEmailOpenedAt && (
+          <div className="text-xs text-gray-500">
+            Opened: {formatPacificTime(participant.confirmationEmailOpenedAt)}
+          </div>
+        )}
+        {participant.confirmationEmailStatus === 'Bounced' && (
+          <div className="text-xs text-red-600 font-medium mt-1">
+            ⚠️ Email bounced
+          </div>
+        )}
+      </div>
+
+      {/* Reminder Email */}
+      <div className="pt-2 border-t border-gray-200">
+        <div className="text-xs font-medium text-gray-500 mb-1">Reminder:</div>
+        <EmailStatusBadge status={participant.reminderEmailStatus} />
+        {participant.reminderEmailDeliveredAt && (
+          <div className="text-xs text-gray-500 mt-1">
+            Delivered: {formatPacificTime(participant.reminderEmailDeliveredAt)}
+          </div>
+        )}
+        {participant.reminderEmailOpenedAt && (
+          <div className="text-xs text-gray-500">
+            Opened: {formatPacificTime(participant.reminderEmailOpenedAt)}
+          </div>
+        )}
+        {participant.reminderEmailStatus === 'Bounced' && (
+          <div className="text-xs text-red-600 font-medium mt-1">
+            ⚠️ Email bounced
+          </div>
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="text-sm text-gray-400 italic">
+      —
+    </div>
+  )}
+</td>
         <td className="px-6 py-4 text-center">
           <select
             value={currentStatus}
