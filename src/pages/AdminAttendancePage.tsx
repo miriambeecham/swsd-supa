@@ -744,179 +744,207 @@ const handleDownloadAllClassesCSV = async () => {
               </div>
             )}
 
-            {/* Roster Table */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-             <thead className="bg-gray-50">
-  <tr>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Name
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Age Group
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Contact
-    </th>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Email Status
-    </th>
-    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-      Attendance
-    </th>
-  </tr>
-</thead>
-           <tbody className="bg-white divide-y divide-gray-200">
-  {rosterData.roster.map((participant, index) => {
-    const currentStatus = attendanceState[participant.id] || 'Not Recorded';
-    const rowColor = 
-      currentStatus === 'Absent' ? 'bg-red-50' :
-      currentStatus === 'Present' ? 'bg-green-50' :
-      '';
+{/* Roster Table */}
+<div className="bg-white rounded-lg shadow-md overflow-hidden">
+  <div className="overflow-x-auto">
+    <table className="min-w-full divide-y divide-gray-200">
+      {/* ✅ UPDATED HEADERS WITH COLUMN WIDTHS */}
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
+            Name
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">
+            Age Group
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
+            Contact
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+            Email Status
+          </th>
+          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">
+            Attendance
+          </th>
+        </tr>
+      </thead>
+      
+      {/* ✅ UPDATED BODY WITH DARKER BORDERS */}
+      <tbody className="bg-white divide-y-2 divide-gray-300">
+        {rosterData.roster.map((participant, index) => {
+          const currentStatus = attendanceState[participant.id] || 'Not Recorded';
+          const rowColor = 
+            currentStatus === 'Absent' ? 'bg-red-50' :
+            currentStatus === 'Present' ? 'bg-green-50' :
+            '';
 
-    // Check if this is the start of a new booking group
-    const isNewBookingGroup = index === 0 || 
-      rosterData.roster[index - 1].bookingId !== participant.bookingId;
+          const isNewBookingGroup = index === 0 || 
+            rosterData.roster[index - 1].bookingId !== participant.bookingId;
 
-    return (
-      <tr 
-        key={participant.id} 
-        className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-300' : ''}`}
-      >
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-medium text-gray-900">
-              {participant.lastName}, {participant.firstName}
-            </div>
-            {participant.isPrimaryContact && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
-                Primary Contact
-              </span>
-            )}
-          </div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-            {participant.ageGroup}
-          </span>
-        </td>
-        <td className="px-6 py-4">
-          {participant.isPrimaryContact ? (
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
-                className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
-              >
-                <Mail className="w-4 h-4" />
-                <span className="truncate max-w-[200px]">{participant.contactEmail}</span>
-                {copiedField === `email-${participant.id}` ? (
-                  <Check className="w-4 h-4 text-green-600" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </button>
-              {participant.contactPhone && (
-                <button
-                  onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent-primary transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>{participant.contactPhone}</span>
-                  {copiedField === `phone-${participant.id}` ? (
-                    <Check className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
+          return (
+            <tr 
+              key={participant.id} 
+              className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-400' : ''}`}
+            >
+              {/* Name column */}
+              <td className="px-4 py-4">
+                <div className="flex items-center gap-2">
+                  {participant.isPrimaryContact && (
+                    <span className="px-2 py-1 bg-accent-primary text-white text-xs font-medium rounded">
+                      Primary
+                    </span>
                   )}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-gray-400 italic">
-              See primary contact above
-            </div>
-          )}
-        </td>
-        {/* Email Status column - shows BOTH confirmation and reminder */}
-<td className="px-6 py-4">
-  {participant.isPrimaryContact ? (
-    <div className="space-y-3">
-      {/* Confirmation Email */}
-      <div>
-        <div className="text-xs font-medium text-gray-500 mb-1">Confirmation:</div>
-        <EmailStatusBadge status={participant.confirmationEmailStatus} />
-        {participant.confirmationEmailDeliveredAt && (
-          <div className="text-xs text-gray-500 mt-1">
-            Delivered: {formatPacificTime(participant.confirmationEmailDeliveredAt)}
-          </div>
-        )}
-        {participant.confirmationEmailOpenedAt && (
-          <div className="text-xs text-gray-500">
-            Opened: {formatPacificTime(participant.confirmationEmailOpenedAt)}
-          </div>
-        )}
-        {participant.confirmationEmailStatus === 'Bounced' && (
-          <div className="text-xs text-red-600 font-medium mt-1">
-            ⚠️ Email bounced
-          </div>
-        )}
-      </div>
+                  {isNewBookingGroup && participant.bookingNumber && (
+                    <span className="text-xs font-medium text-gray-500">
+                      #{participant.bookingNumber}
+                    </span>
+                  )}
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {participant.firstName} {participant.lastName}
+                    </div>
+                    {participant.bookingDate && isNewBookingGroup && (
+                      <div className="text-xs text-gray-500">
+                        Booked: {formatDate(participant.bookingDate)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </td>
 
-      {/* Reminder Email */}
-      <div className="pt-2 border-t border-gray-200">
-        <div className="text-xs font-medium text-gray-500 mb-1">Reminder:</div>
-        <EmailStatusBadge status={participant.reminderEmailStatus} />
-        {participant.reminderEmailDeliveredAt && (
-          <div className="text-xs text-gray-500 mt-1">
-            Delivered: {formatPacificTime(participant.reminderEmailDeliveredAt)}
-          </div>
-        )}
-        {participant.reminderEmailOpenedAt && (
-          <div className="text-xs text-gray-500">
-            Opened: {formatPacificTime(participant.reminderEmailOpenedAt)}
-          </div>
-        )}
-        {participant.reminderEmailStatus === 'Bounced' && (
-          <div className="text-xs text-red-600 font-medium mt-1">
-            ⚠️ Email bounced
-          </div>
-        )}
-      </div>
-    </div>
-  ) : (
-    <div className="text-sm text-gray-400 italic">
-      —
+              {/* Age Group column */}
+              <td className="px-4 py-4">
+                <span className="text-sm text-gray-600">
+                  {participant.ageGroup}
+                </span>
+              </td>
+
+              {/* Contact column */}
+              <td className="px-4 py-4">
+                {participant.isPrimaryContact ? (
+                  <div className="space-y-1">
+                    {participant.contactEmail && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="w-4 h-4" />
+                        <span className="truncate max-w-xs">{participant.contactEmail}</span>
+                        {navigator.clipboard && (
+                          <button
+                            onClick={() => copyToClipboard(participant.contactEmail, 'email')}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Copy email"
+                          >
+                            {copiedField === 'email' ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {participant.contactPhone && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-4 h-4" />
+                        <span>{participant.contactPhone}</span>
+                        {navigator.clipboard && (
+                          <button
+                            onClick={() => copyToClipboard(participant.contactPhone, 'phone')}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            title="Copy phone"
+                          >
+                            {copiedField === 'phone' ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400 italic">
+                    See primary contact above
+                  </div>
+                )}
+              </td>
+
+              {/* ✅ UPDATED EMAIL STATUS COLUMN - COMPACT VERSION */}
+              <td className="px-4 py-4">
+                {participant.isPrimaryContact ? (
+                  <div className="space-y-2">
+                    {/* Confirmation Email - Compact */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-500 min-w-[80px]">Confirmation:</span>
+                        <EmailStatusBadge status={participant.confirmationEmailStatus} />
+                      </div>
+                      {participant.confirmationEmailOpenedAt && (
+                        <div className="text-xs text-gray-500 ml-[88px]">
+                          Opened {formatPacificTime(participant.confirmationEmailOpenedAt)}
+                        </div>
+                      )}
+                      {participant.confirmationEmailStatus === 'Bounced' && (
+                        <div className="text-xs text-red-600 font-medium ml-[88px]">
+                          ⚠️ Bounced
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Reminder Email - Compact */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-500 min-w-[80px]">Reminder:</span>
+                        <EmailStatusBadge status={participant.reminderEmailStatus} />
+                      </div>
+                      {participant.reminderEmailOpenedAt && (
+                        <div className="text-xs text-gray-500 ml-[88px]">
+                          Opened {formatPacificTime(participant.reminderEmailOpenedAt)}
+                        </div>
+                      )}
+                      {participant.reminderEmailStatus === 'Bounced' && (
+                        <div className="text-xs text-red-600 font-medium ml-[88px]">
+                          ⚠️ Bounced
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-400 italic">
+                    —
+                  </div>
+                )}
+              </td>
+
+              {/* Attendance column */}
+              <td className="px-4 py-4 text-center">
+                <select
+                  value={currentStatus}
+                  onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
+                  className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
+                    currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
+                    currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
+                    'text-gray-600 bg-gray-50 border-gray-300'
+                  }`}
+                >
+                  <option value="Not Recorded">Not Recorded</option>
+                  <option value="Present">Present</option>
+                  <option value="Absent">Absent</option>
+                </select>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+
+  {rosterData.roster.length === 0 && (
+    <div className="text-center py-12 text-gray-500">
+      No participants registered for this class yet
     </div>
   )}
-</td>
-        <td className="px-6 py-4 text-center">
-          <select
-            value={currentStatus}
-            onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
-            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
-              currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
-              currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
-              'text-gray-600 bg-gray-50 border-gray-300'
-            }`}
-          >
-            <option value="Not Recorded">Not Recorded</option>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-          </select>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
-                </table>
-              </div>
-
-              {rosterData.roster.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No participants registered for this class yet
-                </div>
-              )}
-            </div>
+</div>
           </>
         )}
       </div>
