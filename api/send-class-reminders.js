@@ -339,63 +339,48 @@ export default async function handler(req, res) {
 `;
 
             // Send email via Resend
-            try {
-              const { Resend } = await import('resend');
-              const resend = new Resend(RESEND_API_KEY);
+  // Send email via Resend
+try {
+  const { Resend } = await import('resend');
+  const resend = new Resend(RESEND_API_KEY);
 
-              await resend.emails.send({
-                from: FROM_EMAIL,
-                to: contactEmail,
-                cc: 'confirmations@streetwiseselfdefense.com',
-                subject: `Reminder: Your Class is Tomorrow! - ${className}`,
-                html: emailHTML
-              });
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: contactEmail,
+    // cc: 'confirmations@streetwiseselfdefense.com', // REMOVED - was causing bounces
+    subject: `Reminder: Your Class is Tomorrow! - ${className}`,
+    html: emailHTML
+  });
 
-              console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
-            } catch (resendErr) {
-              console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, resendErr);
-              throw resendErr; // Re-throw to be caught by outer catch
-            }
-            
-            totalEmailsSent++;
-            
-            results.push({ 
-              bookingId: booking.id, 
-              email: contactEmail,
-              success: true 
-            });
+  if (error) {
+    console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, error);
+    throw error;
+  }
 
-          } catch (emailErr) {
-            console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, emailErr);
-            results.push({ 
-              bookingId: booking.id, 
-              success: false, 
-              error: emailErr.message 
-            });
-          }
+  console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
+  console.log(`[REMINDER-CRON] Reminder Email ID: ${data.id}`);
+
+  // ✅ STORE REMINDER EMAIL ID AND STATUS IN AIRTABLE
+  if (data && data.id) {
+    await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          'Reminder Email ID': data.id,
+          'Reminder Email Status': 'Sent',
+          'Reminder Email Sent At': new Date().toISOString()
         }
-
-      } catch (scheduleErr) {
-        console.error(`[REMINDER-CRON] Failed to process schedule ${schedule.id}:`, scheduleErr);
-        results.push({ 
-          scheduleId: schedule.id, 
-          success: false, 
-          error: scheduleErr.message 
-        });
-      }
-    }
-
-    console.log(`[REMINDER-CRON] Reminder job completed. Sent ${totalEmailsSent} emails for ${schedules.length} classes`);
-    
-    return res.json({ 
-      success: true, 
-      classesFound: schedules.length,
-      emailsSent: totalEmailsSent,
-      results 
+      })
     });
     
-  } catch (error) {
-    console.error('[REMINDER-CRON] Error:', error);
-    return res.status(500).json({ error: error.message });
+    console.log(`[REMINDER-CRON] Stored reminder email tracking data for booking ${booking.id}`);
   }
+} catch (resendErr) {
+  console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, resendErr);
+  throw resendErr; // Re-throw to be caught by outer catch
+}
 }
