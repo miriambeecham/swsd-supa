@@ -123,7 +123,6 @@ try {
   if (RESEND_API_KEY && booking.fields['Contact Email']) {
     const resend = new Resend(RESEND_API_KEY);
     
-    // Helper: Convert time to ISO
     const convertToISO = (dateStr, timeStr) => {
       if (!dateStr || !timeStr) return new Date().toISOString();
       
@@ -144,7 +143,6 @@ try {
       return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
     };
     
-    // Helper: Format time for display
     const formatTimeForDisplay = (timeStr) => {
       if (!timeStr) return 'TBD';
       
@@ -161,18 +159,14 @@ try {
       return timeStr;
     };
     
-    // Use new time fields
     const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time New']);
     const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time New']);
     
-    // Format times for email display
     const displayStartTime = formatTimeForDisplay(scheduleData?.fields?.['Start Time New']);
     const displayEndTime = formatTimeForDisplay(scheduleData?.fields?.['End Time New']);
     
-    // Google Calendar URL
     const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
     
-    // iCal file
     const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
     cal.createEvent({
       start: new Date(startISO),
@@ -182,7 +176,6 @@ try {
       description: 'Self defense class confirmed'
     });
     
-    // Format date for email
     const formattedDate = scheduleData?.fields?.Date 
       ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
           weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
@@ -253,8 +246,7 @@ try {
 </html>
 `;
     
-    // ✅ SEND EMAIL AND CAPTURE RESPONSE
-    const emailResponse = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: booking.fields['Contact Email'],
       cc: 'confirmations@streetwiseselfdefense.com', 
@@ -263,11 +255,15 @@ try {
       attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
     });
     
-    console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
-    console.log('[EMAIL] Resend ID:', emailResponse.id);
+    if (error) {
+      console.error('[EMAIL] Resend error:', error);
+      throw error;
+    }
     
-    // ✅ STORE EMAIL ID AND STATUS IN AIRTABLE
-    if (emailResponse.id) {
+    console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
+    console.log('[EMAIL] Resend ID:', data.id);
+    
+    if (data && data.id) {
       await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
         method: 'PATCH',
         headers: {
@@ -276,7 +272,7 @@ try {
         },
         body: JSON.stringify({
           fields: {
-            'Confirmation Email ID': emailResponse.id,
+            'Confirmation Email ID': data.id,
             'Confirmation Email Status': 'Sent',
             'Confirmation Email Sent At': new Date().toISOString()
           }
@@ -288,7 +284,6 @@ try {
   }
 } catch (emailErr) {
   console.error('[EMAIL] Failed:', emailErr);
-  // Don't fail the request if email fails
 }
 
       // Return booking data with class prep URL
