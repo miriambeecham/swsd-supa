@@ -501,8 +501,7 @@ window.location.href = result.checkoutUrl;
                   </a>.
                 </p>
               </div>
-            </div>
-          </div>
+            
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
