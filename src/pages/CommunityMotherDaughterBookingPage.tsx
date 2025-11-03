@@ -488,7 +488,7 @@ window.location.href = result.checkoutUrl;
                 />
               </div>
 
-               {/* Privacy */}
+                   {/* Privacy */}
               <div className="mb-8 text-center">
                 <p className="text-sm text-gray-600">
                   By proceeding with your booking, you agree to our{' '}
@@ -501,6 +501,9 @@ window.location.href = result.checkoutUrl;
                   </a>.
                 </p>
               </div>
+            </form>
+          </div>
+
             
 
           {/* Sidebar */}
