@@ -436,7 +436,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                     rel="noopener noreferrer"
                     className="text-accent-primary hover:text-accent-dark underline"
                   >
-                    Booking Policies
+                    Cancellation/Rescheduling Policies
                   </a>.
                 </p>
               </div>
