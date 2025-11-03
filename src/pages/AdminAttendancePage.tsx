@@ -769,22 +769,25 @@ const handleDownloadAllClassesCSV = async () => {
       </thead>
       
       {/* ✅ LIGHTER BORDERS BETWEEN PARTICIPANTS, DARKER BETWEEN BOOKINGS */}
-      <tbody className="bg-white divide-y divide-gray-200">
-        {rosterData.roster.map((participant, index) => {
-          const currentStatus = attendanceState[participant.id] || 'Not Recorded';
-          const rowColor = 
-            currentStatus === 'Absent' ? 'bg-red-50' :
-            currentStatus === 'Present' ? 'bg-green-50' :
-            '';
+  <tbody className="bg-white">
+  {rosterData.roster.map((participant, index) => {
+    const currentStatus = attendanceState[participant.id] || 'Not Recorded';
+    const rowColor = 
+      currentStatus === 'Absent' ? 'bg-red-50' :
+      currentStatus === 'Present' ? 'bg-green-50' :
+      '';
 
-          const isNewBookingGroup = index === 0 || 
-            rosterData.roster[index - 1].bookingId !== participant.bookingId;
+    const isNewBookingGroup = index === 0 || 
+      rosterData.roster[index - 1].bookingId !== participant.bookingId;
 
-          return (
-            <tr 
-              key={participant.id} 
-              className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-500' : ''}`}
-            >
+    return (
+      <tr 
+        key={participant.id} 
+        className={`
+          ${rowColor} 
+          ${isNewBookingGroup ? 'border-t-4 border-gray-600' : 'border-t border-gray-200'}
+        `}
+      >
               {/* ✅ UPDATED NAME COLUMN WITH INDENTATION */}
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
