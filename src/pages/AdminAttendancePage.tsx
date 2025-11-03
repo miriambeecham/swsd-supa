@@ -170,74 +170,82 @@ const AdminAttendancePage = () => {
 // ============================================
 // Replace the existing fetchClasses useEffect with this:
   // Fetch all class schedules and handle query parameter
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const [schedulesResponse, classesResponse] = await Promise.all([
-          fetch('/api/schedules'),
-          fetch('/api/classes')
-        ]);
-        
-        if (!schedulesResponse.ok || !classesResponse.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        
-        const schedulesData = await schedulesResponse.json();
-        const classesData = await classesResponse.json();
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const filtered = schedulesData.records
-          .filter((schedule: any) => {
-            if (schedule.fields['Is Cancelled']) return false;
-            const classDate = new Date(schedule.fields.Date + 'T00:00:00');
-            return classDate >= today;
-          })
-          .map((schedule: any) => {
-            const classId = schedule.fields.Class?.[0];
-            const classRecord = classesData.records.find((c: any) => c.id === classId);
-            
-            return {
-              id: schedule.id,
-              className: classRecord?.fields['Class Name'] || 'Unknown Class',
-              date: schedule.fields.Date,
-              startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
-            };
-          })
-          .sort((a: ClassSchedule, b: ClassSchedule) => 
-            new Date(a.date).getTime() - new Date(b.date).getTime()
-          );
-
-        setAllClasses(filtered);
-        
-        // Check if there's a classScheduleId query parameter
-        const queryClassScheduleId = searchParams.get('classScheduleId');
-        
-        if (queryClassScheduleId && filtered.find(c => c.id === queryClassScheduleId)) {
-          // If valid classScheduleId in URL, use it
-          setCurrentClassId(queryClassScheduleId);
-        } else {
-          // Otherwise, find first class that is today or in the future
-          const todayStr = today.toISOString().split('T')[0];
-          const todayOrLaterClass = filtered.find((cls: ClassSchedule) => cls.date >= todayStr);
-          
-          if (todayOrLaterClass) {
-            setCurrentClassId(todayOrLaterClass.id);
-          } else if (filtered.length > 0) {
-            setCurrentClassId(filtered[0].id);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      } finally {
-        setLoading(false);
+  // Fetch all class schedules and handle query parameter
+useEffect(() => {
+  const fetchClasses = async () => {
+    try {
+      const [schedulesResponse, classesResponse] = await Promise.all([
+        fetch('/api/schedules'),
+        fetch('/api/classes')
+      ]);
+      
+      if (!schedulesResponse.ok || !classesResponse.ok) {
+        throw new Error('Failed to fetch data');
       }
-    };
+      
+      const schedulesData = await schedulesResponse.json();
+      const classesData = await classesResponse.json();
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // ✅ UPDATED: Calculate 6 weeks ago
+      const sixWeeksAgo = new Date();
+      sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42); // 6 weeks = 42 days
+      sixWeeksAgo.setHours(0, 0, 0, 0);
+      
+      const filtered = schedulesData.records
+        .filter((schedule: any) => {
+          if (schedule.fields['Is Cancelled']) return false;
+          const classDate = new Date(schedule.fields.Date + 'T00:00:00');
+          // ✅ UPDATED: Include classes from 6 weeks ago to future
+          return classDate >= sixWeeksAgo;
+        })
+        .map((schedule: any) => {
+          const classId = schedule.fields.Class?.[0];
+          const classRecord = classesData.records.find((c: any) => c.id === classId);
+          
+          return {
+            id: schedule.id,
+            className: classRecord?.fields['Class Name'] || 'Unknown Class',
+            date: schedule.fields.Date,
+            startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
+          };
+        })
+        .sort((a: ClassSchedule, b: ClassSchedule) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
 
-    fetchClasses();
-  }, [searchParams]); 
+      setAllClasses(filtered);
+      
+      // Check if there's a classScheduleId query parameter
+      const queryClassScheduleId = searchParams.get('classScheduleId');
+      
+      if (queryClassScheduleId && filtered.find(c => c.id === queryClassScheduleId)) {
+        // If valid classScheduleId in URL, use it
+        setCurrentClassId(queryClassScheduleId);
+      } else {
+        // ✅ UPDATED: Find first class that is today or in the future
+        const todayStr = today.toISOString().split('T')[0];
+        const todayOrLaterClass = filtered.find((cls: ClassSchedule) => cls.date >= todayStr);
+        
+        if (todayOrLaterClass) {
+          setCurrentClassId(todayOrLaterClass.id);
+        } else if (filtered.length > 0) {
+          // If no future classes, use the most recent past class
+          setCurrentClassId(filtered[filtered.length - 1].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  fetchClasses();
+}, [searchParams]);
+ 
   // Fetch roster when class changes
   useEffect(() => {
     if (!currentClassId) return;
