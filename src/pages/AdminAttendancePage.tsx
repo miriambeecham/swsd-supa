@@ -748,7 +748,6 @@ const handleDownloadAllClassesCSV = async () => {
 <div className="bg-white rounded-lg shadow-md overflow-hidden">
   <div className="overflow-x-auto">
     <table className="min-w-full divide-y divide-gray-200">
-      {/* ✅ UPDATED HEADERS WITH COLUMN WIDTHS */}
       <thead className="bg-gray-50">
         <tr>
           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
@@ -769,8 +768,8 @@ const handleDownloadAllClassesCSV = async () => {
         </tr>
       </thead>
       
-      {/* ✅ UPDATED BODY WITH DARKER BORDERS */}
-      <tbody className="bg-white divide-y-2 divide-gray-300">
+      {/* ✅ LIGHTER BORDERS BETWEEN PARTICIPANTS, DARKER BETWEEN BOOKINGS */}
+      <tbody className="bg-white divide-y divide-gray-200">
         {rosterData.roster.map((participant, index) => {
           const currentStatus = attendanceState[participant.id] || 'Not Recorded';
           const rowColor = 
@@ -784,22 +783,31 @@ const handleDownloadAllClassesCSV = async () => {
           return (
             <tr 
               key={participant.id} 
-              className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-400' : ''}`}
+              className={`${rowColor} ${isNewBookingGroup ? 'border-t-4 border-gray-500' : ''}`}
             >
-              {/* Name column */}
+              {/* ✅ UPDATED NAME COLUMN WITH INDENTATION */}
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
+                  {/* Show booking info only for primary contact */}
                   {participant.isPrimaryContact && (
-                    <span className="px-2 py-1 bg-accent-primary text-white text-xs font-medium rounded">
-                      Primary
-                    </span>
+                    <>
+                      <span className="px-2 py-1 bg-accent-primary text-white text-xs font-medium rounded">
+                        Primary
+                      </span>
+                      {isNewBookingGroup && participant.bookingNumber && (
+                        <span className="text-xs font-medium text-gray-500">
+                          #{participant.bookingNumber}
+                        </span>
+                      )}
+                    </>
                   )}
-                  {isNewBookingGroup && participant.bookingNumber && (
-                    <span className="text-xs font-medium text-gray-500">
-                      #{participant.bookingNumber}
-                    </span>
+                  
+                  {/* ✅ INDENT NON-PRIMARY PARTICIPANTS */}
+                  {!participant.isPrimaryContact && (
+                    <span className="text-gray-400 text-sm mr-2">└─</span>
                   )}
-                  <div>
+                  
+                  <div className={!participant.isPrimaryContact ? '' : ''}>
                     <div className="text-sm font-medium text-gray-900">
                       {participant.firstName} {participant.lastName}
                     </div>
@@ -869,7 +877,7 @@ const handleDownloadAllClassesCSV = async () => {
                 )}
               </td>
 
-              {/* ✅ UPDATED EMAIL STATUS COLUMN - COMPACT VERSION */}
+              {/* Email Status column */}
               <td className="px-4 py-4">
                 {participant.isPrimaryContact ? (
                   <div className="space-y-2">
