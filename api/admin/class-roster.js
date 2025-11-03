@@ -86,24 +86,36 @@ if (bookingIds.length > 0) {
   }
 }
 
-    // Fetch all participants for these bookings
-    const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
-    let participants = [];
+// Fetch all participants for these bookings (WITH PAGINATION)
+const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
+let participants = [];
 
-    if (allParticipantIds.length > 0) {
-      const orConditions = allParticipantIds.map(id => `RECORD_ID()="${id}"`).join(',');
-      const filterFormula = `OR(${orConditions})`;
-      
-      const participantsResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(filterFormula)}`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-
-      if (participantsResponse.ok) {
-        const participantsData = await participantsResponse.json();
-        participants = participantsData.records || [];
-      }
+if (allParticipantIds.length > 0) {
+  const orConditions = allParticipantIds.map(id => `RECORD_ID()="${id}"`).join(',');
+  const filterFormula = `OR(${orConditions})`;
+  
+  // ✅ ADD PAGINATION SUPPORT
+  let offset = null;
+  do {
+    const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants`);
+    url.searchParams.append('filterByFormula', filterFormula);
+    if (offset) {
+      url.searchParams.append('offset', offset);
     }
+    
+    const participantsResponse = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+    });
+
+    if (participantsResponse.ok) {
+      const participantsData = await participantsResponse.json();
+      participants = participants.concat(participantsData.records || []);
+      offset = participantsData.offset; // Get next page offset
+    } else {
+      break;
+    }
+  } while (offset); // Keep fetching until no more pages
+}
 
   // Combine participant data with booking contact info
 const roster = participants.map(participant => {
