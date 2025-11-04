@@ -110,84 +110,79 @@ const classPrepUrl = scheduleId
   ? `${protocol}://${host}/class-prep/${scheduleId}`
   : null;
      
-      try {
-        const { Resend } = await import('resend');
-        const { default: ical } = await import('ical-generator');
-        
-        const RESEND_API_KEY = process.env.RESEND_API_KEY;
-        const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
-        
-        if (RESEND_API_KEY && booking.fields['Contact Email']) {
-          const resend = new Resend(RESEND_API_KEY);
-          
-          // Helper: Convert time to ISO
-          const convertToISO = (dateStr, timeStr) => {
-            if (!dateStr || !timeStr) return new Date().toISOString();
-            
-            if (timeStr.includes('T')) {
-              return new Date(timeStr).toISOString();
-            }
-            
-            const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-            if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
-            
-            let hours = parseInt(match[1]);
-            const mins = parseInt(match[2]);
-            const meridiem = match[3].toUpperCase();
-            
-            if (meridiem === 'PM' && hours !== 12) hours += 12;
-            if (meridiem === 'AM' && hours === 12) hours = 0;
-            
-            return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
-          };
-          
-          // Helper: Format time for display
-          const formatTimeForDisplay = (timeStr) => {
-            if (!timeStr) return 'TBD';
-            
-            if (timeStr.includes('T')) {
-              const date = new Date(timeStr);
-              return date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'America/Los_Angeles'
-              });
-            }
-            
-            return timeStr;
-          };
-          
-          // Use new time fields
-          const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time New']);
-          const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time New']);
-          
-          // Format times for email display
-          const displayStartTime = formatTimeForDisplay(scheduleData?.fields?.['Start Time New']);
-          const displayEndTime = formatTimeForDisplay(scheduleData?.fields?.['End Time New']);
-          
-          // Google Calendar URL
-          const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
-          
-                   
-          // iCal file
-          const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
-          cal.createEvent({
-            start: new Date(startISO),
-            end: new Date(endISO),
-            summary: classData?.fields?.['Class Name'] || 'Self Defense Class',
-            location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
-            description: 'Self defense class confirmed'
-          });
-          
-          // Format date for email
-          const formattedDate = scheduleData?.fields?.Date 
-            ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
-                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-              })
-            : 'TBD';
-          
-          const emailHTML = `
+// In /api/verify-payment.js
+// Find the email sending try/catch block and replace it with this:
+
+try {
+  const { Resend } = await import('resend');
+  const { default: ical } = await import('ical-generator');
+  
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
+  
+  if (RESEND_API_KEY && booking.fields['Contact Email']) {
+    const resend = new Resend(RESEND_API_KEY);
+    
+    const convertToISO = (dateStr, timeStr) => {
+      if (!dateStr || !timeStr) return new Date().toISOString();
+      
+      if (timeStr.includes('T')) {
+        return new Date(timeStr).toISOString();
+      }
+      
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
+      
+      let hours = parseInt(match[1]);
+      const mins = parseInt(match[2]);
+      const meridiem = match[3].toUpperCase();
+      
+      if (meridiem === 'PM' && hours !== 12) hours += 12;
+      if (meridiem === 'AM' && hours === 12) hours = 0;
+      
+      return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
+    };
+    
+    const formatTimeForDisplay = (timeStr) => {
+      if (!timeStr) return 'TBD';
+      
+      if (timeStr.includes('T')) {
+        const date = new Date(timeStr);
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
+        });
+      }
+      
+      return timeStr;
+    };
+    
+    const startISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['Start Time New']);
+    const endISO = convertToISO(scheduleData?.fields?.Date, scheduleData?.fields?.['End Time New']);
+    
+    const displayStartTime = formatTimeForDisplay(scheduleData?.fields?.['Start Time New']);
+    const displayEndTime = formatTimeForDisplay(scheduleData?.fields?.['End Time New']);
+    
+    const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(classData?.fields?.['Class Name'] || 'Self Defense Class')}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self defense class registration confirmed')}&location=${encodeURIComponent(scheduleData?.fields?.Location || 'Walnut Creek, CA')}&ctz=America/Los_Angeles`;
+    
+    const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
+    cal.createEvent({
+      start: new Date(startISO),
+      end: new Date(endISO),
+      summary: classData?.fields?.['Class Name'] || 'Self Defense Class',
+      location: scheduleData?.fields?.Location || 'Walnut Creek, CA',
+      description: 'Self defense class confirmed'
+    });
+    
+    const formattedDate = scheduleData?.fields?.Date 
+      ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+        })
+      : 'TBD';
+    
+    const emailHTML = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -208,35 +203,36 @@ const classPrepUrl = scheduleId
     <p><strong>Class:</strong> ${classData?.fields?.['Class Name'] || 'Self Defense Class'}</p>
     <p><strong>Date:</strong> ${formattedDate}</p>
     <p><strong>Time:</strong> ${displayStartTime} - ${displayEndTime}</p>
-    <p><strong>Location:</strong> ${classData?.fields?.Location || 'Walnut Creek, CA'}</p>
+    <p><strong>Location:</strong> ${scheduleData?.fields?.Location || 'TBD'}</p>
     <p><strong>Participants:</strong> ${booking.fields['Number of Participants'] || 1}</p>
-    <p><strong>Total Paid:</strong> $${booking.fields['Total Amount'] || 0}</p>
   </div>
   
-  <div style="margin: 30px 0;">
-    ${classPrepUrl ? `
-    <p style="text-align: center;">
-      <a href="${classPrepUrl}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; font-weight: bold;">View Class Prep & Complete Waiver</a>
-    </p>
-    <p style="font-size: 14px; color: #6B7280; text-align: center; margin-bottom: 20px;"><strong>Important:</strong> Please visit the prep page above for important details about what to wear, what to bring, and to complete your required waiver form.</p>
-    ` : ''}
-    
-    
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${gcalURL}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Add to Google Calendar</a>
   </div>
   
-  <h2 style="color: #1E293B;">What to Expect</h2>
-  <p>Our classes are designed to be empowering, supportive, and safe. You'll learn practical techniques that work for real-world situations. Here's what you can look forward to:</p>
-  <ul style="color: #1E293B;">
-    <li>Evidence-based self defense strategies backed by research</li>
-    <li>Hands-on practice with supportive instructors</li>
-    <li>A safe, judgment-free environment</li>
-    <li>Techniques that work regardless of size or strength</li>
-    <li>Confidence-building exercises and scenario training</li>
+  ${classPrepUrl ? `
+  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 20px 0;">
+    <h3 style="color: #92400E; margin-top: 0;">📋 Important: Complete Your Waiver</h3>
+    <p style="color: #78350F;">Before class, please complete your liability waiver and provide emergency contact information:</p>
+    <div style="text-align: center; margin-top: 15px;">
+      <a href="${classPrepUrl}" style="display: inline-block; background: #F59E0B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Complete Waiver & Class Prep</a>
+    </div>
+  </div>
+  ` : ''}
+  
+  <h3 style="color: #1E293B;">What to Bring:</h3>
+  <ul style="color: #4B5563; line-height: 1.8;">
+    <li>Comfortable clothing you can move freely in</li>
+    <li>Water bottle to stay hydrated</li>
+    <li>Positive attitude and willingness to learn</li>
   </ul>
   
-  <p>Questions? Visit <a href="https://www.streetwiseselfdefense.com" style="color: #14b8a6;">streetwiseselfdefense.com</a> or reply to this email.</p>
+  <p style="color: #4B5563;">We're thrilled to have you join us. This class will equip you with practical skills and the mindset to handle challenging situations with confidence.</p>
   
-  <p>We're proud of you for taking this important step toward empowerment. See you in class!</p>
+  <p style="color: #4B5563;">If you have any questions before class, don't hesitate to reach out!</p>
+  
+  <p>See you in class!</p>
   <p><strong>The Streetwise Self Defense Team</strong></p>
   
   <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
@@ -249,22 +245,45 @@ const classPrepUrl = scheduleId
 </body>
 </html>
 `;
-          
-          await resend.emails.send({
-            from: FROM_EMAIL,
-            to: booking.fields['Contact Email'],
-            cc: 'confirmations@streetwiseselfdefense.com', 
-            subject: 'Your Self Defense Class Registration is Confirmed!',
-            html: emailHTML,
-            attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
-          });
-          
-          console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
-        }
-      } catch (emailErr) {
-        console.error('[EMAIL] Failed:', emailErr);
-        // Don't fail the request if email fails
-      }
+    
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: booking.fields['Contact Email'],
+      subject: 'Your Self Defense Class Registration is Confirmed!',
+      html: emailHTML,
+      attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
+    });
+    
+    if (error) {
+      console.error('[EMAIL] Resend error:', error);
+      throw error;
+    }
+    
+    console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
+    console.log('[EMAIL] Resend ID:', data.id);
+    
+    if (data && data.id) {
+      await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            'Confirmation Email ID': data.id,
+            'Confirmation Email Status': 'Sent',
+            'Confirmation Email Sent At': new Date().toISOString()
+          }
+        })
+      });
+      
+      console.log('[EMAIL] Stored email tracking data in Airtable');
+    }
+  }
+} catch (emailErr) {
+  console.error('[EMAIL] Failed:', emailErr);
+}
 
       // Return booking data with class prep URL
       return res.json({

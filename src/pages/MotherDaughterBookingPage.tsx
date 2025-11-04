@@ -492,7 +492,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                   </a>
                   {' '}and{' '}
                   <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Booking Policies
+                    Cancellation/Rescheduling Policies
                   </a>.
                 </p>
               </div>

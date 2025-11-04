@@ -175,7 +175,7 @@ const PrivateClassesPage = () => {
             backgroundImage: 'url(/swsd-logo-bug.png)'
           }}
         ></div>
-        <div className="absolute inset-0 bg-white/95"></div>
+        <div className="absolute inset-0 bg-white/85"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-5xl font-bold text-navy mb-4 md:mb-6">Private Training</h1>

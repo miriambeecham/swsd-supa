@@ -488,18 +488,23 @@ window.location.href = result.checkoutUrl;
                 />
               </div>
 
-              {/* Privacy Policy Agreement */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
+                   {/* Privacy */}
+              <div className="mb-8 text-center">
                 <p className="text-sm text-gray-600">
-                  By registering, you agree to our{' '}
-                  <Link to="/privacy-policy" target="_blank" className="text-accent-primary hover:underline">
+                  By proceeding with your booking, you agree to our{' '}
+                  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
                     Privacy Policy
-                  </Link>
-                  . Your information will be used solely for class registration and communication purposes.
+                  </a>
+                  {' '}and{' '}
+                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                    Cancellation/Rescheduling Policies
+                  </a>.
                 </p>
               </div>
             </form>
           </div>
+
+            
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
