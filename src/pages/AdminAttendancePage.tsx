@@ -673,37 +673,36 @@ const handleDownloadAllClassesCSV = async () => {
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-xl font-bold text-navy mb-4">{rosterData.classInfo.className}</h2>
       
-      {/* Class Schedule ID - MOVED ABOVE THE GRID */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-blue-900 mb-1">Class Schedule ID (for imports)</p>
-            <code className="text-lg font-mono text-blue-700 bg-white px-3 py-1 rounded border border-blue-300">
-              {currentClassId}
-            </code>
-          </div>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(currentClassId);
-              setCopiedField('classScheduleId');
-              setTimeout(() => setCopiedField(null), 2000);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {copiedField === 'classScheduleId' ? (
-              <>
-                <Check className="w-4 h-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy ID
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+<div className="bg-teal-50 border-2 border-accent-primary rounded-lg p-4 mb-4">
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-sm font-medium text-gray-700 mb-1">Class Schedule ID (for imports)</p>
+      <code className="text-lg font-mono text-gray-900 bg-white px-3 py-1 rounded border border-gray-300">
+        {currentClassId}
+      </code>
+    </div>
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(currentClassId);
+        setCopiedField('classScheduleId');
+        setTimeout(() => setCopiedField(null), 2000);
+      }}
+      className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors"
+    >
+      {copiedField === 'classScheduleId' ? (
+        <>
+          <Check className="w-4 h-4" />
+          Copied!
+        </>
+      ) : (
+        <>
+          <Copy className="w-4 h-4" />
+          Copy ID
+        </>
+      )}
+    </button>
+  </div>
+</div>
 
       {/* Date/Time/Location Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
