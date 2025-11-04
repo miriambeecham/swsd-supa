@@ -15,6 +15,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+   // Helper function to delay execution (rate limiting)
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
   try {
     const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
     const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
@@ -149,7 +152,7 @@ export default async function handler(req, res) {
           }
         }
 
-        // Send reminder email to each booking
+       // Send reminder email to each booking
         for (const booking of bookings) {
           try {
             const contactEmail = booking.fields['Contact Email'];
@@ -157,6 +160,12 @@ export default async function handler(req, res) {
             
             if (!contactEmail) {
               console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - no email`);
+              continue;
+            }
+
+            // Skip if reminder already sent (duplicate prevention)
+            if (booking.fields['Reminder Email ID']) {
+              console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - reminder already sent (Email ID: ${booking.fields['Reminder Email ID']})`);
               continue;
             }
 
@@ -368,6 +377,9 @@ export default async function handler(req, res) {
                 success: true
               });
 
+  // Rate limit: wait 600ms between emails (allows ~1.6 emails/second, safely under 2/sec limit)
+              await sleep(600);
+              
             } catch (resendErr) {
               console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, resendErr);
               results.push({
