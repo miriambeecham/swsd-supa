@@ -41,7 +41,7 @@ const AdminImportPage = () => {
       ['2', 'Sofia', 'Garcia', '', '925-555-0200', '12-15', 'recXXXXXXXXXXXXXX']
     ];
 
-    const csvContent = sampleData.map(row => row.join(',")).join('\n');
+    const csvContent = sampleData.map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
