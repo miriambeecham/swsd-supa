@@ -15,6 +15,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+   // Helper function to delay execution (rate limiting)
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
   try {
     const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
     const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
@@ -368,6 +371,9 @@ export default async function handler(req, res) {
                 success: true
               });
 
+  // Rate limit: wait 600ms between emails (allows ~1.6 emails/second, safely under 2/sec limit)
+              await sleep(600);
+              
             } catch (resendErr) {
               console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, resendErr);
               results.push({
