@@ -23,6 +23,7 @@ import PrivateClassPoliciesPage from './pages/PrivateClassPoliciesPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminAttendancePage from './pages/AdminAttendancePage';
 import AdminClassSchedulesPage from './pages/AdminClassSchedulesPage';
+import AdminImportPage from './pages/AdminImportPage';
 import CommunityMotherDaughterBookingPage from './pages/CommunityMotherDaughterBookingPage';
 
 
@@ -63,6 +64,7 @@ function App() {
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/attendance" element={<AdminAttendancePage />} />
             <Route path="/admin/schedules" element={<AdminClassSchedulesPage />} />
+            <Route path="/admin/import" element={<AdminImportPage />} />
             <Route path="/book-community-md/:scheduleId" element={<CommunityMotherDaughterBookingPage />} />
             
           </Routes>
