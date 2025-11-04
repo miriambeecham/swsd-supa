@@ -169,17 +169,6 @@ export default async function handler(req, res) {
               ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
               : contactFirstName;
             
-            // Build list of other participants (excluding the booker)
-            const otherParticipants = bookingParticipants.filter(p => {
-              const isBooker = p.fields['First Name'] === booking.fields['Contact First Name'] && 
-                              p.fields['Last Name'] === booking.fields['Contact Last Name'];
-              return !isBooker;
-            });
-
-            const otherParticipantsList = otherParticipants.length > 0
-              ? otherParticipants.map(p => `<li>${p.fields['First Name']} ${p.fields['Last Name']}</li>`).join('\n      ')
-              : '';
-
             // Format time helpers
             const formatTimeForDisplay = (timeStr) => {
               if (!timeStr) return 'TBD';
@@ -238,12 +227,10 @@ export default async function handler(req, res) {
   
   <p style="font-size: 16px; line-height: 1.6;">This is an <strong>eye-opening, fun, practical, and empowering</strong> experience that builds confidence from the get-go! You'll even practice your new striking skills against a real male "attacker" during simulated scenarios.</p>
   
-  <!-- Action Photo -->
   <div style="text-align: center; margin: 30px 0;">
     <img src="https://www.streetwiseselfdefense.com/self-defense-action.png" alt="Self-defense training in action" style="max-width: 100%; height: auto; border-radius: 8px;">
   </div>
   
-  <!-- CLASS DETAILS - 2 Column Table (Navy border for consistency) -->
   <div style="background: #F0F4F8; border: 2px solid #2C3E50; border-radius: 8px; padding: 25px; margin: 30px 0;">
     <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Your Class Details</h2>
     <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
@@ -270,7 +257,6 @@ export default async function handler(req, res) {
     </table>
   </div>
   
-  <!-- WAIVER WITH FORWARD REMINDER -->
   <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
     <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Waiver</h2>
     <p style="font-size: 15px; color: #78350F; line-height: 1.7;">If you haven't already, please complete your waiver. <strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
@@ -286,7 +272,6 @@ export default async function handler(req, res) {
     <p style="font-size: 13px; color: #92400E; font-style: italic; margin-top: 15px;">Pro tip: On mobile, scroll down for the "Continue" button!</p>
   </div>
   
-  <!-- WHAT TO EXPECT -->
   <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
     <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">What to Expect</h2>
     <p style="font-size: 15px; line-height: 1.7;">Review important details about your class experience:</p>
@@ -302,19 +287,16 @@ export default async function handler(req, res) {
     </p>
   </div>
   
-  <!-- EMAIL CONFIRMATION REQUEST -->
   <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
     <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">Quick Favor</h2>
     <p style="font-size: 15px; line-height: 1.6; color: #374151;">I've had some deliverability issues with these emails landing in spam. If you could briefly reply confirming you received this and plan to attend, it would help me out tremendously!</p>
     <p style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 12px;">You can also respond to the text message reminder I may send.</p>
   </div>
   
-  <!-- ENCOURAGEMENT -->
   <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-left: 4px solid #20B2AA; border-radius: 8px; padding: 25px; margin: 30px 0;">
     <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151; margin: 0;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
   </div>
   
-  <!-- CONTACT INFO -->
   <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
     <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">If you have any last-minute questions, feel free to call or text:</p>
     <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
@@ -324,7 +306,6 @@ export default async function handler(req, res) {
     <p style="font-weight: bold; margin-top: 15px; font-size: 18px; color: #2C3E50;">See you tomorrow!</p>
   </div>
   
-  <!-- SIGNATURE -->
   <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
     <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Warm regards,</p>
     <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
@@ -339,48 +320,100 @@ export default async function handler(req, res) {
 `;
 
             // Send email via Resend
-  // Send email via Resend
-try {
-  const { Resend } = await import('resend');
-  const resend = new Resend(RESEND_API_KEY);
+            try {
+              const { Resend } = await import('resend');
+              const resend = new Resend(RESEND_API_KEY);
 
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
-    to: contactEmail,
-    // cc: 'confirmations@streetwiseselfdefense.com', // REMOVED - was causing bounces
-    subject: `Reminder: Your Class is Tomorrow! - ${className}`,
-    html: emailHTML
-  });
+              const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: contactEmail,
+                subject: `Reminder: Your Class is Tomorrow! - ${className}`,
+                html: emailHTML
+              });
 
-  if (error) {
-    console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, error);
-    throw error;
-  }
+              if (error) {
+                console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, error);
+                throw error;
+              }
 
-  console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
-  console.log(`[REMINDER-CRON] Reminder Email ID: ${data.id}`);
+              console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
+              console.log(`[REMINDER-CRON] Reminder Email ID: ${data.id}`);
 
-  // ✅ STORE REMINDER EMAIL ID AND STATUS IN AIRTABLE
-  if (data && data.id) {
-    await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        fields: {
-          'Reminder Email ID': data.id,
-          'Reminder Email Status': 'Sent',
-          'Reminder Email Sent At': new Date().toISOString()
+              // Store reminder email ID and status in Airtable
+              if (data && data.id) {
+                await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    fields: {
+                      'Reminder Email ID': data.id,
+                      'Reminder Email Status': 'Sent',
+                      'Reminder Email Sent At': new Date().toISOString()
+                    }
+                  })
+                });
+                
+                console.log(`[REMINDER-CRON] Stored reminder email tracking data for booking ${booking.id}`);
+              }
+
+              totalEmailsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                email: contactEmail,
+                success: true
+              });
+
+            } catch (resendErr) {
+              console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, resendErr);
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                email: contactEmail,
+                success: false,
+                error: resendErr.message
+              });
+            }
+          } catch (bookingError) {
+            console.error(`[REMINDER-CRON] Error processing booking ${booking.id}:`, bookingError);
+            results.push({
+              scheduleId: schedule.id,
+              bookingId: booking.id,
+              success: false,
+              error: bookingError.message
+            });
+          }
         }
-      })
+
+        console.log(`[REMINDER-CRON] Sent ${totalEmailsSent} reminder emails for schedule ${schedule.id}`);
+
+      } catch (scheduleError) {
+        console.error(`[REMINDER-CRON] Error processing schedule ${schedule.id}:`, scheduleError);
+        results.push({
+          scheduleId: schedule.id,
+          success: false,
+          error: scheduleError.message
+        });
+      }
+    }
+
+    console.log(`[REMINDER-CRON] Reminder job complete. Total emails sent: ${totalEmailsSent}`);
+
+    return res.json({
+      success: true,
+      classesFound: schedules.length,
+      emailsSent: totalEmailsSent,
+      results
     });
-    
-    console.log(`[REMINDER-CRON] Stored reminder email tracking data for booking ${booking.id}`);
+
+  } catch (error) {
+    console.error('[REMINDER-CRON] Fatal error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
-} catch (resendErr) {
-  console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, resendErr);
-  throw resendErr; // Re-throw to be caught by outer catch
-}
 }
