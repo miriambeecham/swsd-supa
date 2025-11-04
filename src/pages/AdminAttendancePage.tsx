@@ -673,33 +673,45 @@ const handleDownloadAllClassesCSV = async () => {
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-xl font-bold text-navy mb-4">{rosterData.classInfo.className}</h2>
       
+{/* Class Schedule ID - for CSV imports */}
 <div className="bg-teal-50 border-2 border-accent-primary rounded-lg p-4 mb-4">
   <div className="flex items-center justify-between">
-    <div>
-      <p className="text-sm font-medium text-gray-700 mb-1">Class Schedule ID (for imports)</p>
-      <code className="text-lg font-mono text-gray-900 bg-white px-3 py-1 rounded border border-gray-300">
-        {currentClassId}
-      </code>
+    <div className="flex items-center gap-4">
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-1">Class Schedule ID (for imports)</p>
+        <code className="text-lg font-mono text-gray-900 bg-white px-3 py-1 rounded border border-gray-300">
+          {currentClassId}
+        </code>
+      </div>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(currentClassId);
+          setCopiedField('classScheduleId');
+          setTimeout(() => setCopiedField(null), 2000);
+        }}
+        className="text-accent-primary hover:text-accent-dark font-medium transition-colors flex items-center gap-1"
+      >
+        {copiedField === 'classScheduleId' ? (
+          <>
+            <Check className="w-4 h-4" />
+            Copied!
+          </>
+        ) : (
+          <>
+            <Copy className="w-4 h-4" />
+            Copy ID
+          </>
+        )}
+      </button>
     </div>
+    
+    {/* Import button for all classes */}
     <button
-      onClick={() => {
-        navigator.clipboard.writeText(currentClassId);
-        setCopiedField('classScheduleId');
-        setTimeout(() => setCopiedField(null), 2000);
-      }}
-      className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors"
+      onClick={() => navigate('/admin/import')}
+      className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors font-medium"
     >
-      {copiedField === 'classScheduleId' ? (
-        <>
-          <Check className="w-4 h-4" />
-          Copied!
-        </>
-      ) : (
-        <>
-          <Copy className="w-4 h-4" />
-          Copy ID
-        </>
-      )}
+      <Upload className="w-5 h-5" />
+      Import Bookings
     </button>
   </div>
 </div>
