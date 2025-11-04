@@ -152,7 +152,7 @@ export default async function handler(req, res) {
           }
         }
 
-        // Send reminder email to each booking
+       // Send reminder email to each booking
         for (const booking of bookings) {
           try {
             const contactEmail = booking.fields['Contact Email'];
@@ -160,6 +160,12 @@ export default async function handler(req, res) {
             
             if (!contactEmail) {
               console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - no email`);
+              continue;
+            }
+
+            // Skip if reminder already sent (duplicate prevention)
+            if (booking.fields['Reminder Email ID']) {
+              console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - reminder already sent (Email ID: ${booking.fields['Reminder Email ID']})`);
               continue;
             }
 
