@@ -48,6 +48,10 @@ const SatisfactionSurveyPage: React.FC = () => {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
+        // Check for pre-selected class from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const preselectedClassId = urlParams.get('classScheduleId');
+        
         // Get classes from the past 14 days
         const fourteenDaysAgo = new Date();
         fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
@@ -88,6 +92,11 @@ const SatisfactionSurveyPage: React.FC = () => {
         });
         
         setClassSchedules(schedulesWithNames);
+        
+        // Pre-populate if class ID is in URL and exists in the list
+        if (preselectedClassId && schedulesWithNames.some(s => s.id === preselectedClassId)) {
+          setFormData(prev => ({ ...prev, classScheduleId: preselectedClassId }));
+        }
       } catch (error) {
         console.error('Error loading schedules:', error);
       } finally {
@@ -318,6 +327,11 @@ const SatisfactionSurveyPage: React.FC = () => {
             <label className="block text-lg font-semibold text-navy mb-2">
               Which class did you attend? <span className="text-red-500">*</span>
             </label>
+            {formData.classScheduleId && (
+              <p className="text-sm text-accent-primary mb-2">
+                ✓ Class pre-selected from your email link
+              </p>
+            )}
             <select
               name="classScheduleId"
               value={formData.classScheduleId}
@@ -334,6 +348,11 @@ const SatisfactionSurveyPage: React.FC = () => {
                 </option>
               ))}
             </select>
+            {formData.classScheduleId && (
+              <p className="text-xs text-gray-500 mt-2">
+                Not the right class? You can change the selection above.
+              </p>
+            )}
           </div>
 
           {/* Q1: Overall Experience */}
