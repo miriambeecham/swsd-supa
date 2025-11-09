@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { ArrowLeft, CheckCircle, Star, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Star } from 'lucide-react';
 
 interface ClassSchedule {
   id: string;
@@ -15,7 +15,7 @@ interface ClassSchedule {
   className?: string;
 }
 
-const SatisfactionSurveyPage: React.Component = () => {
+const SatisfactionSurveyPage: React.FC = () => {
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,9 +23,9 @@ const SatisfactionSurveyPage: React.Component = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   
-  // Your Google and Yelp review links
-  const GOOGLE_REVIEW_URL = 'https://www.google.com/maps/place/Streetwise+Self+Defense/@37.9132741,-122.0709112,17z/data=!4m8!3m7!1s0x808561767656b757:0xd2f8c4e44e94c78a!8m2!3d37.9132699!4d-122.0683363!9m1!1b1!16s%2Fg%2F11kj88gn7r?entry=ttu&g_ep=EgoyMDI1MTEwNC4xIKXMDSoASAFQAw%3D%3D'; // TODO: Replace with actual link
-  const YELP_REVIEW_URL = 'https://www.yelp.com/writeareview/biz/c0-z2raeR1sdG_5tTE9aLg?return_url=%2Fbiz%2Fc0-z2raeR1sdG_5tTE9aLg&review_origin=biz-details-war-button'; // TODO: Replace with actual link
+  // TODO: Replace with your actual review URLs
+  const GOOGLE_REVIEW_URL = 'https://g.page/r/YOUR_BUSINESS_ID/review';
+  const YELP_REVIEW_URL = 'https://www.yelp.com/writeareview/biz/YOUR_BUSINESS_ID';
 
   const [formData, setFormData] = useState({
     classScheduleId: '',
@@ -37,7 +37,6 @@ const SatisfactionSurveyPage: React.Component = () => {
     q6OptInCommunication: '',
     q7WillingToShare: '',
     q7WrittenTestimonial: '',
-    q7ReviewPlatformClicked: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -134,20 +133,6 @@ const SatisfactionSurveyPage: React.Component = () => {
     });
   };
 
-  const handleReviewLinkClick = (platform: 'Google' | 'Yelp') => {
-    setFormData(prev => {
-      let clicked = prev.q7ReviewPlatformClicked;
-      if (!clicked) {
-        clicked = platform;
-      } else if (clicked === 'Google' && platform === 'Yelp') {
-        clicked = 'Both';
-      } else if (clicked === 'Yelp' && platform === 'Google') {
-        clicked = 'Both';
-      }
-      return { ...prev, q7ReviewPlatformClicked: clicked };
-    });
-  };
-
   const needsContactInfo = () => {
     return formData.q6OptInCommunication === 'Yes' || formData.q7WillingToShare === 'Write Here';
   };
@@ -212,6 +197,15 @@ const SatisfactionSurveyPage: React.Component = () => {
 
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // If they chose Google/Yelp review, open review tabs after successful submission
+      if (formData.q7WillingToShare === 'Google/Yelp Review') {
+        // Small delay to let success message show first
+        setTimeout(() => {
+          window.open(GOOGLE_REVIEW_URL, '_blank');
+          window.open(YELP_REVIEW_URL, '_blank');
+        }, 1000);
+      }
     } catch (error) {
       console.error('Survey submission error:', error);
       alert(error instanceof Error ? error.message : 'There was an error submitting your survey. Please try again.');
@@ -232,6 +226,35 @@ const SatisfactionSurveyPage: React.Component = () => {
             <p className="text-lg text-gray-700 mb-6">
               Your feedback has been submitted successfully. We truly appreciate you taking the time to help us improve!
             </p>
+            {formData.q7WillingToShare === 'Google/Yelp Review' && (
+              <div className="mb-6 p-4 bg-accent-light rounded-lg">
+                <p className="text-gray-800 font-medium mb-2">
+                  🌟 Review tabs should be opening now!
+                </p>
+                <p className="text-sm text-gray-600">
+                  If they didn't open automatically, you can review us at:
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 mt-3 justify-center">
+                  <a
+                    href={GOOGLE_REVIEW_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-primary hover:text-accent-dark underline font-medium"
+                  >
+                    Google Reviews
+                  </a>
+                  <span className="hidden sm:inline text-gray-400">|</span>
+                  <a
+                    href={YELP_REVIEW_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-primary hover:text-accent-dark underline font-medium"
+                  >
+                    Yelp Reviews
+                  </a>
+                </div>
+              </div>
+            )}
             <Link
               to="/"
               className="inline-block px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-dark transition-colors"
@@ -490,39 +513,23 @@ const SatisfactionSurveyPage: React.Component = () => {
               </label>
             </div>
 
-            {/* Google/Yelp Review Links */}
+            {/* Google/Yelp Review Info */}
             {formData.q7WillingToShare === 'Google/Yelp Review' && (
-              <div className="mt-6 p-6 bg-accent-light rounded-lg">
-                <p className="text-gray-800 mb-4 font-medium">
-                  Thank you! Please share your experience on:
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a
-                    href={GOOGLE_REVIEW_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleReviewLinkClick('Google')}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-dark transition-colors font-medium"
-                  >
-                    <Star className="w-5 h-5" fill="currentColor" />
-                    Leave a Google Review (Preferred)
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                  <a
-                    href={YELP_REVIEW_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleReviewLinkClick('Yelp')}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                  >
-                    <Star className="w-5 h-5" fill="currentColor" />
-                    Leave a Yelp Review
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+              <div className="mt-6 p-6 bg-accent-light rounded-lg border-2 border-accent-primary">
+                <div className="flex items-start gap-3 mb-3">
+                  <Star className="w-6 h-6 text-accent-primary flex-shrink-0 mt-1" fill="currentColor" />
+                  <div>
+                    <p className="text-gray-900 font-semibold text-lg mb-2">
+                      Thank you! 🎉
+                    </p>
+                    <p className="text-gray-700 mb-2">
+                      After you submit this survey, we'll automatically open Google and Yelp review pages in new tabs so you can easily share your experience.
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Your reviews help others find quality self-defense training and support our small business!
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-4 text-center">
-                  After reviewing, please come back to complete this survey (it helps us track feedback!)
-                </p>
               </div>
             )}
 
