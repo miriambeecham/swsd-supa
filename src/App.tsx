@@ -25,7 +25,7 @@ import AdminAttendancePage from './pages/AdminAttendancePage';
 import AdminClassSchedulesPage from './pages/AdminClassSchedulesPage';
 import AdminImportPage from './pages/AdminImportPage';
 import CommunityMotherDaughterBookingPage from './pages/CommunityMotherDaughterBookingPage';
-import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage''
+import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage';
 
 
 
