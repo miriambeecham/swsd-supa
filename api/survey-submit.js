@@ -94,9 +94,6 @@ export default async function handler(req, res) {
     if (formData.q7WrittenTestimonial?.trim()) {
       fields['Q7: Written Testimonial'] = formData.q7WrittenTestimonial;
     }
-    if (formData.q7ReviewPlatformClicked) {
-      fields['Q7: Review Platform Clicked'] = formData.q7ReviewPlatformClicked;
-    }
 
     // Add contact info if provided
     if (formData.firstName?.trim()) fields['First Name'] = formData.firstName;
