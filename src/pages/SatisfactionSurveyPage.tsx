@@ -24,8 +24,8 @@ const SatisfactionSurveyPage: React.FC = () => {
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   
   // TODO: Replace with your actual review URLs
-  const GOOGLE_REVIEW_URL = 'https://www.google.com/maps/place/Streetwise+Self+Defense/@37.9132741,-122.0709112,17z/data=!4m8!3m7!1s0x808561767656b757:0xd2f8c4e44e94c78a!8m2!3d37.9132699!4d-122.0683363!9m1!1b1!16s%2Fg%2F11kj88gn7r?entry=ttu&g_ep=EgoyMDI1MTEwNC4xIKXMDSoASAFQAw%3D%3D';
-  const YELP_REVIEW_URL = 'https://www.yelp.com/writeareview/biz/c0-z2raeR1sdG_5tTE9aLg?return_url=%2Fbiz%2Fc0-z2raeR1sdG_5tTE9aLg&review_origin=biz-details-war-button';
+  const GOOGLE_REVIEW_URL = 'https://g.page/r/YOUR_BUSINESS_ID/review';
+  const YELP_REVIEW_URL = 'https://www.yelp.com/writeareview/biz/YOUR_BUSINESS_ID';
 
   const [formData, setFormData] = useState({
     classScheduleId: '',
@@ -161,14 +161,29 @@ const SatisfactionSurveyPage: React.FC = () => {
     }
     
     if (needsContactInfo()) {
+      // Always require name
       if (!formData.firstName.trim()) errors.push('First name is required');
       if (!formData.lastName.trim()) errors.push('Last name is required');
-      if (!formData.email.trim()) errors.push('Email is required');
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        errors.push('Please enter a valid email address');
-      }
+      
+      // Require at least one contact method
       if (formData.preferredContactMethod.length === 0) {
         errors.push('Please select at least one preferred contact method');
+      }
+      
+      // Email is required only if Email is selected as preferred method
+      if (formData.preferredContactMethod.includes('Email')) {
+        if (!formData.email.trim()) {
+          errors.push('Email is required (you selected Email as a preferred contact method)');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          errors.push('Please enter a valid email address');
+        }
+      }
+      
+      // Phone is required only if Phone or Text is selected
+      if (formData.preferredContactMethod.includes('Phone') || formData.preferredContactMethod.includes('Text')) {
+        if (!formData.phone.trim()) {
+          errors.push('Phone number is required (you selected Phone/Text as a preferred contact method)');
+        }
       }
     }
     
@@ -579,12 +594,48 @@ const SatisfactionSurveyPage: React.FC = () => {
           {needsContactInfo() && (
             <div className="border-t pt-8">
               <h3 className="text-xl font-semibold text-navy mb-4">Contact Information</h3>
-              <p className="text-sm text-gray-600 mb-6">
-                We'll use this to {formData.q6OptInCommunication === 'Yes' ? 'keep you updated about future classes' : ''}
-                {formData.q6OptInCommunication === 'Yes' && formData.q7WillingToShare === 'Write Here' ? ' and ' : ''}
-                {formData.q7WillingToShare === 'Write Here' ? 'display your testimonial as "First Name L."' : ''}
-              </p>
+              
+              {/* Explanation of why we need contact info */}
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-gray-800">
+                  <strong>Why we're asking:</strong>
+                  {formData.q6OptInCommunication === 'Yes' && formData.q7WillingToShare === 'Write Here' && (
+                    <> You indicated you'd like to hear about future classes AND you're providing a testimonial for our website.</>
+                  )}
+                  {formData.q6OptInCommunication === 'Yes' && formData.q7WillingToShare !== 'Write Here' && (
+                    <> You indicated you'd like to hear about future classes and events.</>
+                  )}
+                  {formData.q6OptInCommunication !== 'Yes' && formData.q7WillingToShare === 'Write Here' && (
+                    <> You're providing a testimonial that we'll display on our website (shown as "First Name L.").</>
+                  )}
+                </p>
+              </div>
 
+              {/* Preferred Contact Method - Ask FIRST */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  How would you prefer we contact you? <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-gray-600 mb-3">Select all that apply</p>
+                <div className="flex flex-wrap gap-3">
+                  {['Phone', 'Text', 'Email'].map(method => (
+                    <label key={method} className="flex items-center gap-2 cursor-pointer p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.preferredContactMethod.includes(method)}
+                        onChange={() => handleContactMethodChange(method)}
+                        className="w-4 h-4 text-accent-primary focus:ring-accent-primary rounded"
+                      />
+                      <span className="text-gray-700 font-medium">{method}</span>
+                    </label>
+                  ))}
+                </div>
+                {showValidation && formData.preferredContactMethod.length === 0 && (
+                  <p className="text-red-500 text-sm mt-2">Please select at least one contact method</p>
+                )}
+              </div>
+
+              {/* Name Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -618,55 +669,45 @@ const SatisfactionSurveyPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary ${
-                      showValidation && (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-                        ? 'border-red-500'
-                        : 'border-gray-300'
-                    }`}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone <span className="text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary"
-                  />
-                </div>
+              {/* Email - Required only if Email is a preferred method */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email {formData.preferredContactMethod.includes('Email') && <span className="text-red-500">*</span>}
+                  {!formData.preferredContactMethod.includes('Email') && <span className="text-gray-500">(Optional)</span>}
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary ${
+                    showValidation && formData.preferredContactMethod.includes('Email') && (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+                      ? 'border-red-500'
+                      : 'border-gray-300'
+                  }`}
+                  required={formData.preferredContactMethod.includes('Email')}
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Preferred Contact Method <span className="text-red-500">*</span>
+              {/* Phone - Required only if Phone or Text is a preferred method */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone {(formData.preferredContactMethod.includes('Phone') || formData.preferredContactMethod.includes('Text')) && <span className="text-red-500">*</span>}
+                  {!formData.preferredContactMethod.includes('Phone') && !formData.preferredContactMethod.includes('Text') && <span className="text-gray-500">(Optional)</span>}
                 </label>
-                <div className="flex flex-wrap gap-3">
-                  {['Phone', 'Text', 'Email'].map(method => (
-                    <label key={method} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.preferredContactMethod.includes(method)}
-                        onChange={() => handleContactMethodChange(method)}
-                        className="w-4 h-4 text-accent-primary focus:ring-accent-primary rounded"
-                      />
-                      <span className="text-gray-700">{method}</span>
-                    </label>
-                  ))}
-                </div>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary ${
+                    showValidation && (formData.preferredContactMethod.includes('Phone') || formData.preferredContactMethod.includes('Text')) && !formData.phone.trim()
+                      ? 'border-red-500'
+                      : 'border-gray-300'
+                  }`}
+                  placeholder="(555) 123-4567"
+                  required={formData.preferredContactMethod.includes('Phone') || formData.preferredContactMethod.includes('Text')}
+                />
               </div>
             </div>
           )}
