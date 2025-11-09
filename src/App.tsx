@@ -25,6 +25,7 @@ import AdminAttendancePage from './pages/AdminAttendancePage';
 import AdminClassSchedulesPage from './pages/AdminClassSchedulesPage';
 import AdminImportPage from './pages/AdminImportPage';
 import CommunityMotherDaughterBookingPage from './pages/CommunityMotherDaughterBookingPage';
+import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage''
 
 
 
@@ -66,6 +67,7 @@ function App() {
             <Route path="/admin/schedules" element={<AdminClassSchedulesPage />} />
             <Route path="/admin/import" element={<AdminImportPage />} />
             <Route path="/book-community-md/:scheduleId" element={<CommunityMotherDaughterBookingPage />} />
+            <Route path="/satisfaction-survey" element={<SatisfactionSurveyPage />} />
             
           </Routes>
         </Layout>
