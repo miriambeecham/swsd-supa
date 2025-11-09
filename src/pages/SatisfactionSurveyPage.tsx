@@ -24,8 +24,8 @@ const SatisfactionSurveyPage: React.FC = () => {
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   
   // TODO: Replace with your actual review URLs
-  const GOOGLE_REVIEW_URL = 'https://g.page/r/YOUR_BUSINESS_ID/review';
-  const YELP_REVIEW_URL = 'https://www.yelp.com/writeareview/biz/YOUR_BUSINESS_ID';
+  const GOOGLE_REVIEW_URL = 'https://www.google.com/maps/place/Streetwise+Self+Defense/@37.9132741,-122.0709112,17z/data=!4m8!3m7!1s0x808561767656b757:0xd2f8c4e44e94c78a!8m2!3d37.9132699!4d-122.0683363!9m1!1b1!16s%2Fg%2F11kj88gn7r?entry=ttu&g_ep=EgoyMDI1MTEwNC4xIKXMDSoASAFQAw%3D%3D';
+  const YELP_REVIEW_URL = 'https://www.yelp.com/writeareview/biz/c0-z2raeR1sdG_5tTE9aLg?return_url=%2Fbiz%2Fc0-z2raeR1sdG_5tTE9aLg&review_origin=biz-details-war-button';
 
   const [formData, setFormData] = useState({
     classScheduleId: '',
