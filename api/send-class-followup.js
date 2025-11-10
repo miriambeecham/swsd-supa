@@ -227,7 +227,7 @@ export default async function handler(req, res) {
               </ol>
 
               <!-- Review Links -->
-              <div style="background-color: #F7DC6F; padding: 20px; margin: 25px 0; border-radius: 6px; text-align: center;">
+              <div style="background-color: #F8F9FA; padding: 20px; margin: 25px 0; border-radius: 6px; text-align: center;">
                 <p style="margin: 0 0 15px 0; color: #2C3E50; font-size: 15px; font-weight: 600;">
                   Leave a review on your preferred platform:
                 </p>
@@ -293,6 +293,7 @@ export default async function handler(req, res) {
               const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
                 to: contactEmail,
+                cc: ['jay@streetwiseselfdefense.com'], 
                 subject: `Thank you for attending ${className}!`,
                 html: emailHTML
               });
