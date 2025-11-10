@@ -781,42 +781,6 @@ const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://streetwiseselfdefense
               </div>
             )}
 
-{/* Survey Link Section */}
-{rosterData && (
-  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex-1">
-        <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-          📋 Class Satisfaction Survey Link
-        </h3>
-        <p className="text-xs text-gray-600 mb-3">
-          Share this link with students for feedback. The class will be pre-selected automatically.
-        </p>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded text-xs text-gray-700 overflow-x-auto">
-            {SITE_URL}/satisfaction-survey?classScheduleId={currentClassId}
-          </code>
-          <button
-            onClick={copySurveyLink}
-            className="flex items-center gap-2 px-3 py-2 bg-accent-primary text-white rounded hover:bg-accent-dark transition-colors text-sm font-medium whitespace-nowrap"
-          >
-            {copiedSurveyLink ? (
-              <>
-                <Check className="w-4 h-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy Link
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
             
             {/* Roster Table */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
