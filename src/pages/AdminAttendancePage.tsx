@@ -128,8 +128,7 @@ const AdminAttendancePage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [copiedSurveyLink, setCopiedSurveyLink] = useState(false);
-const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://streetwiseselfdefense.com';
+
 
   // Check authentication
   useEffect(() => {
@@ -319,19 +318,7 @@ const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://streetwiseselfdefense
     setAttendanceState(newState);
   };
 
-  const copySurveyLink = async () => {
-  if (!currentClassId) return;
-  
-  const surveyLink = `${SITE_URL}/satisfaction-survey?classScheduleId=${currentClassId}`;
-  
-  try {
-    await navigator.clipboard.writeText(surveyLink);
-    setCopiedSurveyLink(true);
-    setTimeout(() => setCopiedSurveyLink(false), 2000);
-  } catch (err) {
-    console.error('Failed to copy:', err);
-  }
-};
+ 
 
   const handleSaveAttendance = async () => {
     setSaving(true);
