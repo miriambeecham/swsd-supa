@@ -91,6 +91,11 @@ interface Participant {
   reminderEmailSentAt?: string;
   reminderEmailDeliveredAt?: string;
   reminderEmailOpenedAt?: string;
+  // ADD THESE:
+  followupEmailStatus?: string;
+  followupEmailSentAt?: string;
+  followupEmailDeliveredAt?: string;
+  followupEmailOpenedAt?: string;
 }
 
 interface ClassInfo {
@@ -123,6 +128,7 @@ const AdminAttendancePage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
 
   // Check authentication
   useEffect(() => {
@@ -311,6 +317,8 @@ const AdminAttendancePage = () => {
     });
     setAttendanceState(newState);
   };
+
+ 
 
   const handleSaveAttendance = async () => {
     setSaving(true);
@@ -760,6 +768,7 @@ const AdminAttendancePage = () => {
               </div>
             )}
 
+            
             {/* Roster Table */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -930,6 +939,29 @@ const AdminAttendancePage = () => {
                                     </div>
                                   )}
                                 </div>
+ {/* ADD THIS: Follow-up Email */}
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 min-w-[90px]">Follow-up:</span>
+          <EmailStatusBadge status={participant.followupEmailStatus} />
+        </div>
+        {participant.followupEmailSentAt && !participant.followupEmailOpenedAt && (
+          <div className="text-xs text-gray-500 ml-[98px]">
+            Sent {formatPacificTime(participant.followupEmailSentAt)}
+          </div>
+        )}
+        {participant.followupEmailOpenedAt && (
+          <div className="text-xs text-gray-500 ml-[98px]">
+            Opened {formatPacificTime(participant.followupEmailOpenedAt)}
+          </div>
+        )}
+        {participant.followupEmailStatus === 'Bounced' && (
+          <div className="text-xs text-red-600 font-medium ml-[98px]">
+            ⚠️ Bounced
+          </div>
+        )}
+      </div>
+                                
                               </div>
                             ) : (
                               <div className="text-sm text-gray-400 italic">
