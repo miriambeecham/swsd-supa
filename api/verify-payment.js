@@ -262,24 +262,41 @@ try {
     console.log('[EMAIL] Sent to:', booking.fields['Contact Email']);
     console.log('[EMAIL] Resend ID:', data.id);
     
-    if (data && data.id) {
-      await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: {
-            'Confirmation Email ID': data.id,
-            'Confirmation Email Status': 'Sent',
-            'Confirmation Email Sent At': new Date().toISOString()
-          }
-        })
-      });
-      
-      console.log('[EMAIL] Stored email tracking data in Airtable');
+ if (data && data.id) {
+  console.log('[EMAIL-TRACKING] Attempting to store email tracking data...');
+  console.log('[EMAIL-TRACKING] Booking ID:', booking_id);
+  console.log('[EMAIL-TRACKING] Email ID:', data.id);
+  
+  const trackingUpdateResponse = await fetch(
+    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking_id}`, 
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fields: {
+          'Confirmation Email ID': data.id,
+          'Confirmation Email Status': 'Sent',
+          'Confirmation Email Sent At': new Date().toISOString()
+        }
+      })
     }
+  );
+  
+  if (trackingUpdateResponse.ok) {
+    console.log('[EMAIL-TRACKING] ✅ Successfully stored email tracking data');
+  } else {
+    const errorText = await trackingUpdateResponse.text();
+    console.error('[EMAIL-TRACKING] ❌ FAILED:', {
+      status: trackingUpdateResponse.status,
+      error: errorText,
+      bookingId: booking_id,
+      emailId: data.id
+    });
+  }
+}
   }
 } catch (emailErr) {
   console.error('[EMAIL] Failed:', emailErr);
