@@ -1,4 +1,5 @@
 // /src/pages/AdminAttendancePage.tsx
+// ✅ UPDATED: Changed all "OpenedAt" references to "ClickedAt"
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -86,16 +87,15 @@ interface Participant {
   confirmationEmailStatus?: string;
   confirmationEmailSentAt?: string;
   confirmationEmailDeliveredAt?: string;
-  confirmationEmailOpenedAt?: string;
+  confirmationEmailClickedAt?: string;  // ✅ CHANGED from OpenedAt
   reminderEmailStatus?: string;
   reminderEmailSentAt?: string;
   reminderEmailDeliveredAt?: string;
-  reminderEmailOpenedAt?: string;
-  // ADD THESE:
+  reminderEmailClickedAt?: string;  // ✅ CHANGED from OpenedAt
   followupEmailStatus?: string;
   followupEmailSentAt?: string;
   followupEmailDeliveredAt?: string;
-  followupEmailOpenedAt?: string;
+  followupEmailClickedAt?: string;  // ✅ CHANGED from OpenedAt
 }
 
 interface ClassInfo {
@@ -906,14 +906,15 @@ const AdminAttendancePage = () => {
                           <td className="px-4 py-4">
                             {participant.isPrimaryContact ? (
                               <div className="space-y-2">
+                                {/* ✅ CONFIRMATION EMAIL - Updated to use ClickedAt */}
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-gray-500 min-w-[80px]">Confirmation:</span>
                                     <EmailStatusBadge status={participant.confirmationEmailStatus} />
                                   </div>
-                                  {participant.confirmationEmailOpenedAt && (
+                                  {participant.confirmationEmailClickedAt && (
                                     <div className="text-xs text-gray-500 ml-[88px]">
-                                      Opened {formatPacificTime(participant.confirmationEmailOpenedAt)}
+                                      Clicked {formatPacificTime(participant.confirmationEmailClickedAt)}
                                     </div>
                                   )}
                                   {participant.confirmationEmailStatus === 'Bounced' && (
@@ -923,14 +924,15 @@ const AdminAttendancePage = () => {
                                   )}
                                 </div>
 
+                                {/* ✅ REMINDER EMAIL - Updated to use ClickedAt */}
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-gray-500 min-w-[80px]">Reminder:</span>
                                     <EmailStatusBadge status={participant.reminderEmailStatus} />
                                   </div>
-                                  {participant.reminderEmailOpenedAt && (
+                                  {participant.reminderEmailClickedAt && (
                                     <div className="text-xs text-gray-500 ml-[88px]">
-                                      Opened {formatPacificTime(participant.reminderEmailOpenedAt)}
+                                      Clicked {formatPacificTime(participant.reminderEmailClickedAt)}
                                     </div>
                                   )}
                                   {participant.reminderEmailStatus === 'Bounced' && (
@@ -939,28 +941,29 @@ const AdminAttendancePage = () => {
                                     </div>
                                   )}
                                 </div>
- {/* ADD THIS: Follow-up Email */}
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 min-w-[90px]">Follow-up:</span>
-          <EmailStatusBadge status={participant.followupEmailStatus} />
-        </div>
-        {participant.followupEmailSentAt && !participant.followupEmailOpenedAt && (
-          <div className="text-xs text-gray-500 ml-[98px]">
-            Sent {formatPacificTime(participant.followupEmailSentAt)}
-          </div>
-        )}
-        {participant.followupEmailOpenedAt && (
-          <div className="text-xs text-gray-500 ml-[98px]">
-            Opened {formatPacificTime(participant.followupEmailOpenedAt)}
-          </div>
-        )}
-        {participant.followupEmailStatus === 'Bounced' && (
-          <div className="text-xs text-red-600 font-medium ml-[98px]">
-            ⚠️ Bounced
-          </div>
-        )}
-      </div>
+
+                                {/* ✅ FOLLOW-UP EMAIL - Updated to use ClickedAt */}
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-500 min-w-[90px]">Follow-up:</span>
+                                    <EmailStatusBadge status={participant.followupEmailStatus} />
+                                  </div>
+                                  {participant.followupEmailSentAt && !participant.followupEmailClickedAt && (
+                                    <div className="text-xs text-gray-500 ml-[98px]">
+                                      Sent {formatPacificTime(participant.followupEmailSentAt)}
+                                    </div>
+                                  )}
+                                  {participant.followupEmailClickedAt && (
+                                    <div className="text-xs text-gray-500 ml-[98px]">
+                                      Clicked {formatPacificTime(participant.followupEmailClickedAt)}
+                                    </div>
+                                  )}
+                                  {participant.followupEmailStatus === 'Bounced' && (
+                                    <div className="text-xs text-red-600 font-medium ml-[98px]">
+                                      ⚠️ Bounced
+                                    </div>
+                                  )}
+                                </div>
                                 
                               </div>
                             ) : (
