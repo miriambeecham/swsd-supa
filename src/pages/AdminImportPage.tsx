@@ -2,14 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Upload, CheckCircle, XCircle, AlertCircle, ArrowLeft, Download } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, AlertCircle, ArrowLeft, Download, Mail } from 'lucide-react';
 
 const AdminImportPage = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState(false);
   const [results, setResults] = useState<any>(null);
+  const [emailResults, setEmailResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Check authentication
   useEffect(() => {
@@ -59,6 +62,7 @@ const AdminImportPage = () => {
       setFile(selectedFile);
       setError(null);
       setResults(null);
+      setEmailResults(null);
     } else {
       setError('Please select a valid CSV file');
       setFile(null);
@@ -103,6 +107,7 @@ const AdminImportPage = () => {
     setImporting(true);
     setError(null);
     setResults(null);
+    setEmailResults(null);
 
     try {
       // Read file
@@ -133,6 +138,48 @@ const AdminImportPage = () => {
       setError(err.message || 'Failed to import bookings');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleSendConfirmationEmails = async () => {
+    if (!results || !results.results) {
+      setEmailError('No import results available');
+      return;
+    }
+
+    // Get successful booking IDs
+    const bookingIds = results.results
+      .filter((r: any) => r.success && r.bookingId)
+      .map((r: any) => r.bookingId);
+
+    if (bookingIds.length === 0) {
+      setEmailError('No successful bookings to send emails for');
+      return;
+    }
+
+    setSendingEmails(true);
+    setEmailError(null);
+    setEmailResults(null);
+
+    try {
+      const response = await fetch('/api/admin/send-external-confirmation-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingIds })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send emails');
+      }
+
+      const result = await response.json();
+      setEmailResults(result);
+    } catch (err: any) {
+      console.error('Email sending error:', err);
+      setEmailError(err.message || 'Failed to send confirmation emails');
+    } finally {
+      setSendingEmails(false);
     }
   };
 
@@ -206,6 +253,14 @@ const AdminImportPage = () => {
                 Upload your completed CSV file below. The system will create confirmed bookings for all groups.
               </p>
             </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Step 5: Send Confirmation Emails</h3>
+              <p className="text-gray-600">
+                After successful import, click the "Send Confirmation Emails" button to notify all participants. 
+                Emails include class details, calendar invites, and waiver links (no payment information shown).
+              </p>
+            </div>
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
@@ -215,6 +270,7 @@ const AdminImportPage = () => {
                 <p className="font-medium mb-1">Important Notes:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Each booking group must have exactly one adult (16+) with an email address</li>
+                  <li>Confirmation emails can be sent immediately after import</li>
                   <li>Reminder emails will be sent automatically 1 day before the class</li>
                   <li>All bookings are created as "Confirmed" with $0 payment</li>
                 </ul>
@@ -264,7 +320,7 @@ const AdminImportPage = () => {
           >
             {importing ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Importing...
               </>
             ) : (
@@ -276,86 +332,162 @@ const AdminImportPage = () => {
           </button>
         </div>
 
-        {/* Results Card */}
+        {/* Import Results */}
         {results && (
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-semibold text-navy mb-4">Import Results</h2>
             
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-gray-700">
-                    <strong>{results.successCount}</strong> bookings imported successfully
-                  </span>
-                </div>
-                {results.errorCount > 0 && (
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-red-600" />
-                    <span className="text-gray-700">
-                      <strong>{results.errorCount}</strong> errors
-                    </span>
-                  </div>
-                )}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <span className="text-gray-700">Total Groups:</span>
+                <span className="font-semibold text-gray-900">{results.totalGroups}</span>
               </div>
-
-              {/* Detailed Results */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Group ID
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Details
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {results.results.map((result: any, index: number) => (
-                      <tr key={index}>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {result.bookingGroupId}
-                        </td>
-                        <td className="px-4 py-3">
-                          {result.success ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Success
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Failed
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {result.success ? (
-                            <span>
-                              {result.participantCount} participant(s) • {result.contactEmail}
-                            </span>
-                          ) : (
-                            <span className="text-red-600">{result.error}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded">
+                <span className="text-green-700">Successful:</span>
+                <span className="font-semibold text-green-900">{results.successCount}</span>
               </div>
-
-              {results.successCount > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-900">
-                    ✅ Bookings have been created successfully. Reminder emails will be sent automatically 1 day before the class.
-                  </p>
+              {results.errorCount > 0 && (
+                <div className="flex items-center justify-between p-3 bg-red-50 rounded">
+                  <span className="text-red-700">Errors:</span>
+                  <span className="font-semibold text-red-900">{results.errorCount}</span>
                 </div>
               )}
+            </div>
+
+            {/* Send Confirmation Emails Button */}
+            {results.successCount > 0 && (
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-gray-900 mb-3">Step 5: Send Confirmation Emails</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Send confirmation emails to all successfully imported bookings. 
+                  Emails will include class details and waiver links (no payment information).
+                </p>
+                
+                {emailError && (
+                  <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-red-900">{emailError}</div>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSendConfirmationEmails}
+                  disabled={sendingEmails}
+                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                >
+                  {sendingEmails ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Sending Emails...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-5 h-5" />
+                      Send Confirmation Emails
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Detailed Results */}
+            <div className="mt-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Detailed Results:</h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {results.results.map((result: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-3 p-3 rounded ${
+                      result.success ? 'bg-green-50' : 'bg-red-50'
+                    }`}
+                  >
+                    {result.success ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1 text-sm">
+                      <p className={result.success ? 'text-green-900' : 'text-red-900'}>
+                        <strong>Group {result.bookingGroupId}:</strong>
+                        {result.success ? (
+                          <>
+                            {result.skipped ? (
+                              <> Already processed - {result.reason}</>
+                            ) : (
+                              <>
+                                {' '}Created booking for {result.contactEmail}
+                                {result.participantCount > 1 && ` (${result.participantCount} participants)`}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <> {result.error}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Results */}
+        {emailResults && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-navy mb-4">Email Results</h2>
+            
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <span className="text-gray-700">Total Emails:</span>
+                <span className="font-semibold text-gray-900">{emailResults.totalBookings}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded">
+                <span className="text-green-700">Sent Successfully:</span>
+                <span className="font-semibold text-green-900">{emailResults.successCount}</span>
+              </div>
+              {emailResults.errorCount > 0 && (
+                <div className="flex items-center justify-between p-3 bg-red-50 rounded">
+                  <span className="text-red-700">Errors:</span>
+                  <span className="font-semibold text-red-900">{emailResults.errorCount}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Detailed Email Results */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Email Delivery Details:</h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {emailResults.results.map((result: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-3 p-3 rounded ${
+                      result.success ? 'bg-green-50' : 'bg-red-50'
+                    }`}
+                  >
+                    {result.success ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div className="flex-1 text-sm">
+                      <p className={result.success ? 'text-green-900' : 'text-red-900'}>
+                        {result.success ? (
+                          <>
+                            {result.skipped ? (
+                              <><strong>{result.email}</strong> - {result.reason}</>
+                            ) : (
+                              <><strong>{result.email}</strong> - Confirmation sent</>
+                            )}
+                          </>
+                        ) : (
+                          <><strong>Booking {result.bookingId}</strong> - {result.error}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
