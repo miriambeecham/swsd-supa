@@ -1,9 +1,9 @@
 // /api/resend-webhook.js
-// Updated to handle Confirmation, Reminder, AND Followup emails
+// Updated to use "Clicked At" fields for both opened and clicked events
+// (Since open tracking doesn't work reliably anyway)
 
 import { Webhook } from 'svix';
 
-// Helper: Update booking record for all three email types
 async function updateBookingRecord(booking, emailId, eventType) {
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
@@ -19,14 +19,15 @@ async function updateBookingRecord(booking, emailId, eventType) {
     ? 'Reminder Email Status'
     : 'Followup Email Status';
     
+  // For opened AND clicked events, use "Clicked At" field
   const timestampField = eventType === 'email.delivered' 
     ? (isConfirmationEmail ? 'Confirmation Email Delivered At' 
        : isReminderEmail ? 'Reminder Email Delivered At' 
        : 'Followup Email Delivered At')
-    : eventType === 'email.opened'
-    ? (isConfirmationEmail ? 'Confirmation Email Opened At' 
-       : isReminderEmail ? 'Reminder Email Opened At'
-       : 'Followup Email Opened At')
+    : (eventType === 'email.opened' || eventType === 'email.clicked')
+    ? (isConfirmationEmail ? 'Confirmation Email Clicked At' 
+       : isReminderEmail ? 'Reminder Email Clicked At'
+       : 'Followup Email Clicked At')
     : null;
   
   const statusMap = {
@@ -35,7 +36,7 @@ async function updateBookingRecord(booking, emailId, eventType) {
     'email.delivery_delayed': 'Delayed',
     'email.bounced': 'Bounced',
     'email.complained': 'Spam',
-    'email.opened': 'Opened',
+    'email.opened': 'Clicked', // Treat as clicked since field is "Clicked At"
     'email.clicked': 'Clicked'
   };
   
@@ -46,6 +47,8 @@ async function updateBookingRecord(booking, emailId, eventType) {
   if (timestampField) {
     fieldsToUpdate[timestampField] = new Date().toISOString();
   }
+  
+  console.log(`[WEBHOOK] Updating booking ${booking.id}:`, JSON.stringify(fieldsToUpdate));
   
   const updateUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`;
   const updateResponse = await fetch(updateUrl, {
@@ -58,7 +61,8 @@ async function updateBookingRecord(booking, emailId, eventType) {
   });
   
   if (!updateResponse.ok) {
-    console.error('Airtable update failed:', await updateResponse.text());
+    const errorText = await updateResponse.text();
+    console.error(`[WEBHOOK] Airtable update failed (${updateResponse.status}):`, errorText);
     return false;
   }
   
@@ -66,8 +70,7 @@ async function updateBookingRecord(booking, emailId, eventType) {
   return true;
 }
 
-// Helper: Update email status (searches Bookings for confirmation, reminder, or followup)
-async function updateEmailStatus(emailId, eventType, eventData) {
+async function updateEmailStatus(emailId, eventType) {
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
   
@@ -76,7 +79,9 @@ async function updateEmailStatus(emailId, eventType, eventData) {
   }
   
   try {
-    // Search Bookings table for this email ID (could be confirmation, reminder, or followup)
+    console.log(`[WEBHOOK] Searching for booking with email ID: ${emailId}`);
+    
+    // Search for this email ID in any of the three email ID fields
     const bookingSearchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=OR({Confirmation Email ID}='${emailId}',{Reminder Email ID}='${emailId}',{Followup Email ID}='${emailId}')`;
     
     const bookingSearchResponse = await fetch(bookingSearchUrl, {
@@ -87,13 +92,19 @@ async function updateEmailStatus(emailId, eventType, eventData) {
     });
     
     if (!bookingSearchResponse.ok) {
-      console.error('Booking search failed:', bookingSearchResponse.status);
+      const errorText = await bookingSearchResponse.text();
+      console.error(`[WEBHOOK] Booking search failed (${bookingSearchResponse.status}):`, errorText);
       return false;
     }
     
     const bookingData = await bookingSearchResponse.json();
+    console.log(`[WEBHOOK] Search returned ${bookingData.records?.length || 0} records`);
     
     if (bookingData.records && bookingData.records.length > 0) {
+      if (bookingData.records.length > 1) {
+        console.warn(`⚠️ Found ${bookingData.records.length} bookings with email ID ${emailId} - updating first one`);
+      }
+      
       // Found booking - update it
       return await updateBookingRecord(bookingData.records[0], emailId, eventType);
     }
@@ -103,7 +114,7 @@ async function updateEmailStatus(emailId, eventType, eventData) {
     return false;
     
   } catch (error) {
-    console.error('Error updating email status:', error);
+    console.error('[WEBHOOK] Error updating email status:', error);
     return false;
   }
 }
@@ -149,7 +160,7 @@ export default async function handler(req, res) {
     const eventType = event.type;
     
     // Update Airtable with email status
-    const updated = await updateEmailStatus(emailId, eventType, event.data);
+    const updated = await updateEmailStatus(emailId, eventType);
     
     if (updated) {
       console.log(`✅ Successfully processed ${eventType} for ${emailId}`);
