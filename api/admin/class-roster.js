@@ -1,4 +1,5 @@
 // /api/admin/class-roster.js
+// ✅ UPDATED: Changed "Opened At" to "Clicked At" - NO OTHER CHANGES
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req, res) {
@@ -140,15 +141,15 @@ return {
   bookingNumber: booking?.fields['Booking ID'],
   isPrimaryContact,
   bookingDate: booking?.fields['Booking Date'],
-  // ✅ ADD EMAIL STATUS FIELDS FROM BOOKING:
+  // ✅ UPDATED: Changed "Opened At" to "Clicked At"
   confirmationEmailStatus: booking?.fields['Confirmation Email Status'],
   confirmationEmailSentAt: booking?.fields['Confirmation Email Sent At'],
   confirmationEmailDeliveredAt: booking?.fields['Confirmation Email Delivered At'],
-  confirmationEmailOpenedAt: booking?.fields['Confirmation Email Opened At'],
+  confirmationEmailClickedAt: booking?.fields['Confirmation Email Clicked At'],
   reminderEmailStatus: booking?.fields['Reminder Email Status'],
   reminderEmailSentAt: booking?.fields['Reminder Email Sent At'],
   reminderEmailDeliveredAt: booking?.fields['Reminder Email Delivered At'],
-  reminderEmailOpenedAt: booking?.fields['Reminder Email Opened At']
+  reminderEmailClickedAt: booking?.fields['Reminder Email Clicked At']
 };
 });
 
