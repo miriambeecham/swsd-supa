@@ -1,4 +1,5 @@
 // /api/send-class-reminders.js
+// ✅ UPDATED: Removed all external links - only prep page link remains
 // Cron job to send reminder emails 1 day before class
 
 export default async function handler(req, res) {
@@ -207,19 +208,12 @@ export default async function handler(req, res) {
             const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
             const location = schedule.fields?.Location || classData?.fields?.Location || 'Location TBD';
             
-            // Use Waiver URL from schedule, fallback to general waiver page
-            const waiverUrl = schedule.fields?.['Waiver URL'] || 'https://www.streetwiseselfdefense.com/waiver';
-            
             // Make class prep URL environment-aware
-            const host = req.headers?.host || 'www.streetwiseselfdefense.com';
-            const protocol = host.includes('localhost') ? 'http' : 'https';
-            const baseUrl = `${protocol}://${host}`;
-            const classPrepUrl = `${baseUrl}/class-prep/${schedule.id}`;
+        const BASE_URL = process.env.BASE_URL || 'https://www.streetwiseselfdefense.com';
+const classPrepUrl = `${BASE_URL}/class-prep/${schedule.id}`;
 
-            // Format location with map links
-            const locationFormatted = location !== 'Location TBD' 
-              ? `${location} (<a href="https://maps.google.com/?q=${encodeURIComponent(location)}" style="color: #20B2AA; text-decoration: none;">Google Maps</a> | <a href="https://maps.apple.com/?q=${encodeURIComponent(location)}" style="color: #20B2AA; text-decoration: none;">Apple Maps</a>)`
-              : location;
+            // ✅ UPDATED: Location is plain text only (no map links)
+            const locationFormatted = location;
 
             // Build HTML email
             const emailHTML = `
@@ -266,34 +260,27 @@ export default async function handler(req, res) {
     </table>
   </div>
   
-  <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Waiver</h2>
-    <p style="font-size: 15px; color: #78350F; line-height: 1.7;">If you haven't already, please complete your waiver. <strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
+  <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">📋 Important: Complete Your Waiver & Review Class Info</h2>
+    <p style="font-size: 15px; line-height: 1.7;">Before class, please visit the class prep page where you can:</p>
+    <ul style="line-height: 2; font-size: 15px; color: #374151;">
+      <li><strong>Complete your waiver</strong> (required for all participants)${participantCount > 1 ? ' - <strong>if you booked for multiple people, forward this email to everyone!</strong>' : ''}</li>
+      <li>Get detailed directions & parking info</li>
+      <li>See what to bring (and what NOT to bring)</li>
+      <li>Review recommended attire</li>
+      <li>Learn about the photography policy</li>
+      <li>Access map links (Google & Apple Maps)</li>
+    </ul>
     <p style="text-align: center; margin: 25px 0;">
-      <a href="${waiverUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">Complete Waiver Now</a>
+      <a href="${classPrepUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">View Class Prep & Complete Waiver</a>
     </p>
-    <p style="font-size: 14px; color: #92400E; margin-top: 20px;"><strong>Important Waiver Instructions:</strong></p>
-    <ul style="font-size: 14px; color: #92400E; margin: 10px 0; line-height: 1.8;">
+    <p style="font-size: 14px; color: #6B7280; margin-top: 20px;"><strong>Important Waiver Instructions:</strong></p>
+    <ul style="font-size: 14px; color: #6B7280; margin: 10px 0; line-height: 1.8;">
       <li><strong>Adults (18+):</strong> Select "Myself"</li>
       <li><strong>Teens (15-17):</strong> Select "Minors Only" (parent/guardian must sign)</li>
       <li><strong>Teens with parent:</strong> Select "Parent/Guardian & Minor"</li>
     </ul>
-    <p style="font-size: 13px; color: #92400E; font-style: italic; margin-top: 15px;">Pro tip: On mobile, scroll down for the "Continue" button!</p>
-  </div>
-  
-  <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">What to Expect</h2>
-    <p style="font-size: 15px; line-height: 1.7;">Review important details about your class experience:</p>
-    <ul style="line-height: 2; font-size: 15px; color: #374151;">
-      <li>Workshop experience overview</li>
-      <li>Detailed directions & parking info</li>
-      <li>What to bring (and what NOT to bring)</li>
-      <li>Recommended attire</li>
-      <li>Photography policy</li>
-    </ul>
-    <p style="text-align: center; margin: 25px 0;">
-      <a href="${classPrepUrl}" style="color: #20B2AA; font-weight: bold; text-decoration: underline; font-size: 16px;">View What to Expect Page →</a>
-    </p>
+    <p style="font-size: 13px; color: #6B7280; font-style: italic; margin-top: 15px;">Pro tip: On mobile, scroll down for the "Continue" button!</p>
   </div>
   
   <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
