@@ -368,48 +368,48 @@ const CboPage = () => {
         </div>
       </section>
 
-      {/* Client Logos */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold text-navy mb-4">Serving Diverse Community Organizations</h2>
-            <p className="text-gray-600">
-              From women's shelters to youth groups, we provide trauma-informed, culturally sensitive self-defense training tailored to each community's unique needs
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center">
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <img 
-                src="/community1.png" 
-                alt="Girl Scouts of Northern California logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <img 
-                src="/community2.png" 
-                alt="Chrysalis Girls Adventures logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <img 
-                src="/community3.png" 
-                alt="Boise High School logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-sm w-full h-24 flex items-center justify-center">
-              <img 
-                src="/community4.png" 
-                alt="The Keys HOA community logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
+     {/* Client Logos */}
+<section className="py-16 bg-gray-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center mb-12">
+      <h2 className="text-2xl font-bold text-navy mb-4">Serving Diverse Community Organizations</h2>
+      <p className="text-gray-600">
+        From women's shelters to youth groups, we provide trauma-informed, culturally sensitive self-defense training tailored to each community's unique needs
+      </p>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-12 items-center justify-items-center">
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/community1.png" 
+          alt="Girl Scouts of Northern California logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/community2.png" 
+          alt="Chrysalis Girls Adventures logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/community3.png" 
+          alt="Boise High School logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/community4.png" 
+          alt="The Keys HOA community logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+    </div>
+  </div>
+</section>
+      
       {/* Testimonials */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -417,9 +417,9 @@ const CboPage = () => {
             {/* First Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('cbo1', {
-                quote: "The training provided to our Girl Scout troop was exceptional. The instructor created a safe, empowering environment where the girls could learn confidence-building techniques while having fun. The age-appropriate approach and positive messaging made all the difference.",
-                name: "Jennifer Martinez",
-                program: "Girl Scout Troop Leader"
+                quote: "Jay was incredibly kind, knowledgeable and easy to work with when he assisted my students in organizing a self-defense workshop for their fellow high school students. Jay met with the student-organizers ahead of the workshop so they could run through the moves themselves before assisting their peers in learning on the day of our workshop. The students and I found Jay and his assistant to be patient, funny and empowering to the (mostly) young women who were taking his course. After the workshop, participants felt stronger, more powerful and more confident that they can keep themselves safe and, in the event of an attack, they would be able to defend themselves. As a teacher, I’m so grateful to Jay for coming to Boise High School, for working with our young people and for offering his services to us. Thanks, Jay!",
+                name: "Anna Delay",
+                program: "AVID Coordinator, Boise High School"
               });
 
               return (
@@ -470,9 +470,9 @@ const CboPage = () => {
             {/* Second Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('cbo2', {
-                quote: "Working with vulnerable populations requires a special touch, and this instructor understood that completely. The trauma-informed approach and cultural sensitivity made our residents feel safe and empowered. This training was exactly what our community needed.",
-                name: "Dr. Sarah Chen",
-                program: "Women's Shelter Director"
+                quote: "Attending Jay’s self-defense class with a group of teenage girls we mentor regularly was such a beautiful and empowering experience. Jay taught with great respect and knowledge and every one of the girls LOVED learning how to own their own space and stand up for their rights. I would highly recommend his class to anyone and we can’t wait to go again and learn more! Thank you so much Jay!",
+                name: "Deborah Ryman",
+                program: "Board Member & Dir. of Operations, Gate of Hope"
               });
 
               return (

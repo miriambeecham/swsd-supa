@@ -374,40 +374,40 @@ const CorporatePage = () => {
         </div>
       </section>
 
-      {/* Client Logos */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold text-navy mb-4">Trusted by Leading Organizations</h2>
-            <p className="text-gray-600">
-              We've partnered with companies across industries to enhance workplace safety
-            </p>
-          </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-center justify-items-center max-w-4xl mx-auto">
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm w-full h-20 sm:h-24 flex items-center justify-center">
-              <img 
-                src="/corporate1.png" 
-                alt="Corporate client logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm w-full h-20 sm:h-24 flex items-center justify-center">
-              <img 
-                src="/corporate2.png" 
-                alt="Corporate client logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm w-full h-20 sm:h-24 flex items-center justify-center">
-              <img 
-                src="/corporate3.png" 
-                alt="Corporate client logo" 
-                className="max-w-full max-h-full object-contain"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+   {/* Client Logos */}
+<section className="py-16 bg-gray-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="text-center mb-12">
+      <h2 className="text-2xl font-bold text-navy mb-4">Trusted by Leading Organizations</h2>
+      <p className="text-gray-600">
+        We've partnered with companies across industries to enhance workplace safety
+      </p>
+    </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 items-center justify-items-center max-w-4xl mx-auto">
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/corporate1.png" 
+          alt="Corporate client logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/corporate2.png" 
+          alt="Corporate client logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+      <div className="bg-white p-8 rounded-lg shadow-sm w-full h-40 flex items-center justify-center hover:shadow-md transition-shadow">
+        <img 
+          src="/corporate3.png" 
+          alt="Corporate client logo" 
+          className="max-w-full max-h-full object-contain"
+        />
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Testimonials */}
       <section className="py-16 bg-white">
