@@ -417,9 +417,9 @@ const CboPage = () => {
             {/* First Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('cbo1', {
-                quote: "The training provided to our Girl Scout troop was exceptional. The instructor created a safe, empowering environment where the girls could learn confidence-building techniques while having fun. The age-appropriate approach and positive messaging made all the difference.",
-                name: "Jennifer Martinez",
-                program: "Girl Scout Troop Leader"
+                quote: "Jay was incredibly kind, knowledgeable and easy to work with when he assisted my students in organizing a self-defense workshop for their fellow high school students. Jay met with the student-organizers ahead of the workshop so they could run through the moves themselves before assisting their peers in learning on the day of our workshop. The students and I found Jay and his assistant to be patient, funny and empowering to the (mostly) young women who were taking his course. After the workshop, participants felt stronger, more powerful and more confident that they can keep themselves safe and, in the event of an attack, they would be able to defend themselves. As a teacher, I’m so grateful to Jay for coming to Boise High School, for working with our young people and for offering his services to us. Thanks, Jay!",
+                name: "Anna Delay",
+                program: "AVID Coordinator, Boise High School"
               });
 
               return (
@@ -470,9 +470,9 @@ const CboPage = () => {
             {/* Second Testimonial */}
             {(() => {
               const testimonialData = renderTestimonial('cbo2', {
-                quote: "Working with vulnerable populations requires a special touch, and this instructor understood that completely. The trauma-informed approach and cultural sensitivity made our residents feel safe and empowered. This training was exactly what our community needed.",
-                name: "Dr. Sarah Chen",
-                program: "Women's Shelter Director"
+                quote: "Attending Jay’s self-defense class with a group of teenage girls we mentor regularly was such a beautiful and empowering experience. Jay taught with great respect and knowledge and every one of the girls LOVED learning how to own their own space and stand up for their rights. I would highly recommend his class to anyone and we can’t wait to go again and learn more! Thank you so much Jay!",
+                name: "Deborah Ryman",
+                program: "Board Member & Dir. of Operations, Gate of Hope"
               });
 
               return (
