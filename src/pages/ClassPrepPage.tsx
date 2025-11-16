@@ -475,23 +475,34 @@ const ClassPrepPage = () => {
         </div>
       </section>
 
-      {/* Photography Policy */}
+      {/* About the Camera */}
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-xl shadow-lg p-8">
             <div className="flex items-start gap-4">
-              <div className="bg-navy/10 p-3 rounded-lg flex-shrink-0">
-                <Camera className="w-6 h-6 text-navy" />
+              <div className="bg-gray-100 p-3 rounded-lg flex-shrink-0">
+                <Camera className="w-6 h-6 text-gray-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-navy mb-4">Photography & Video Policy</h3>
-                <p className="text-gray-700 mb-4">
-                  I may take photos or video during class for marketing purposes and to share on social media. 
-                  If you prefer not to be photographed or recorded, please let me know before class begins.
-                </p>
-                <p className="text-sm text-gray-600">
-                  Your privacy is important to us. We will always respect your wishes regarding photography and video.
-                </p>
+                <h3 className="text-xl font-bold text-navy mb-4">About That Camera in the Corner…</h3>
+                <div className="space-y-4 text-gray-700">
+                  <p>
+                    I film every workshop I teach, both for your safety and my own, and at the request of my insurance carrier. 
+                    These videos get moved directly to an external disk drive in my office and are not usually used for promotional purposes. 
+                    The quality isn't that great but if someone were to get hurt during the class, at least there would be a video 
+                    so that we could see what happened.
+                  </p>
+                  <p>
+                    Sometimes, we might do something that will help the company (Streetwise) or another student in some way, and when that happens, 
+                    I will reach out to you to ask permission, or I will anonymize (blur) your face and any identifiable characteristics 
+                    (like clothing) so that your identity can not be recognized.
+                  </p>
+                  <p>
+                    I was a military intelligence officer, and I have worked with survivors of abusive relationships, people dealing with stalkers, 
+                    and what that means is that I take your security and privacy very seriously. If you have a specific concern about being photographed, 
+                    or having a specific class/location associated with your identity, please let me know so we can take whatever precautions are necessary.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
