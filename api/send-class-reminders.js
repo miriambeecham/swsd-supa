@@ -336,6 +336,7 @@ export default async function handler(req, res) {
               const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
                 to: contactEmail,
+                reply_to: 'jay@streetwiseselfdefense.com',
                 cc: 'reminders@streetwiseselfdefense.com',
                 subject: `Reminder: Your Class is Tomorrow! - ${className}`,
                 html: emailHTML
