@@ -311,14 +311,34 @@ const ClassPrepPage = () => {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="bg-navy text-white px-8 py-6">
-                <div className="flex items-center gap-4">
-                  <ParkingCircle className="w-8 h-8 text-accent-primary" />
-                  <div>
-                    <h3 className="text-2xl font-bold">Parking Information</h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <ParkingCircle className="w-8 h-8 text-accent-primary" />
+                    <div>
+                      <h3 className="text-2xl font-bold">Parking Information</h3>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => window.print()}
+                    className="bg-white text-navy px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2 print:hidden"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print Parking Info
+                  </button>
                 </div>
               </div>
-              <div className="p-8">
+              <div className="p-8" id="parking-info-print">
+                {/* Print-only header */}
+                <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-300">
+                  <h1 className="text-2xl font-bold text-navy mb-2">{classData.className}</h1>
+                  <p className="text-lg text-gray-700">
+                    <strong>{formatDate(classData.date)}</strong> at <strong>{startTimeDisplay}</strong>
+                  </p>
+                  <p className="text-gray-700 mt-1">{address}</p>
+                </div>
+
                 <div className="prose prose-lg max-w-none mb-6">
                   <ReactMarkdown
                     components={{
@@ -342,10 +362,10 @@ const ClassPrepPage = () => {
                   <div className="mt-6">
                     {classData.parkingMapUrl.includes('google.com/maps/embed') ? (
                       /* Google Maps Embed */
-                      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <div className="relative w-full print:h-96" style={{ paddingBottom: '56.25%' }}>
                         <iframe
                           src={classData.parkingMapUrl}
-                          className="absolute top-0 left-0 w-full h-full rounded-lg border-2 border-gray-200"
+                          className="absolute top-0 left-0 w-full h-full rounded-lg border-2 border-gray-200 print:static print:h-96"
                           style={{ border: 0 }}
                           allowFullScreen
                           loading="lazy"
@@ -359,15 +379,67 @@ const ClassPrepPage = () => {
                         <img
                           src={classData.parkingMapUrl}
                           alt="Parking Map"
-                          className="w-full h-auto rounded-lg border-2 border-gray-200 shadow-sm"
+                          className="w-full h-auto rounded-lg border-2 border-gray-200 shadow-sm print:max-h-96 print:object-contain"
                         />
                       </div>
                     )}
                   </div>
                 )}
+
+                {/* Print-only footer */}
+                <div className="hidden print:block mt-6 pt-4 border-t-2 border-gray-300">
+                  <p className="text-sm text-gray-600">
+                    Questions? Call/text Jay at <strong>925-532-9953</strong>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Printed from Streetwise Self Defense Class Prep Page
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Print-specific styles */}
+          <style>{`
+            @media print {
+              /* Hide everything except parking section */
+              body * {
+                visibility: hidden;
+              }
+              
+              #parking-info-print,
+              #parking-info-print * {
+                visibility: visible;
+              }
+              
+              #parking-info-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+              }
+
+              /* Remove margins and padding for better print layout */
+              @page {
+                margin: 0.5in;
+              }
+
+              /* Ensure colors print */
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+
+              /* Make map fit on page */
+              iframe {
+                page-break-inside: avoid;
+              }
+
+              img {
+                page-break-inside: avoid;
+              }
+            }
+          `}</style>
         </section>
       )}
 
