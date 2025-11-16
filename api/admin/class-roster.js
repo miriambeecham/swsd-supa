@@ -149,7 +149,10 @@ return {
   reminderEmailStatus: booking?.fields['Reminder Email Status'],
   reminderEmailSentAt: booking?.fields['Reminder Email Sent At'],
   reminderEmailDeliveredAt: booking?.fields['Reminder Email Delivered At'],
-  reminderEmailClickedAt: booking?.fields['Reminder Email Clicked At']
+  reminderEmailClickedAt: booking?.fields['Reminder Email Clicked At'],
+  followupEmailStatus: booking?.fields['Followup Email Status'],
+followupEmailSentAt: booking?.fields['Followup Email Sent At'],
+followupEmailClickedAt: booking?.fields['Followup Email Clicked At']
 };
 });
 

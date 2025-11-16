@@ -323,6 +323,7 @@ const classPrepUrl = `${BASE_URL}/class-prep/${schedule.id}`;
               const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
                 to: contactEmail,
+                reply_to: 'jay@streetwiseselfdefense.com',
                 cc: 'reminders@streetwiseselfdefense.com',
                 subject: `Reminder: Your Class is Tomorrow! - ${className}`,
                 html: emailHTML
