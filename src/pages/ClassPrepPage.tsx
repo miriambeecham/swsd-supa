@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MapPin, Phone, Users, Shield, Clock, Camera, AlertCircle, CheckCircle, Home, ParkingCircle } from 'lucide-react';
+import { MapPin, Phone, Users, Shield, Clock, Camera, AlertCircle, CheckCircle, Home, ParkingCircle, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ClassPrepData {
