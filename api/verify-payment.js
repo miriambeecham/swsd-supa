@@ -121,6 +121,18 @@ try {
   const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
   
   if (RESEND_API_KEY && booking.fields['Contact Email']) {
+    // Skip if unsubscribed
+if (booking.fields['Email Unsubscribed']) {
+  console.log('[EMAIL] Skipping - customer unsubscribed');
+  // Still return success since booking was processed
+  return res.json({
+    success: true,
+    booking: {
+      className: classData?.fields?.['Class Name'] || 'Self Defense Class',
+      // ... rest of return data
+    }
+  });
+}
     const resend = new Resend(RESEND_API_KEY);
     
     const convertToISO = (dateStr, timeStr) => {
