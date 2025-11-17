@@ -59,7 +59,97 @@ export default async function handler(req, res) {
       // Clean phone number for matching (remove +1)
       const cleanFrom = From.replace(/\D/g, '').replace(/^1/, '');
 
-      // Try to find the booking by phone number
+      // ========================================
+      // AUTO-HANDLE STOP/UNSUBSCRIBE REQUESTS
+      // ========================================
+      const stopKeywords = ['STOP', 'UNSUBSCRIBE', 'END', 'CANCEL', 'QUIT', 'STOPALL'];
+      if (stopKeywords.includes(Body.trim().toUpperCase())) {
+        console.log(`[TWILIO-WEBHOOK] 🛑 STOP request received from ${From}`);
+
+        // Try to find booking by phone number
+        let booking = null;
+        try {
+          const bookingsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({Contact Phone}, '-', ''), '(', ''), ')', '')='${cleanFrom}'`,
+            {
+              headers: {
+                Authorization: `Bearer ${AIRTABLE_API_KEY}`
+              }
+            }
+          );
+
+          if (bookingsResponse.ok) {
+            const bookingsData = await bookingsResponse.json();
+            if (bookingsData.records && bookingsData.records.length > 0) {
+              booking = bookingsData.records[0];
+            }
+          }
+        } catch (err) {
+          console.error('[TWILIO-WEBHOOK] Error finding booking for STOP request:', err);
+        }
+
+        // Mark as SMS unsubscribed
+        if (booking) {
+          try {
+            await fetch(
+              `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`,
+              {
+                method: 'PATCH',
+                headers: {
+                  Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  fields: {
+                    'SMS Unsubscribed': true,
+                    'SMS Unsubscribed At': new Date().toISOString()
+                  }
+                })
+              }
+            );
+
+            console.log(`[TWILIO-WEBHOOK] ✅ Unsubscribed booking ${booking.id} from SMS`);
+
+            // Send confirmation reply
+            if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+              const twilio = await import('twilio');
+              const client = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+              await client.messages.create({
+                body: "You've been unsubscribed from SMS reminders. You'll still receive email notifications. To resubscribe or for questions, contact us at (925) 532-9953.",
+                from: TWILIO_PHONE_NUMBER,
+                to: From
+              });
+
+              console.log(`[TWILIO-WEBHOOK] ✅ Sent unsubscribe confirmation to ${From}`);
+            }
+          } catch (err) {
+            console.error('[TWILIO-WEBHOOK] ❌ Error processing STOP request:', err);
+          }
+        } else {
+          // No booking found - still send generic confirmation
+          console.log(`[TWILIO-WEBHOOK] ⚠️ No booking found for ${From}, sending generic STOP confirmation`);
+          
+          if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+            const twilio = await import('twilio');
+            const client = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+            await client.messages.create({
+              body: "You've been unsubscribed from SMS messages. Contact us at (925) 532-9953 if you have questions.",
+              from: TWILIO_PHONE_NUMBER,
+              to: From
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'STOP request processed',
+          unsubscribed: !!booking
+        });
+      }
+
+      // Try to find the booking by phone number (for regular messages)
       let booking = null;
       try {
         // Search for booking with this phone number
