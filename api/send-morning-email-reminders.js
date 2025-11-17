@@ -101,9 +101,18 @@ export default async function handler(req, res) {
           }
         }
 
-        // Get confirmed bookings
+        // Get confirmed bookings for this schedule
+        const bookingIds = schedule.fields.Bookings || [];
+        if (bookingIds.length === 0) {
+          console.log(`[MORNING-EMAIL] No bookings linked to schedule ${schedule.id}`);
+          continue;
+        }
+
+        const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+        const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+        
         const bookingsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND({Class Schedule}='${schedule.id}', {Status}='Confirmed')`,
+          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
           { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
         );
 
