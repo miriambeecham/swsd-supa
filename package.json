@@ -38,7 +38,8 @@
     "react-router-dom": "^7.7.0",
     "resend": "^6.1.2",
     "stripe": "^18.5.0",
-     "svix": "^1.15.0",
+    "svix": "^1.15.0",
+    "twilio": "^5.10.5",
     "vite-react-typescript-starter": "file:",
     "yup": "^1.6.1"
   },
