@@ -154,7 +154,14 @@ export default async function handler(req, res) {
               continue;
             }
 
-            // 2. Must not have already received pre-class SMS
+            // 2. Must NOT be unsubscribed from SMS
+            if (booking.fields['SMS Unsubscribed']) {
+              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - SMS unsubscribed`);
+              totalSmsSkipped++;
+              continue;
+            }
+
+            // 3. Must not have already received pre-class SMS
             if (booking.fields['Preclass SMS ID']) {
               console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - pre-class SMS already sent`);
               totalSmsSkipped++;
