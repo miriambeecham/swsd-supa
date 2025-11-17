@@ -136,7 +136,11 @@ export default async function handler(req, res) {
               console.log(`[FOLLOWUP-CRON] Skipping booking ${booking.id} - no email`);
               continue;
             }
-
+// Skip if unsubscribed
+if (booking.fields['Email Unsubscribed']) {
+  console.log(`[FOLLOWUP-CRON] Skipping booking ${booking.id} - unsubscribed`);
+  continue;
+}
             // Skip if followup already sent (duplicate prevention)
             if (booking.fields['Followup Email ID']) {
               console.log(`[FOLLOWUP-CRON] Skipping booking ${booking.id} - followup already sent`);
@@ -290,14 +294,17 @@ export default async function handler(req, res) {
               const { Resend } = await import('resend');
               const resend = new Resend(RESEND_API_KEY);
 
-              const { data, error } = await resend.emails.send({
-                from: FROM_EMAIL,
-                to: contactEmail,
-                reply_to: 'jay@streetwiseselfdefense.com',
-                cc: ['jay@streetwiseselfdefense.com'], 
-                subject: `Thank you for attending ${className}!`,
-                html: emailHTML
-              });
+            const { data, error } = await resend.emails.send({
+  from: FROM_EMAIL,
+  to: contactEmail,
+  cc: ['jay@streetwiseselfdefense.com'],
+  subject: emailSubject,
+  html: emailHTML,
+  headers: {
+    'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+  }
+});
 
               if (error) {
                 console.error(`[FOLLOWUP-CRON] Resend error for booking ${booking.id}:`, error);
