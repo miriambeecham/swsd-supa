@@ -251,7 +251,7 @@ if (booking.fields['Email Unsubscribed']) {
   
   <p style="color: #4B5563;">If you have any questions before class, don't hesitate to reach out!</p>
   
-  <p>See you in class!</p>
+ <p>See you in class!</p>
   <p><strong>The Streetwise Self Defense Team</strong></p>
   
   <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
@@ -260,6 +260,10 @@ if (booking.fields['Email Unsubscribed']) {
     Empowering women and vulnerable populations through practical self defense training.<br>
     Streetwise Self Defense | Walnut Creek, CA<br>
     © 2025 Streetwise Self Defense. All rights reserved.
+  </p>
+  
+  <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
+    <a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingId}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
   </p>
 </body>
 </html>
