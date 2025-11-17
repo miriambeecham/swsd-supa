@@ -48,11 +48,14 @@ export default async function handler(req, res) {
     const twilio = await import('twilio');
     const twilioClient = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
-    // Calculate tomorrow's date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDateStr = tomorrow.toISOString().split('T')[0];
+    // Calculate tomorrow's date in Pacific Time
+    const nowPacific = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+    const todayPacific = new Date(nowPacific);
+    const tomorrowPacific = new Date(todayPacific);
+    tomorrowPacific.setDate(tomorrowPacific.getDate() + 1);
+    const tomorrowDateStr = tomorrowPacific.toISOString().split('T')[0];
 
+    console.log('[AFTERNOON-SMS] Current Pacific Time:', nowPacific);
     console.log('[AFTERNOON-SMS] Looking for classes on:', tomorrowDateStr);
 
     // Fetch all class schedules
