@@ -272,21 +272,19 @@ if (booking.fields['Email Unsubscribed']) {
             </td>
           </tr>
           
-          <!-- Footer -->
+            <!-- Footer -->
           <tr>
             <td style="background-color: #f8f9fa; padding: 20px 30px; border-radius: 0 0 8px 8px; text-align: center;">
               <p style="margin: 0; color: #6C757D; font-size: 13px; line-height: 1.5;">
                 Streetwise Self Defense<br>
                 Empowering individuals through practical self-defense training
               </p>
+              <p style="margin-top: 15px; font-size: 12px; color: #9CA3AF;">
+                <a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+              </p>
             </td>
           </tr>
         </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
             `.trim();
 
             // Send email via Resend
