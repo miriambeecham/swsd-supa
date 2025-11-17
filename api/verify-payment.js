@@ -258,14 +258,17 @@ if (booking.fields['Email Unsubscribed']) {
 </html>
 `;
     
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: booking.fields['Contact Email'],
-      reply_to: 'jay@streetwiseselfdefense.com',
-      subject: 'Your Self Defense Class Registration is Confirmed!',
-      html: emailHTML,
-      attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
-    });
+  const { data, error } = await resend.emails.send({
+  from: FROM_EMAIL,
+  to: booking.fields['Contact Email'],
+  subject: 'Your Self Defense Class Registration is Confirmed!',
+  html: emailHTML,
+  attachments: [{ filename: 'class-event.ics', content: cal.toString() }],
+  headers: {
+    'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking_id}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+  }
+});
     
     if (error) {
       console.error('[EMAIL] Resend error:', error);
