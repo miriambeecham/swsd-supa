@@ -147,14 +147,21 @@ export default async function handler(req, res) {
               continue;
             }
 
-            // 2. Must NOT have clicked the email (key logic!)
+            // 2. Must NOT be unsubscribed from SMS
+            if (booking.fields['SMS Unsubscribed']) {
+              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - SMS unsubscribed`);
+              totalSmsSkipped++;
+              continue;
+            }
+
+            // 3. Must NOT have clicked the email (key logic!)
             if (emailClicked) {
               console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - already clicked email at ${emailClicked}`);
               totalSmsSkipped++;
               continue;
             }
 
-            // 3. Must not have already received afternoon SMS
+            // 4. Must not have already received afternoon SMS
             if (booking.fields['Reminder SMS ID']) {
               console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - SMS already sent`);
               totalSmsSkipped++;
