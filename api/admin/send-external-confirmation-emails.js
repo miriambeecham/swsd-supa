@@ -72,6 +72,17 @@ export default async function handler(req, res) {
 
         const booking = await bookingResponse.json();
         const contactEmail = booking.fields['Contact Email'];
+        // Skip if unsubscribed
+if (booking.fields['Email Unsubscribed']) {
+  console.log(`[EXTERNAL-EMAIL] Skipping booking ${bookingId} - unsubscribed`);
+  results.push({
+    bookingId,
+    success: true,
+    skipped: true,
+    reason: 'Customer unsubscribed'
+  });
+  continue;
+}
 
         if (!contactEmail) {
           throw new Error('No contact email found');
@@ -255,14 +266,17 @@ export default async function handler(req, res) {
 `;
 
         // Send email via Resend
-        const { data, error } = await resend.emails.send({
-          from: FROM_EMAIL,
-          to: contactEmail,
-          reply_to: 'jay@streetwiseselfdefense.com',
-          subject: 'Your Self Defense Class Registration is Confirmed!',
-          html: emailHTML,
-          attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
-        });
+      const { data, error } = await resend.emails.send({
+  from: FROM_EMAIL,
+  to: contactEmail,
+  subject: 'Your Self Defense Class Registration is Confirmed!',
+  html: emailHTML,
+  attachments: [{ filename: 'class-event.ics', content: cal.toString() }],
+  headers: {
+    'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingId}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+  }
+});
 
         if (error) {
           throw new Error(`Resend error: ${error.message || JSON.stringify(error)}`);
