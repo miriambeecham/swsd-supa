@@ -317,6 +317,9 @@ export default async function handler(req, res) {
       Empowering women and vulnerable populations through practical self-defense training<br>
       Walnut Creek, CA | (925) 532-9953
     </p>
+    <p style="margin-top: 20px; font-size: 12px; color: #9CA3AF;">
+      <a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from reminder emails</a>
+    </p>
   </div>
 </body>
 </html>
