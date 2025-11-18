@@ -78,9 +78,12 @@ const ClassPrepPage = () => {
         instructorName: classInfo.fields['Instructor'] || 'Jay Beecham',
         instructorPhone: '925-532-9953',
         waiverUrl: schedule.fields['Waiver URL'],
-        parkingInstructions: schedule.fields['Parking Instructions'] || '',
-        parkingMapUrl: schedule.fields['Parking Map URL'] || ''
+       parkingInstructions: classInfo.fields['Parking Instructions'],
+parkingMapUrl: classInfo.fields['Parking Map URL']
       });
+      console.log('Class Info Fields:', classInfo.fields);
+console.log('Parking Instructions:', classInfo.fields['Parking Instructions']);
+console.log('Parking Map URL:', classInfo.fields['Parking Map URL']);
     } catch (err) {
       console.error('Error fetching class prep data:', err);
       setError('Unable to load class information. Please contact us if this issue persists.');
