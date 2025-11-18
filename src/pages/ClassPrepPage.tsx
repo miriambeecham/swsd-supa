@@ -443,7 +443,7 @@ const ClassPrepPage = () => {
         </section>
       )}
 
-      {/* What to Bring & Not Bring */}
+       {/* What to Bring & Not Bring */}
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8">
@@ -457,21 +457,17 @@ const ClassPrepPage = () => {
               </div>
               <div className="p-6">
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-accent-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Your positive attitude and willingness to learn</span>
+                  <li className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-accent-primary rounded-full"></div>
+                    <span>Water Bottle</span>
                   </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-accent-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Water bottle (stay hydrated!)</span>
+                  <li className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-accent-primary rounded-full"></div>
+                    <span>Note pad (optional)</span>
                   </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-accent-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Comfortable athletic clothing</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-accent-primary flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Athletic shoes (sneakers recommended)</span>
+                  <li className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-accent-primary rounded-full"></div>
+                    <span><strong>Sense of humor</strong> (not optional)</span>
                   </li>
                 </ul>
               </div>
@@ -479,73 +475,74 @@ const ClassPrepPage = () => {
 
             {/* What NOT to Bring */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="bg-red-600 text-white px-6 py-4">
+              <div className="bg-red-500 text-white px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <XCircle className="w-6 h-6" />
+                  <AlertCircle className="w-6 h-6" />
                   <h3 className="text-xl font-bold">What NOT to Bring</h3>
                 </div>
               </div>
               <div className="p-6">
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Jewelry (rings, bracelets, necklaces)</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Watches or fitness trackers</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Long fingernails (risk of injury)</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Negative or fearful mindset (leave it at the door!)</span>
-                  </li>
-                </ul>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="font-bold text-red-800 mb-2">PLEASE do not wear jewelry!</p>
+                </div>
+                <div className="space-y-3 text-sm text-gray-700">
+                  <p>Diamonds especially, can hurt me or your training partner.</p>
+                  <p>Similarly, chains around your neck, earrings, and bracelets, can get in the way, lost or possibly broken when we are working with some of these defensive techniques.</p>
+                  <p>Usually, rings that are plain bands are okay, as long as they are secure and won't fall off.</p>
+                  <p>Belly button piercings can be covered with athletic tape (careful taking the tape off!) that will protect them during our class.</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Recommended Attire */}
+      {/* What to Wear */}
       <section className="py-12 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-xl shadow-lg p-8">
-            <div className="flex items-start gap-4">
-              <div className="bg-accent-primary/20 p-3 rounded-lg flex-shrink-0">
-                <Users className="w-6 h-6 text-accent-primary" />
+            <div className="flex items-start gap-4 mb-6">
+              <div className="bg-navy/20 p-3 rounded-lg flex-shrink-0">
+                <Shield className="w-6 h-6 text-navy" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-navy mb-4">Recommended Attire</h3>
-                <p className="text-gray-700 mb-4">
-                  Wear comfortable athletic clothing that allows full range of motion. Think gym clothes or workout gear.
-                </p>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-primary mt-1">•</span>
-                    <span>Athletic pants, leggings, or shorts</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-primary mt-1">•</span>
-                    <span>T-shirt or athletic top (avoid loose/baggy clothing)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-primary mt-1">•</span>
-                    <span>Sneakers or athletic shoes (no sandals or flip-flops)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent-primary mt-1">•</span>
-                    <span>Hair tied back if long</span>
-                  </li>
-                </ul>
+                <h3 className="text-xl font-bold text-navy mb-4">What to Wear</h3>
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                  <div>
+                    <p className="text-gray-700 mb-4">
+                      I encourage you to wear clothing that is comfortable (for exercise) & that covers your knees. 
+                      We try to make the class as realistic as we can, so there will be a fair amount of scenario-based 
+                      interaction with your training partner or with me on the mats.
+                    </p>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-navy">Popular choices with other students:</p>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        <li>• Running tights</li>
+                        <li>• Yoga pants</li>
+                        <li>• Sweatpants</li>
+                        <li>• Comfortable t-shirts or exercise clothing</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Note:</strong> I do not recommend shorts for these types of activities.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <img
+                      src={classData.classType.includes('mother') ? "/mothers-daughters.png" : "/adult-teen.png"}
+                      alt="Self Defense Training"
+                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* About the Camera */}
       <section className="py-12">
