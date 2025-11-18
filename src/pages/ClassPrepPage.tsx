@@ -134,7 +134,7 @@ const ClassPrepPage = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Class Not Found</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           
-            href={`tel:${classData?.instructorPhone || '925-532-9953'}`}
+          <a  href={`tel:${classData?.instructorPhone || '925-532-9953'}`}
             className="bg-accent-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors inline-block"
           >
             Contact Us
@@ -588,13 +588,13 @@ const ClassPrepPage = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               
-                href={`tel:${classData.instructorPhone}`}
+             <a   href={`tel:${classData.instructorPhone}`}
                 className="bg-accent-primary hover:bg-accent-dark text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg"
               >
                 Call: {classData.instructorPhone}
               </a>
               
-                href={`sms:${classData.instructorPhone}`}
+              <a  href={`sms:${classData.instructorPhone}`}
                 className="bg-white/20 hover:bg-white/30 text-white px-8 py-4 rounded-xl font-semibold transition-colors text-lg print:bg-gray-200 print:text-black"
               >
                 Text: {classData.instructorPhone}
