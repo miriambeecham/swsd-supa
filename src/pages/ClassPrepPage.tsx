@@ -317,7 +317,7 @@ const ClassPrepPage = () => {
         </div>
       </section>
 
-      {/* Parking Information Section - NEW */}
+      {/* Parking Information Section */}
       {classData.parkingInstructions && (
         <section className="py-12 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -342,7 +342,6 @@ const ClassPrepPage = () => {
                 </div>
               </div>
               <div className="p-8" id="parking-info-print">
-                {/* Print-only header */}
                 <div className="hidden print:block mb-6 pb-4 border-b-2 border-gray-300">
                   <h1 className="text-2xl font-bold text-navy mb-2">{classData.className}</h1>
                   <p className="text-lg text-gray-700">
@@ -369,11 +368,9 @@ const ClassPrepPage = () => {
                   </ReactMarkdown>
                 </div>
 
-                {/* Parking Map */}
                 {classData.parkingMapUrl && (
                   <div className="mt-6">
                     {classData.parkingMapUrl.includes('google.com/maps/embed') ? (
-                      /* Google Maps Embed */
                       <div className="relative w-full print:h-96" style={{ paddingBottom: '56.25%' }}>
                         <iframe
                           src={classData.parkingMapUrl}
@@ -386,7 +383,6 @@ const ClassPrepPage = () => {
                         ></iframe>
                       </div>
                     ) : (
-                      /* Image Map */
                       <div className="w-full">
                         <img
                           src={classData.parkingMapUrl}
@@ -398,7 +394,6 @@ const ClassPrepPage = () => {
                   </div>
                 )}
 
-                {/* Print-only footer */}
                 <div className="hidden print:block mt-6 pt-4 border-t-2 border-gray-300">
                   <p className="text-sm text-gray-600">
                     Questions? Call/text Jay at <strong>925-532-9953</strong>
@@ -411,10 +406,8 @@ const ClassPrepPage = () => {
             </div>
           </div>
 
-          {/* Print-specific styles */}
           <style>{`
             @media print {
-              /* Hide everything except parking section */
               body * {
                 visibility: hidden;
               }
@@ -431,18 +424,15 @@ const ClassPrepPage = () => {
                 width: 100%;
               }
 
-              /* Remove margins and padding for better print layout */
               @page {
                 margin: 0.5in;
               }
 
-              /* Ensure colors print */
               * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
               }
 
-              /* Make map fit on page */
               iframe {
                 page-break-inside: avoid;
               }
@@ -459,7 +449,6 @@ const ClassPrepPage = () => {
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8">
-            {/* What to Bring */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="bg-accent-primary text-white px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -485,7 +474,6 @@ const ClassPrepPage = () => {
               </div>
             </div>
 
-            {/* What NOT to Bring */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="bg-red-500 text-white px-6 py-4">
                 <div className="flex items-center gap-3">
