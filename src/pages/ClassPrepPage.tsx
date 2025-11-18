@@ -142,7 +142,7 @@ const ClassPrepPage = () => {
         </div>
       </div>
     );
-  };
+  }
 
   const address = classData.location;
   const encodedAddress = encodeURIComponent(address);
