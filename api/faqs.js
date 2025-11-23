@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Airtable not configured' });
     }
 
-    // Fetch Categories (table name is "Categories")
+    // Fetch Categories
     const categoriesResponse = await fetch(
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Categories`,
       {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     const categoriesData = await categoriesResponse.json();
 
-    // Fetch FAQs (table name is "FAQ", not "FAQs")
+    // Fetch FAQs
     const { filter } = req.query;
     const faqEndpoint = filter
       ? `/FAQ?filterByFormula=${encodeURIComponent(filter)}`
@@ -62,7 +62,6 @@ export default async function handler(req, res) {
 
     // Map FAQs to expected format
     const faqs = (faqsData.records || []).map((record) => {
-      // Handle Category field which is a linked record (array of IDs)
       const categoryIds = record.fields.Category || [];
       const categoryId = Array.isArray(categoryIds) && categoryIds.length > 0 
         ? categoryIds[0] 
@@ -76,13 +75,11 @@ export default async function handler(req, res) {
         questionOrder: record.fields['Question Order'] || 999,
         isPublished: !!record.fields['Is Published'],
       };
-    }));
+    });
 
     // Return both categories and FAQs
     res.json({ categories, faqs });
 
   } catch (error) {
     console.error('Error fetching FAQs:', error);
-    res.status(500).json({ error: 'Failed to fetch FAQs' });
-  }
-}
+    res.status(500).json({ error: 'Fai
