@@ -12,36 +12,73 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Airtable not configured' });
     }
 
-    const { filter } = req.query;
-    const endpoint = filter
-      ? `/FAQs?filterByFormula=${encodeURIComponent(filter)}`
-      : '/FAQs';
+    // Fetch Categories
+    const categoriesResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Categories`,
+      {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+    if (!categoriesResponse.ok) {
+      throw new Error(`Airtable Categories API error: ${categoriesResponse.status} ${categoriesResponse.statusText}`);
     }
 
-    const data = await response.json();
+    const categoriesData = await categoriesResponse.json();
 
-    // Map to expected format
-    const faqs = (data.records || []).map((record) => ({
+    // Fetch FAQs
+    const { filter } = req.query;
+    const faqEndpoint = filter
+      ? `/FAQ?filterByFormula=${encodeURIComponent(filter)}`
+      : '/FAQ';
+
+    const faqsResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${faqEndpoint}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!faqsResponse.ok) {
+      throw new Error(`Airtable FAQ API error: ${faqsResponse.status} ${faqsResponse.statusText}`);
+    }
+
+    const faqsData = await faqsResponse.json();
+
+    // Map categories to expected format
+    const categories = (categoriesData.records || []).map((record) => ({
       id: record.id,
-      question: record.fields.Question || '',
-      answer: record.fields.Answer || '',
-      category: record.fields.Category || '',
-      order: record.fields.Order || 0,
-      is_published: !!record.fields['Is Published'],
-      created_at: record.createdTime,
+      name: record.fields['Category Name'] || '',
+      displayOrder: record.fields['Display Order'] || 999,
+      isActive: !!record.fields['Is Active'],
+      description: record.fields.Description || undefined,
     }));
 
-    res.json(faqs);
+    // Map FAQs to expected format
+    const faqs = (faqsData.records || []).map((record) => {
+      const categoryIds = record.fields.Category || [];
+      const categoryId = Array.isArray(categoryIds) && categoryIds.length > 0 
+        ? categoryIds[0] 
+        : null;
+
+      return {
+        id: record.id,
+        question: record.fields.Question || '',
+        answer: record.fields.Answer || '',
+        categoryId: categoryId,
+        questionOrder: record.fields['Question Order'] || 999,
+        isPublished: !!record.fields['Is Published'],
+      };
+    });
+
+    // Return both categories and FAQs
+    res.json({ categories, faqs });
 
   } catch (error) {
     console.error('Error fetching FAQs:', error);
