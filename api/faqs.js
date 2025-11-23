@@ -13,9 +13,10 @@ export default async function handler(req, res) {
     }
 
     const { filter } = req.query;
+    // ✅ FIXED: Changed /FAQs to /FAQ (matching Airtable table name)
     const endpoint = filter
-      ? `/FAQs?filterByFormula=${encodeURIComponent(filter)}`
-      : '/FAQs';
+      ? `/FAQ?filterByFormula=${encodeURIComponent(filter)}`
+      : '/FAQ';
 
     const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${endpoint}`, {
       headers: {
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
       question: record.fields.Question || '',
       answer: record.fields.Answer || '',
       category: record.fields.Category || '',
-      order: record.fields.Order || 0,
+      order: record.fields['Question Order'] || 0,  // ✅ Updated to match schema
       is_published: !!record.fields['Is Published'],
       created_at: record.createdTime,
     }));
