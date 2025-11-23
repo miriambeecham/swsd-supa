@@ -12,37 +12,74 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Airtable not configured' });
     }
 
+    // Fetch Categories (table name is "Categories")
+    const categoriesResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Categories`,
+      {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!categoriesResponse.ok) {
+      throw new Error(`Airtable Categories API error: ${categoriesResponse.status} ${categoriesResponse.statusText}`);
+    }
+
+    const categoriesData = await categoriesResponse.json();
+
+    // Fetch FAQs (table name is "FAQ", not "FAQs")
     const { filter } = req.query;
-    // ✅ FIXED: Changed /FAQs to /FAQ (matching Airtable table name)
-    const endpoint = filter
+    const faqEndpoint = filter
       ? `/FAQ?filterByFormula=${encodeURIComponent(filter)}`
       : '/FAQ';
 
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const faqsResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${faqEndpoint}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+    if (!faqsResponse.ok) {
+      throw new Error(`Airtable FAQ API error: ${faqsResponse.status} ${faqsResponse.statusText}`);
     }
 
-    const data = await response.json();
+    const faqsData = await faqsResponse.json();
 
-    // Map to expected format
-    const faqs = (data.records || []).map((record) => ({
+    // Map categories to expected format
+    const categories = (categoriesData.records || []).map((record) => ({
       id: record.id,
-      question: record.fields.Question || '',
-      answer: record.fields.Answer || '',
-      category: record.fields.Category || '',
-      order: record.fields['Question Order'] || 0,  // ✅ Updated to match schema
-      is_published: !!record.fields['Is Published'],
-      created_at: record.createdTime,
+      name: record.fields['Category Name'] || '',
+      displayOrder: record.fields['Display Order'] || 999,
+      isActive: !!record.fields['Is Active'],
+      description: record.fields.Description || undefined,
     }));
 
-    res.json(faqs);
+    // Map FAQs to expected format
+    const faqs = (faqsData.records || []).map((record) => {
+      // Handle Category field which is a linked record (array of IDs)
+      const categoryIds = record.fields.Category || [];
+      const categoryId = Array.isArray(categoryIds) && categoryIds.length > 0 
+        ? categoryIds[0] 
+        : null;
+
+      return {
+        id: record.id,
+        question: record.fields.Question || '',
+        answer: record.fields.Answer || '',
+        categoryId: categoryId,
+        questionOrder: record.fields['Question Order'] || 999,
+        isPublished: !!record.fields['Is Published'],
+      };
+    }));
+
+    // Return both categories and FAQs
+    res.json({ categories, faqs });
 
   } catch (error) {
     console.error('Error fetching FAQs:', error);
