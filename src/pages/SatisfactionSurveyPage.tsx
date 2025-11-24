@@ -53,6 +53,7 @@ const SatisfactionSurveyPage: React.FC = () => {
         const preselectedClassId = urlParams.get('classScheduleId');
         
 // Get classes from today back to 30 days ago (past classes only)
+// Get classes from today back to 30 days ago (past classes only)
 const thirtyDaysAgo = new Date();
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 const startDateFilter = thirtyDaysAgo.toISOString().split('T')[0];
@@ -60,7 +61,7 @@ const startDateFilter = thirtyDaysAgo.toISOString().split('T')[0];
 const today = new Date();
 const endDateFilter = today.toISOString().split('T')[0];
 
-const filter = `AND(IS_AFTER({Date}, '${startDateFilter}'), IS_ON_OR_BEFORE({Date}, '${endDateFilter}'), NOT({Is Cancelled}))`;
+const filter = `AND(IS_AFTER({Date}, '${startDateFilter}'), NOT(IS_AFTER({Date}, '${endDateFilter}')), NOT({Is Cancelled}))`;
         const response = await fetch(`/api/schedules?filter=${encodeURIComponent(filter)}`);
         
         if (!response.ok) throw new Error('Failed to fetch schedules');
