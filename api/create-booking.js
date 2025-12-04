@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Stripe not configured' });
     }
 
-    const { classScheduleId, contactInfo, participants, classType, recaptchaToken } = req.body || {};
+    const { classScheduleId, contactInfo, participants, classType, recaptchaToken, smsConsent } = req.body || {};
 
     function isBookingTooLate(startDateTime) {
   if (!startDateTime) return false;
@@ -238,7 +238,8 @@ export default async function handler(req, res) {
           'Contact Phone': contactInfo.phone || '',
           'Contact Is Participant': !!contactInfo.isParticipating,
           'Number of Participants': requestedSeats,
-          'Total Amount': totalAmount
+          'Total Amount': totalAmount,
+          'SMS Consent Date': smsConsent ? new Date().toISOString() : null
         },
         typecast: true
       })
