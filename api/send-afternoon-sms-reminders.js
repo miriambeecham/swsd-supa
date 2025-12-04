@@ -149,6 +149,8 @@ export default async function handler(req, res) {
             const contactPhone = booking.fields['Contact Phone'];
             const contactFirstName = booking.fields['Contact First Name'] || 'there';
             const emailClicked = booking.fields['Reminder Email Clicked At'];
+            const smsConsentDate = booking.fields['SMS Consent Date'];
+            const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
             
             // ELIGIBILITY CHECKS
             
@@ -159,21 +161,28 @@ export default async function handler(req, res) {
               continue;
             }
 
-            // 2. Must NOT be unsubscribed from SMS
-            if (booking.fields['SMS Unsubscribed']) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - SMS unsubscribed`);
+            // 2. Must have given SMS consent
+            if (!smsConsentDate) {
+              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
               totalSmsSkipped++;
               continue;
             }
 
-            // 3. Must NOT have clicked the email (key logic!)
+            // 3. Must NOT have opted out of SMS
+            if (smsOptedOutDate) {
+              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
+              totalSmsSkipped++;
+              continue;
+            }
+
+            // 4. Must NOT have clicked the email (key logic!)
             if (emailClicked) {
               console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - already clicked email at ${emailClicked}`);
               totalSmsSkipped++;
               continue;
             }
 
-            // 4. Must not have already received afternoon SMS
+            // 5. Must not have already received afternoon SMS
             if (booking.fields['Reminder SMS ID']) {
               console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - SMS already sent`);
               totalSmsSkipped++;
