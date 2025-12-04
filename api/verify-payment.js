@@ -121,6 +121,18 @@ try {
   const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
   
   if (RESEND_API_KEY && booking.fields['Contact Email']) {
+    // Skip if unsubscribed
+if (booking.fields['Email Unsubscribed']) {
+  console.log('[EMAIL] Skipping - customer unsubscribed');
+  // Still return success since booking was processed
+  return res.json({
+    success: true,
+    booking: {
+      className: classData?.fields?.['Class Name'] || 'Self Defense Class',
+      // ... rest of return data
+    }
+  });
+}
     const resend = new Resend(RESEND_API_KEY);
     
     const convertToISO = (dateStr, timeStr) => {
@@ -232,7 +244,7 @@ try {
   
   <p style="color: #4B5563;">If you have any questions before class, don't hesitate to reach out!</p>
   
-  <p>See you in class!</p>
+<p>See you in class!</p>
   <p><strong>The Streetwise Self Defense Team</strong></p>
   
   <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
@@ -242,18 +254,25 @@ try {
     Streetwise Self Defense | Walnut Creek, CA<br>
     © 2025 Streetwise Self Defense. All rights reserved.
   </p>
+  
+  <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
+    <a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking_id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+  </p>
 </body>
 </html>
 `;
     
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: booking.fields['Contact Email'],
-      reply_to: 'jay@streetwiseselfdefense.com',
-      subject: 'Your Self Defense Class Registration is Confirmed!',
-      html: emailHTML,
-      attachments: [{ filename: 'class-event.ics', content: cal.toString() }]
-    });
+  const { data, error } = await resend.emails.send({
+  from: FROM_EMAIL,
+  to: booking.fields['Contact Email'],
+  subject: 'Your Self Defense Class Registration is Confirmed!',
+  html: emailHTML,
+  attachments: [{ filename: 'class-event.ics', content: cal.toString() }],
+  headers: {
+    'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking_id}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+  }
+});
     
     if (error) {
       console.error('[EMAIL] Resend error:', error);
