@@ -1,0 +1,62 @@
+# .github/workflows/airtable-backup.yml
+# Daily Airtable Backup - Runs at 2 AM Pacific Time
+# Backs up production database to /backups directory
+
+name: Airtable Daily Backup
+
+on:
+  # Run daily at 2 AM Pacific (10 AM UTC)
+  schedule:
+    - cron: '0 10 * * *'
+  
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Need full history to commit back
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Run Airtable backup
+        env:
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: appZoy2JCOlXfwSVx
+        run: node scripts/backup-airtable.js
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code backups/ || echo "changes=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push backup
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add backups/
+          git commit -m "chore: automated Airtable backup $(date +'%Y-%m-%d %H:%M UTC')"
+          git push
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Backup failed! Check the logs above for details."
+          echo "This is an automated notification from GitHub Actions."
+
+      - name: Backup summary
+        if: success()
+        run: |
+          echo "✅ Backup completed successfully!"
+          echo "📅 Timestamp: $(date)"
+          echo "📊 Check the /backups/production directory for the latest backup file."
