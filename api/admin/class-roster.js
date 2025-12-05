@@ -137,6 +137,7 @@ return {
   attendance: participant.fields['Attendance'] || 'Not Recorded',
   contactEmail: booking?.fields['Contact Email'],
   contactPhone: booking?.fields['Contact Phone'],
+  smsOptedOutDate: booking?.fields['SMS Opted Out Date'],
   bookingId: booking?.id,
   bookingNumber: booking?.fields['Booking ID'],
   isPrimaryContact,
