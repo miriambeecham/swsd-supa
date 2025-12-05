@@ -502,7 +502,7 @@ window.location.href = result.checkoutUrl;
                       Send me text message reminders about my class <span className="text-red-500">*</span>
                     </span>
                     <p className="text-xs text-gray-500 mt-1">
-                      We'll text you with class details and reminders. Message and data rates may apply. Reply STOP to opt out.
+                      We'll send you 1-2 texts with class details and a reminder. Message and data rates may apply. Reply STOP to opt out.
                     </p>
                   </div>
                 </label>
