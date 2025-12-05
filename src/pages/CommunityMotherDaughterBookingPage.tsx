@@ -44,6 +44,7 @@ const CommunityMotherDaughterBookingPage = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   const [hardErrors, setHardErrors] = useState<string[]>([]);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   useEffect(() => {
     if (scheduleId) {
@@ -149,6 +150,9 @@ const CommunityMotherDaughterBookingPage = () => {
       errs.push('Mother-Daughter classes are for daughters ages 12-15 only.');
     }
 
+    // SMS consent validation
+    if (!smsConsent) errs.push('Please agree to receive text message reminders');
+
     return errs;
   };
 
@@ -194,7 +198,8 @@ const CommunityMotherDaughterBookingPage = () => {
         },
         participants,
         recaptchaToken: recaptchaValue,
-        classType: 'community-mother-daughter'
+        classType: 'community-mother-daughter',
+        smsConsent: smsConsent
       };
 
       const response = await fetch('/api/create-booking', {
@@ -306,20 +311,20 @@ window.location.href = result.checkoutUrl;
 
       {/* Header */}
       <div className="bg-white border-b">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <Link
-      to="/public-classes"
-      className="inline-flex items-center text-accent-primary hover:text-accent-dark mb-4"
-    >
-      <ArrowLeft className="w-4 h-4 mr-2" />
-      Back to Classes
-    </Link>
-    <h1 className="text-3xl font-bold text-navy">
-      {classSchedule.class_name}
-    </h1>
-    <p className="text-gray-600 mt-2">Private group registration</p>
-  </div>
-</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Link
+            to="/public-classes"
+            className="inline-flex items-center text-accent-primary hover:text-accent-dark mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Classes
+          </Link>
+          <h1 className="text-3xl font-bold text-navy">
+            {classSchedule.class_name}
+          </h1>
+          <p className="text-gray-600 mt-2">Private group registration</p>
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Messages */}
@@ -362,7 +367,7 @@ window.location.href = result.checkoutUrl;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name *
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -373,7 +378,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name *
+                      Last Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -384,7 +389,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email *
+                      Email <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -395,7 +400,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone *
+                      Phone <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -433,7 +438,7 @@ window.location.href = result.checkoutUrl;
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          First Name *
+                          First Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -444,7 +449,7 @@ window.location.href = result.checkoutUrl;
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Last Name *
+                          Last Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -455,7 +460,7 @@ window.location.href = result.checkoutUrl;
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Age Group *
+                          Age Group <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={participant.ageGroup}
@@ -473,38 +478,70 @@ window.location.href = result.checkoutUrl;
                 <button
                   type="button"
                   onClick={addParticipant}
-                  className="text-accent-primary hover:text-accent-dark font-medium flex items-center gap-2"
+                  className="text-accent-primary hover:text-accent-dark font-medium flex items-center gap-2 text-sm"
                 >
                   <Users className="w-4 h-4" />
                   Add Another Daughter
                 </button>
               </div>
 
-              {/* reCAPTCHA */}
+              {/* Consents */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <ReCAPTCHA
-                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'}
-                  onChange={handleRecaptchaChange}
-                />
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Consents</h3>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className={`mt-1 h-5 w-5 rounded border-gray-300 text-accent-primary focus:ring-accent-primary ${
+                      showValidation && !smsConsent ? 'border-red-500 ring-2 ring-red-200' : ''
+                    }`}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Send me text message reminders about my class <span className="text-red-500">*</span>
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      We'll send you 1-2 texts with class details and a reminder. Message and data rates may apply. Reply STOP to opt out.
+                    </p>
+                  </div>
+                </label>
+                {showValidation && !smsConsent && (
+                  <p className="text-red-500 text-sm mt-2 ml-8">
+                    Please agree to receive text message reminders
+                  </p>
+                )}
+
+                {/* Privacy */}
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600">
+                    By proceeding with your booking, you agree to our{' '}
+                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                      Privacy Policy
+                    </a>
+                    {' '}and{' '}
+                    <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                      Cancellation/Rescheduling Policies
+                    </a>.
+                  </p>
+                </div>
               </div>
 
-                   {/* Privacy */}
-              <div className="mb-8 text-center">
-                <p className="text-sm text-gray-600">
-                  By proceeding with your booking, you agree to our{' '}
-                  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Privacy Policy
-                  </a>
-                  {' '}and{' '}
-                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Cancellation/Rescheduling Policies
-                  </a>.
-                </p>
+              {/* reCAPTCHA */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Security Verification</h3>
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'}
+                    onChange={handleRecaptchaChange}
+                  />
+                </div>
+                {showValidation && !recaptchaValue && (
+                  <p className="text-red-500 text-sm mt-2 text-center">Please complete the reCAPTCHA verification</p>
+                )}
               </div>
             </form>
           </div>
-
-            
 
           {/* Sidebar */}
           <div className="lg:col-span-1">

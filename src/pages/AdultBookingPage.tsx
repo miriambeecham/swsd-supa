@@ -4,6 +4,7 @@
 // Changes:
 // 1. Fixed time display to use start_time_new/end_time_new fields
 // 2. Added booking policies link to privacy statement
+// 3. Added required SMS consent checkbox
 
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
@@ -31,6 +32,7 @@ const AdultBookingPage: React.FC = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   // If user navigates here without state, bounce back to classes
   if (!classSchedule) {
@@ -85,6 +87,9 @@ const AdultBookingPage: React.FC = () => {
 
     if (contactInfo.email && !validateEmail(contactInfo.email)) errs.push('Please enter a valid email address');
     if (contactInfo.phone && !validatePhone(contactInfo.phone)) errs.push('Please enter a valid phone number');
+
+    // SMS Consent
+    if (!smsConsent) errs.push('Please agree to receive text message reminders');
 
     // reCAPTCHA
     if (!recaptchaValue) errs.push('Please complete the reCAPTCHA verification');
@@ -162,6 +167,7 @@ const AdultBookingPage: React.FC = () => {
         totalAmount: totalPrice,
         recaptchaToken: recaptchaValue,
         classType: 'adult',
+        smsConsent: smsConsent,
       };
 
       const res = await fetch('/api/create-booking', {
@@ -336,27 +342,27 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
               </div>
 
               {/* Additional Adult Participants (optional) */}
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-navy">Additional Participants (optional)</h3>
-                  <button
-                    onClick={addAdult}
-                    className="text-accent-primary hover:text-accent-dark font-medium transition-colors"
-                  >
-                    + Add Adult
-                  </button>
-                </div>
+              <div className="bg-gray-50 rounded-lg p-5 -mx-2">
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Additional Participants (optional)</h3>
 
                 {additionalAdults.length === 0 && (
-                  <p className="text-sm text-gray-600">
-                    You can add more adult participants if you're booking for a group.
-                  </p>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      You can add more adult participants if you're booking for a group.
+                    </p>
+                    <button
+                      onClick={addAdult}
+                      className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm"
+                    >
+                      + Add Adult
+                    </button>
+                  </div>
                 )}
 
                 {additionalAdults.length > 0 && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 mt-3">
                     {additionalAdults.map((p, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -393,32 +399,46 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                         </div>
                       </div>
                     ))}
+                    <button
+                      onClick={addAdult}
+                      className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm"
+                    >
+                      + Add Another Adult
+                    </button>
                   </div>
                 )}
               </div>
 
-              {/* reCAPTCHA */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Security Verification</h3>
-                <div className="flex justify-center">
-                  <ReCAPTCHA
-                    sitekey={
-                      import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
-                      (process.env as any).REACT_APP_RECAPTCHA_SITE_KEY ||
-                      '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
-                    }
-                    onChange={setRecaptchaValue}
+              {/* Consents */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Consents</h3>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className={`mt-1 h-5 w-5 rounded border-gray-300 text-accent-primary focus:ring-accent-primary ${
+                      showValidation && !smsConsent ? 'border-red-500 ring-2 ring-red-200' : ''
+                    }`}
                   />
-                </div>
-                {showValidation && !recaptchaValue && (
-                  <p className="text-red-500 text-sm mt-2 text-center">
-                    Please complete the reCAPTCHA verification
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Send me text message reminders about my class <span className="text-red-500">*</span>
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      We'll send you 1-2 texts with class details and a reminder. Message and data rates may apply. Reply STOP to opt out.
+                    </p>
+                  </div>
+                </label>
+                {showValidation && !smsConsent && (
+                  <p className="text-red-500 text-sm mt-2 ml-8">
+                    Please agree to receive text message reminders
                   </p>
                 )}
               </div>
 
               {/* Privacy */}
-              <div className="mb-8 text-center">
+              <div className="mt-4">
                 <p className="text-sm text-gray-600">
                   By proceeding with your booking, you agree to our{' '}
                   <a
@@ -439,6 +459,26 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                     Cancellation/Rescheduling Policies
                   </a>.
                 </p>
+              </div>
+
+              {/* reCAPTCHA */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Security Verification</h3>
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    sitekey={
+                      import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+                      (process.env as any).REACT_APP_RECAPTCHA_SITE_KEY ||
+                      '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+                    }
+                    onChange={setRecaptchaValue}
+                  />
+                </div>
+                {showValidation && !recaptchaValue && (
+                  <p className="text-red-500 text-sm mt-2 text-center">
+                    Please complete the reCAPTCHA verification
+                  </p>
+                )}
               </div>
             </div>
           </div>

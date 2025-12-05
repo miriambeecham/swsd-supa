@@ -153,6 +153,8 @@ export default async function handler(req, res) {
           try {
             const contactPhone = booking.fields['Contact Phone'];
             const contactFirstName = booking.fields['Contact First Name'] || 'there';
+            const smsConsentDate = booking.fields['SMS Consent Date'];
+            const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
             
             // ELIGIBILITY CHECKS
             
@@ -163,14 +165,21 @@ export default async function handler(req, res) {
               continue;
             }
 
-            // 2. Must NOT be unsubscribed from SMS
-            if (booking.fields['SMS Unsubscribed']) {
-              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - SMS unsubscribed`);
+            // 2. Must have given SMS consent
+            if (!smsConsentDate) {
+              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
               totalSmsSkipped++;
               continue;
             }
 
-            // 3. Must not have already received pre-class SMS
+            // 3. Must NOT have opted out of SMS
+            if (smsOptedOutDate) {
+              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
+              totalSmsSkipped++;
+              continue;
+            }
+
+            // 4. Must not have already received pre-class SMS
             if (booking.fields['Preclass SMS ID']) {
               console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - pre-class SMS already sent`);
               totalSmsSkipped++;
@@ -208,6 +217,9 @@ export default async function handler(req, res) {
             const mapsLink = classLocation !== 'the location' 
               ? `https://maps.google.com/?q=${encodeURIComponent(classLocation)}`
               : '';
+
+            // Class prep URL for waiver link
+            const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
 
             // SMS Message - user's requested wording
             const smsMessage = `🎉 Your Streetwise Self Defense class starts at ${displayStartTime}. The address is: ${classLocation}${mapsLink ? ` ${mapsLink}` : ''}

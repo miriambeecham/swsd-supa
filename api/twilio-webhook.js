@@ -66,11 +66,16 @@ export default async function handler(req, res) {
       if (stopKeywords.includes(Body.trim().toUpperCase())) {
         console.log(`[TWILIO-WEBHOOK] 🛑 STOP request received from ${From}`);
 
-        // Try to find booking by phone number
-        let booking = null;
+        // Get today's date for filtering (only update current/future class bookings)
+        const today = new Date().toISOString().split('T')[0];
+
+        // Find ALL bookings for this phone number with class date >= today
+        let bookingsToUpdate = [];
         try {
+          // We need to fetch bookings and then filter by class schedule date
+          // First, get all bookings for this phone number
           const bookingsResponse = await fetch(
-            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({Contact Phone}, '-', ''), '(', ''), ')', '')='${cleanFrom}'`,
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({Contact Phone}, '-', ''), '(', ''), ')', '')='${cleanFrom}', NOT({Status}='Cancelled'))`,
             {
               headers: {
                 Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -80,16 +85,52 @@ export default async function handler(req, res) {
 
           if (bookingsResponse.ok) {
             const bookingsData = await bookingsResponse.json();
-            if (bookingsData.records && bookingsData.records.length > 0) {
-              booking = bookingsData.records[0];
+            const allBookings = bookingsData.records || [];
+            
+            // For each booking, check if the class date is today or in the future
+            for (const booking of allBookings) {
+              const classScheduleId = booking.fields['Class Schedule']?.[0];
+              if (!classScheduleId) continue;
+
+              // Fetch the class schedule to get the date
+              try {
+                const scheduleResponse = await fetch(
+                  `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${classScheduleId}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${AIRTABLE_API_KEY}`
+                    }
+                  }
+                );
+
+                if (scheduleResponse.ok) {
+                  const scheduleData = await scheduleResponse.json();
+                  const classDate = scheduleData.fields?.Date;
+                  
+                  // Only include if class date is today or in the future
+                  if (classDate && classDate >= today) {
+                    bookingsToUpdate.push(booking);
+                    console.log(`[TWILIO-WEBHOOK] Will opt-out booking ${booking.id} (class date: ${classDate})`);
+                  } else {
+                    console.log(`[TWILIO-WEBHOOK] Skipping booking ${booking.id} (class date: ${classDate} is in the past)`);
+                  }
+                }
+              } catch (scheduleErr) {
+                console.error(`[TWILIO-WEBHOOK] Error fetching schedule for booking ${booking.id}:`, scheduleErr);
+              }
             }
+
+            console.log(`[TWILIO-WEBHOOK] Found ${bookingsToUpdate.length} current/future booking(s) to opt out`);
           }
         } catch (err) {
-          console.error('[TWILIO-WEBHOOK] Error finding booking for STOP request:', err);
+          console.error('[TWILIO-WEBHOOK] Error finding bookings for STOP request:', err);
         }
 
-        // Mark as SMS unsubscribed
-        if (booking) {
+        // Update all matching bookings with SMS Opted Out Date
+        const optOutTimestamp = new Date().toISOString();
+        let updatedCount = 0;
+
+        for (const booking of bookingsToUpdate) {
           try {
             await fetch(
               `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`,
@@ -101,51 +142,41 @@ export default async function handler(req, res) {
                 },
                 body: JSON.stringify({
                   fields: {
-                    'SMS Unsubscribed': true,
-                    'SMS Unsubscribed At': new Date().toISOString()
+                    'SMS Opted Out Date': optOutTimestamp
                   }
                 })
               }
             );
 
-            console.log(`[TWILIO-WEBHOOK] ✅ Unsubscribed booking ${booking.id} from SMS`);
-
-            // Send confirmation reply
-            if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
-              const twilio = await import('twilio');
-              const client = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
-              await client.messages.create({
-                body: "You've been unsubscribed from SMS reminders. You'll still receive email notifications. To resubscribe or for questions, contact us at (925) 532-9953.",
-                from: TWILIO_PHONE_NUMBER,
-                to: From
-              });
-
-              console.log(`[TWILIO-WEBHOOK] ✅ Sent unsubscribe confirmation to ${From}`);
-            }
+            console.log(`[TWILIO-WEBHOOK] ✅ Opted out booking ${booking.id} from SMS`);
+            updatedCount++;
           } catch (err) {
-            console.error('[TWILIO-WEBHOOK] ❌ Error processing STOP request:', err);
+            console.error(`[TWILIO-WEBHOOK] ❌ Error updating booking ${booking.id}:`, err);
           }
-        } else {
-          // No booking found - still send generic confirmation
-          console.log(`[TWILIO-WEBHOOK] ⚠️ No booking found for ${From}, sending generic STOP confirmation`);
-          
-          if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+        }
+
+        // Send confirmation reply
+        if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+          try {
             const twilio = await import('twilio');
             const client = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
             await client.messages.create({
-              body: "You've been unsubscribed from SMS messages. Contact us at (925) 532-9953 if you have questions.",
+              body: "You've been unsubscribed from SMS reminders. You'll still receive email notifications. To resubscribe, book a new class or contact us at (925) 532-9953.",
               from: TWILIO_PHONE_NUMBER,
               to: From
             });
+
+            console.log(`[TWILIO-WEBHOOK] ✅ Sent unsubscribe confirmation to ${From}`);
+          } catch (err) {
+            console.error('[TWILIO-WEBHOOK] ❌ Error sending unsubscribe confirmation:', err);
           }
         }
 
         return res.status(200).json({
           success: true,
           message: 'STOP request processed',
-          unsubscribed: !!booking
+          bookingsUpdated: updatedCount
         });
       }
 

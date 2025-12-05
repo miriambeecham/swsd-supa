@@ -604,7 +604,7 @@ const PublicClassesPage = () => {
                   className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
                     activeTab === 'adult-teen'
                       ? 'bg-accent-primary text-white shadow-md'
-                      : 'text-navy hover:text-accent-primary hover:bg-accent-light'
+                      : 'bg-accent-primary/30 text-navy hover:text-accent-primary hover:bg-accent-light'
                   }`}
                 >
                   Adult & Teen Classes
@@ -615,7 +615,7 @@ const PublicClassesPage = () => {
                   className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
                     activeTab === 'mother-daughter'
                       ? 'bg-accent-primary text-white shadow-md'
-                      : 'text-navy hover:text-accent-primary hover:bg-accent-light'
+                      : 'bg-accent-primary/30 text-navy hover:text-accent-primary hover:bg-accent-light'
                   }`}
                 >
                   Mother & Daughter Classes
