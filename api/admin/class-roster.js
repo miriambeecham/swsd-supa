@@ -157,6 +157,19 @@ followupEmailClickedAt: booking?.fields['Followup Email Clicked At']
 };
 });
 
+// Propagate SMS opt-out status to all participants with the same phone number
+const optedOutPhones = new Set();
+roster.forEach(p => {
+  if (p.smsOptedOutDate && p.contactPhone) {
+    optedOutPhones.add(p.contactPhone);
+  }
+});
+roster.forEach(p => {
+  if (p.contactPhone && optedOutPhones.has(p.contactPhone) && !p.smsOptedOutDate) {
+    p.smsOptedOutDate = 'opted-out'; // Just needs a truthy value to show the badge
+  }
+});
+    
 // Sort by booking (keeps booking groups together), then put primary contact first
 roster.sort((a, b) => {
   // First sort by booking ID
