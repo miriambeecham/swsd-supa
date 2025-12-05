@@ -1,7 +1,3 @@
-Updated MotherDaughterBookingPage.tsx with SMS consent checkbox and formatting updates
-MotherDaughterBookingPage.tsx
-/home/claude/MotherDaughterBookingPage.tsx
-
 // src/pages/MotherDaughterBookingPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
@@ -354,7 +350,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
 
               {/* Daughter Participants */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Daughter(s)</h3>
+                <h3 className="text-xl font-semibold text-navy mb-2">Daughter(s)</h3>
                 <p className="text-sm text-gray-600 mb-4">Enter the information for each daughter attending the class.</p>
 
                 {/* First daughter */}
@@ -417,7 +413,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
 
                 {/* Additional daughters */}
                 {additionalParticipants.length > 1 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 mb-4">
                     {additionalParticipants.slice(1).map((p, idx) => (
                       <div key={idx + 1} className="border border-gray-200 rounded-lg p-4 sm:p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -469,7 +465,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
 
                 <button 
                   onClick={addParticipant} 
-                  className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm mt-4"
+                  className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm"
                 >
                   + Add Another Daughter
                 </button>
@@ -549,9 +545,9 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-500" />
-                 <span className="text-gray-700">
-  {formatDisplayTime(classSchedule.start_time)} - {formatDisplayTime(classSchedule.end_time)}
-</span>
+                    <span className="text-gray-700">
+                      {formatDisplayTime(classSchedule.start_time)} - {formatDisplayTime(classSchedule.end_time)}
+                    </span>
                   </div>
                   {classSchedule.location && (
                     <div className="flex items-center gap-3">
