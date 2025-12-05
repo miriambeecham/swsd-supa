@@ -1,3 +1,7 @@
+Updated MotherDaughterBookingPage.tsx with SMS consent checkbox and formatting updates
+MotherDaughterBookingPage.tsx
+/home/claude/MotherDaughterBookingPage.tsx
+
 // src/pages/MotherDaughterBookingPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
@@ -28,6 +32,7 @@ const MotherDaughterBookingPage = () => {
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   const [hardErrors, setHardErrors] = useState<string[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   if (!classSchedule) {
     return (
@@ -108,7 +113,7 @@ const MotherDaughterBookingPage = () => {
     return /^[\+]?[1-9][\d]{0,15}$/.test(digits);
   };
 
-  // Generic form checks (contact + recaptcha)
+  // Generic form checks (contact + recaptcha + smsConsent)
   const formErrors = (): string[] => {
     const errs: string[] = [];
     if (!contactInfo.firstName.trim()) errs.push('Contact first name is required');
@@ -117,6 +122,7 @@ const MotherDaughterBookingPage = () => {
     if (!contactInfo.phone.trim()) errs.push('Phone number is required');
     if (contactInfo.email && !validateEmail(contactInfo.email)) errs.push('Please enter a valid email address');
     if (contactInfo.phone && !validatePhone(contactInfo.phone)) errs.push('Please enter a valid phone number');
+    if (!smsConsent) errs.push('Please agree to receive text message reminders');
     if (!recaptchaValue) errs.push('Please complete the reCAPTCHA verification');
     return errs;
   };
@@ -184,7 +190,8 @@ const MotherDaughterBookingPage = () => {
         participantCount: totalParticipants,
         totalAmount: totalPrice,
         recaptchaToken: recaptchaValue,
-        classType: 'mother-daughter'
+        classType: 'mother-daughter',
+        smsConsent: smsConsent
       };
 
       const response = await fetch('/api/create-booking', {
@@ -347,15 +354,11 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
 
               {/* Daughter Participants */}
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-navy">Daughter(s)</h3>
-                  <button onClick={addParticipant} className="text-accent-primary hover:text-accent-dark font-medium transition-colors">
-                    + Add Additional Daughter
-                  </button>
-                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Daughter(s)</h3>
+                <p className="text-sm text-gray-600 mb-4">Enter the information for each daughter attending the class.</p>
 
                 {/* First daughter */}
-                <div className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-6">
+                <div className="border border-gray-200 rounded-lg p-4 sm:p-6 mb-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">First Name <span className="text-red-500">*</span></label>
@@ -414,7 +417,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
 
                 {/* Additional daughters */}
                 {additionalParticipants.length > 1 && (
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {additionalParticipants.slice(1).map((p, idx) => (
                       <div key={idx + 1} className="border border-gray-200 rounded-lg p-4 sm:p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -463,10 +466,59 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                     ))}
                   </div>
                 )}
+
+                <button 
+                  onClick={addParticipant} 
+                  className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm mt-4"
+                >
+                  + Add Another Daughter
+                </button>
+              </div>
+
+              {/* Consents */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Consents</h3>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsConsent}
+                    onChange={(e) => setSmsConsent(e.target.checked)}
+                    className={`mt-1 h-5 w-5 rounded border-gray-300 text-accent-primary focus:ring-accent-primary ${
+                      showValidation && !smsConsent ? 'border-red-500 ring-2 ring-red-200' : ''
+                    }`}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Send me text message reminders about my class <span className="text-red-500">*</span>
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      We'll text you with class details and reminders. Message and data rates may apply. Reply STOP to opt out.
+                    </p>
+                  </div>
+                </label>
+                {showValidation && !smsConsent && (
+                  <p className="text-red-500 text-sm mt-2 ml-8">
+                    Please agree to receive text message reminders
+                  </p>
+                )}
+              </div>
+
+              {/* Privacy */}
+              <div className="mt-4">
+                <p className="text-sm text-gray-600">
+                  By proceeding with your booking, you agree to our{' '}
+                  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                    Privacy Policy
+                  </a>
+                  {' '}and{' '}
+                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                    Cancellation/Rescheduling Policies
+                  </a>.
+                </p>
               </div>
 
               {/* reCAPTCHA */}
-              <div className="mb-8">
+              <div>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">Security Verification</h3>
                 <div className="flex justify-center">
                   <ReCAPTCHA
@@ -481,20 +533,6 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                 {showValidation && !recaptchaValue && (
                   <p className="text-red-500 text-sm mt-2 text-center">Please complete the reCAPTCHA verification</p>
                 )}
-              </div>
-
-              {/* Privacy */}
-              <div className="mb-8 text-center">
-                <p className="text-sm text-gray-600">
-                  By proceeding with your booking, you agree to our{' '}
-                  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Privacy Policy
-                  </a>
-                  {' '}and{' '}
-                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Cancellation/Rescheduling Policies
-                  </a>.
-                </p>
               </div>
             </div>
           </div>
