@@ -367,7 +367,7 @@ window.location.href = result.checkoutUrl;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name *
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -378,7 +378,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name *
+                      Last Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -389,7 +389,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email *
+                      Email <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -400,7 +400,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone *
+                      Phone <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -438,7 +438,7 @@ window.location.href = result.checkoutUrl;
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          First Name *
+                          First Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -449,7 +449,7 @@ window.location.href = result.checkoutUrl;
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Last Name *
+                          Last Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -460,7 +460,7 @@ window.location.href = result.checkoutUrl;
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Age Group *
+                          Age Group <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={participant.ageGroup}
@@ -511,20 +511,20 @@ window.location.href = result.checkoutUrl;
                     Please agree to receive text message reminders
                   </p>
                 )}
-              </div>
 
-              {/* Privacy */}
-              <div className="mt-4">
-                <p className="text-sm text-gray-600">
-                  By proceeding with your booking, you agree to our{' '}
-                  <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Privacy Policy
-                  </a>
-                  {' '}and{' '}
-                  <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
-                    Cancellation/Rescheduling Policies
-                  </a>.
-                </p>
+                {/* Privacy */}
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600">
+                    By proceeding with your booking, you agree to our{' '}
+                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                      Privacy Policy
+                    </a>
+                    {' '}and{' '}
+                    <a href="/public-class-policies" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:text-accent-dark underline">
+                      Cancellation/Rescheduling Policies
+                    </a>.
+                  </p>
+                </div>
               </div>
 
               {/* reCAPTCHA */}
