@@ -403,8 +403,9 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                 )}
               </div>
 
-              {/* SMS Consent */}
-              <div className="border-t pt-6">
+              {/* Consents */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Consents</h3>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -431,7 +432,7 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
               </div>
 
               {/* Privacy */}
-              <div className="text-center">
+              <div className="mt-4">
                 <p className="text-sm text-gray-600">
                   By proceeding with your booking, you agree to our{' '}
                   <a
