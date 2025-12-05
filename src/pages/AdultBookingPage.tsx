@@ -342,27 +342,27 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
               </div>
 
               {/* Additional Adult Participants (optional) */}
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-navy">Additional Participants (optional)</h3>
-                  <button
-                    onClick={addAdult}
-                    className="text-accent-primary hover:text-accent-dark font-medium transition-colors"
-                  >
-                    + Add Adult
-                  </button>
-                </div>
+              <div className="bg-gray-50 rounded-lg p-5 -mx-2">
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Additional Participants (optional)</h3>
 
                 {additionalAdults.length === 0 && (
-                  <p className="text-sm text-gray-600">
-                    You can add more adult participants if you're booking for a group.
-                  </p>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      You can add more adult participants if you're booking for a group.
+                    </p>
+                    <button
+                      onClick={addAdult}
+                      className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm"
+                    >
+                      + Add Adult
+                    </button>
+                  </div>
                 )}
 
                 {additionalAdults.length > 0 && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 mt-3">
                     {additionalAdults.map((p, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -399,6 +399,12 @@ const formatDisplayTime = (timeStr: string | null | undefined): string => {
                         </div>
                       </div>
                     ))}
+                    <button
+                      onClick={addAdult}
+                      className="text-accent-primary hover:text-accent-dark font-medium transition-colors text-sm"
+                    >
+                      + Add Another Adult
+                    </button>
                   </div>
                 )}
               </div>
