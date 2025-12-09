@@ -35,8 +35,8 @@ export default async function handler(req, res) {
     // Look for classes that ended between 45 mins and 75 mins ago (30 min window)
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000));
-    const fortyFiveMinsAgo = new Date(now.getTime() - (45 * 60 * 1000));
-    const seventyFiveMinsAgo = new Date(now.getTime() - (75 * 60 * 1000));
+const fortyFiveMinsAgo = new Date(now.getTime() - (45 * 60 * 1000));
+const seventyFiveMinsAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000)); // Temporary: 24 hours ago
 
     console.log('[FOLLOWUP-CRON] Looking for classes that ended between', seventyFiveMinsAgo.toISOString(), 'and', fortyFiveMinsAgo.toISOString());
 
