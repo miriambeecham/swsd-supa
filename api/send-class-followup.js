@@ -291,6 +291,7 @@ if (booking.fields['Email Unsubscribed']) {
             try {
               const { Resend } = await import('resend');
               const resend = new Resend(RESEND_API_KEY);
+              const emailSubject = `Thank You for Attending ${className}!`;
 
             const { data, error } = await resend.emails.send({
   from: FROM_EMAIL,
