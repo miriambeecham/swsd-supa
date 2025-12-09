@@ -10,7 +10,7 @@
       "path": "/api/zoho-sync-final",
       "schedule": "*/10 * * * *"
     },
-      {
+    {
       "path": "/api/send-morning-email-reminders",
       "schedule": "0 16 * * *"
     },
@@ -20,6 +20,10 @@
     },
     {
       "path": "/api/send-preclass-sms-reminders",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/send-class-followup",
       "schedule": "0 * * * *"
     }
   ]
