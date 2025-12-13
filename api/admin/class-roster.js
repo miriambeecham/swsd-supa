@@ -202,6 +202,41 @@ export default async function handler(req, res) {
       return (a.firstName || '').localeCompare(b.firstName || '');
     });
 
+    // Fetch survey responses for this class schedule
+    let surveyResponses = [];
+    try {
+      const surveyFilter = `{Class Schedule}='${classScheduleId}'`;
+      const surveyResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Survey%20Responses?filterByFormula=${encodeURIComponent(surveyFilter)}`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      
+      if (surveyResponse.ok) {
+        const surveyData = await surveyResponse.json();
+        surveyResponses = (surveyData.records || []).map(record => ({
+          id: record.id,
+          submissionDate: record.fields['Submission Date'] || record.createdTime,
+          firstName: record.fields['First Name'],
+          lastName: record.fields['Last Name'],
+          email: record.fields['Email'],
+          phone: record.fields['Phone'],
+          overallExperience: record.fields['Q1: Overall Experience'],
+          confidenceLevel: record.fields['Q2: Confidence Level'],
+          mostValuable: record.fields['Q3: Most Valuable Part'],
+          areasForImprovement: record.fields['Q4: Areas for Improvement'],
+          wouldRecommend: record.fields['Q5: Would Recommend'],
+          optInCommunication: record.fields['Q6: Opt-in to Future Communication'],
+          willingToShare: record.fields['Q7: Willing to Share Experience'],
+          writtenTestimonial: record.fields['Q7: Written Testimonial'],
+          reviewPlatformClicked: record.fields['Q7: Review Platform Clicked'],
+          preferredContactMethod: record.fields['Preferred Contact Method']
+        }));
+      }
+    } catch (surveyError) {
+      console.error('Error fetching survey responses:', surveyError);
+      // Continue without survey data - non-critical
+    }
+
     // Prepare response
     const response = {
       classInfo: {
@@ -215,6 +250,7 @@ export default async function handler(req, res) {
         bookedSpots: schedule.fields['Booked Spots']
       },
       roster,
+      surveyResponses,
       totalParticipants: roster.length
     };
 
