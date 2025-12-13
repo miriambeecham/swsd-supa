@@ -1,6 +1,6 @@
 // /api/twilio-webhook.js
-// ✅ ENHANCED: Handles both incoming SMS replies AND delivery status updates
-// Incoming messages are logged to Airtable and optionally forwarded to your phone
+// ✅ UPDATED: Added Preclass SMS status tracking, removed Followup SMS
+// Handles both incoming SMS replies AND delivery status updates
 
 export default async function handler(req, res) {
   // Only accept POST requests
@@ -20,15 +20,6 @@ export default async function handler(req, res) {
       console.error('[TWILIO-WEBHOOK] Airtable not configured');
       return res.status(500).json({ error: 'Server configuration error' });
     }
-
-    // Optionally verify webhook signature (recommended for production)
-    // Uncomment this in production:
-    // const twilio = require('twilio');
-    // const signature = req.headers['x-twilio-signature'];
-    // const url = `https://${req.headers.host}${req.url}`;
-    // if (!twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, url, req.body)) {
-    //   return res.status(403).json({ error: 'Invalid signature' });
-    // }
 
     // Extract data from Twilio webhook
     const {
@@ -72,8 +63,6 @@ export default async function handler(req, res) {
         // Find ALL bookings for this phone number with class date >= today
         let bookingsToUpdate = [];
         try {
-          // We need to fetch bookings and then filter by class schedule date
-          // First, get all bookings for this phone number
           const bookingsResponse = await fetch(
             `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({Contact Phone}, '-', ''), '(', ''), ')', '')='${cleanFrom}', NOT({Status}='Cancelled'))`,
             {
@@ -87,12 +76,10 @@ export default async function handler(req, res) {
             const bookingsData = await bookingsResponse.json();
             const allBookings = bookingsData.records || [];
             
-            // For each booking, check if the class date is today or in the future
             for (const booking of allBookings) {
               const classScheduleId = booking.fields['Class Schedule']?.[0];
               if (!classScheduleId) continue;
 
-              // Fetch the class schedule to get the date
               try {
                 const scheduleResponse = await fetch(
                   `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${classScheduleId}`,
@@ -107,7 +94,6 @@ export default async function handler(req, res) {
                   const scheduleData = await scheduleResponse.json();
                   const classDate = scheduleData.fields?.Date;
                   
-                  // Only include if class date is today or in the future
                   if (classDate && classDate >= today) {
                     bookingsToUpdate.push(booking);
                     console.log(`[TWILIO-WEBHOOK] Will opt-out booking ${booking.id} (class date: ${classDate})`);
@@ -183,7 +169,6 @@ export default async function handler(req, res) {
       // Try to find the booking by phone number (for regular messages)
       let booking = null;
       try {
-        // Search for booking with this phone number
         const bookingsResponse = await fetch(
           `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=SUBSTITUTE(SUBSTITUTE(SUBSTITUTE({Contact Phone}, '-', ''), '(', ''), ')', '')='${cleanFrom}'`,
           {
@@ -196,7 +181,6 @@ export default async function handler(req, res) {
         if (bookingsResponse.ok) {
           const bookingsData = await bookingsResponse.json();
           if (bookingsData.records && bookingsData.records.length > 0) {
-            // Get most recent booking
             booking = bookingsData.records[0];
             console.log(`[TWILIO-WEBHOOK] Found booking ${booking.id} for phone ${From}`);
           }
@@ -205,9 +189,8 @@ export default async function handler(req, res) {
         console.error('[TWILIO-WEBHOOK] Error finding booking:', err);
       }
 
-      // Log incoming message to Airtable (create SMS Replies table or use notes)
+      // Log incoming message to booking notes
       try {
-        // Option 1: Add to booking notes (if booking found)
         if (booking) {
           const currentNotes = booking.fields['Validation Notes'] || '';
           const timestamp = new Date().toLocaleString('en-US', { 
@@ -235,38 +218,11 @@ export default async function handler(req, res) {
           
           console.log(`[TWILIO-WEBHOOK] ✅ Logged SMS reply to booking ${booking.id}`);
         }
-
-        // Option 2: Also log to a separate SMS Replies table (if you create one)
-        // This is better for keeping a complete conversation history
-        /*
-        await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/SMS%20Replies`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fields: {
-                'Phone Number': From,
-                'Message': Body,
-                'Booking': booking ? [booking.id] : [],
-                'Received At': new Date().toISOString(),
-                'Message SID': MessageSid || SmsSid
-              }
-            })
-          }
-        );
-        */
-
       } catch (err) {
         console.error('[TWILIO-WEBHOOK] Error logging message:', err);
       }
 
-      // ========================================
-      // FORWARD SMS TO YOUR PERSONAL PHONE (OPTIONAL)
-      // ========================================
+      // Forward SMS to personal phone (optional)
       if (FORWARD_SMS_TO && TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
         try {
           const twilio = await import('twilio');
@@ -280,7 +236,6 @@ export default async function handler(req, res) {
             ? `(${booking.fields['Class Schedule']})` 
             : '';
 
-          // Forward with context
           const forwardMessage = `📱 SMS Reply from ${contactName} ${className}\nPhone: ${From}\n\n"${Body}"`;
 
           await client.messages.create({
@@ -294,27 +249,6 @@ export default async function handler(req, res) {
           console.error('[TWILIO-WEBHOOK] ❌ Error forwarding SMS:', err);
         }
       }
-
-      // Send auto-reply (optional)
-      // You can customize this to send different replies based on message content
-      /*
-      if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
-        try {
-          const twilio = await import('twilio');
-          const client = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
-          await client.messages.create({
-            body: "Thanks for your message! Jay will get back to you shortly. For urgent matters, call (925) 532-9953.",
-            from: TWILIO_PHONE_NUMBER,
-            to: From
-          });
-
-          console.log(`[TWILIO-WEBHOOK] ✅ Sent auto-reply to ${From}`);
-        } catch (err) {
-          console.error('[TWILIO-WEBHOOK] ❌ Error sending auto-reply:', err);
-        }
-      }
-      */
 
       return res.status(200).json({
         success: true,
@@ -338,9 +272,9 @@ export default async function handler(req, res) {
       console.error(`[TWILIO-WEBHOOK] ❌ Error ${ErrorCode}: ${ErrorMessage}`);
     }
 
-    // Find the booking with this SMS ID
+    // ✅ UPDATED: Search for both Reminder SMS and Preclass SMS
     const bookingsResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=OR({Reminder SMS ID}='${messageSid}',{Confirmation SMS ID}='${messageSid}',{Followup SMS ID}='${messageSid}')`,
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=OR({Reminder SMS ID}='${messageSid}',{Preclass SMS ID}='${messageSid}')`,
       {
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`
@@ -363,16 +297,23 @@ export default async function handler(req, res) {
 
     const booking = bookings[0];
     
-    // Determine which SMS type this is (confirmation, reminder, or followup)
-    const isConfirmationSms = booking.fields['Confirmation SMS ID'] === messageSid;
+    // ✅ UPDATED: Determine which SMS type (Reminder = Afternoon, Preclass = morning-of)
     const isReminderSms = booking.fields['Reminder SMS ID'] === messageSid;
-    const isFollowupSms = booking.fields['Followup SMS ID'] === messageSid;
+    const isPreclassSms = booking.fields['Preclass SMS ID'] === messageSid;
 
-    const statusField = isConfirmationSms 
-      ? 'Confirmation SMS Status'
-      : isReminderSms 
-      ? 'Reminder SMS Status'
-      : 'Followup SMS Status';
+    let statusField;
+    let deliveredField;
+
+    if (isReminderSms) {
+      statusField = 'Reminder SMS Status';
+      deliveredField = 'Reminder SMS Delivered At';
+    } else if (isPreclassSms) {
+      statusField = 'Preclass SMS Status';
+      deliveredField = 'Preclass SMS Delivered At';
+    } else {
+      console.log(`[TWILIO-WEBHOOK] ⚠️ Could not determine SMS type for SID: ${messageSid}`);
+      return res.status(200).json({ message: 'Unknown SMS type' });
+    }
 
     // Map Twilio statuses to our simplified statuses
     const statusMap = {
@@ -393,12 +334,6 @@ export default async function handler(req, res) {
 
     // Add delivered timestamp if delivered
     if (status?.toLowerCase() === 'delivered') {
-      const deliveredField = isConfirmationSms
-        ? 'Confirmation SMS Delivered At'
-        : isReminderSms
-        ? 'Reminder SMS Delivered At'
-        : 'Followup SMS Delivered At';
-      
       fieldsToUpdate[deliveredField] = new Date().toISOString();
     }
 
@@ -428,6 +363,7 @@ export default async function handler(req, res) {
       success: true,
       message: 'SMS status updated successfully',
       bookingId: booking.id,
+      smsType: isReminderSms ? 'Afternoon Reminder' : 'Pre-class Reminder',
       status: mappedStatus
     });
 
