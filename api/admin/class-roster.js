@@ -205,7 +205,8 @@ export default async function handler(req, res) {
     // Fetch survey responses for this class schedule
     let surveyResponses = [];
     try {
-      const surveyFilter = `{Class Schedule}='${classScheduleId}'`;
+      // Class Schedule is a linked record field, so we need to use FIND with ARRAYJOIN
+      const surveyFilter = `FIND('${classScheduleId}', ARRAYJOIN({Class Schedule})) > 0`;
       const surveyResponse = await fetch(
         `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Survey%20Responses?filterByFormula=${encodeURIComponent(surveyFilter)}`,
         { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
@@ -213,6 +214,7 @@ export default async function handler(req, res) {
       
       if (surveyResponse.ok) {
         const surveyData = await surveyResponse.json();
+        console.log(`[CLASS-ROSTER] Found ${surveyData.records?.length || 0} survey responses for class ${classScheduleId}`);
         surveyResponses = (surveyData.records || []).map(record => ({
           id: record.id,
           submissionDate: record.fields['Submission Date'] || record.createdTime,
@@ -233,9 +235,11 @@ export default async function handler(req, res) {
         }));
       }
     } catch (surveyError) {
-      console.error('Error fetching survey responses:', surveyError);
+      console.error('[CLASS-ROSTER] Error fetching survey responses:', surveyError);
       // Continue without survey data - non-critical
     }
+
+    console.log(`[CLASS-ROSTER] Returning ${roster.length} participants and ${surveyResponses.length} surveys`);
 
     // Prepare response
     const response = {
