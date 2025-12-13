@@ -1,6 +1,6 @@
 // /src/pages/AdminAttendancePage.tsx
-// ✅ UPDATED: Changed all "OpenedAt" references to "ClickedAt"
-import React, { useState, useEffect } from 'react';
+// ✅ UPDATED: Added SMS consent indicator and communication schedule
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { 
@@ -18,7 +18,9 @@ import {
   Phone,
   Copy,
   Check,
-  Upload
+  Upload,
+  MessageSquare,
+  Info
 } from 'lucide-react';
 
 // Email Status Badge Component
@@ -65,6 +67,19 @@ const formatPacificTime = (isoTimestamp?: string): string | null => {
   });
 };
 
+// Helper to format schedule dates
+const formatScheduleDateTime = (date: Date): string => {
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
 interface ClassSchedule {
   id: string;
   className: string;
@@ -80,7 +95,8 @@ interface Participant {
   attendance: string;
   contactEmail: string;
   contactPhone: string;
-  smsOptedOutDate?: string; 
+  smsOptedOutDate?: string;
+  smsConsentDate?: string;
   bookingId: string;
   bookingNumber?: number;
   isPrimaryContact: boolean;
@@ -88,15 +104,15 @@ interface Participant {
   confirmationEmailStatus?: string;
   confirmationEmailSentAt?: string;
   confirmationEmailDeliveredAt?: string;
-  confirmationEmailClickedAt?: string;  // ✅ CHANGED from OpenedAt
+  confirmationEmailClickedAt?: string;
   reminderEmailStatus?: string;
   reminderEmailSentAt?: string;
   reminderEmailDeliveredAt?: string;
-  reminderEmailClickedAt?: string;  // ✅ CHANGED from OpenedAt
+  reminderEmailClickedAt?: string;
   followupEmailStatus?: string;
   followupEmailSentAt?: string;
   followupEmailDeliveredAt?: string;
-  followupEmailClickedAt?: string;  // ✅ CHANGED from OpenedAt
+  followupEmailClickedAt?: string;
 }
 
 interface ClassInfo {
@@ -129,6 +145,38 @@ const AdminAttendancePage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Calculate communication schedule based on class date
+  const communicationSchedule = useMemo(() => {
+    if (!rosterData?.classInfo?.date) return null;
+
+    // Parse the class date in Pacific time
+    const classDateStr = rosterData.classInfo.date;
+    const [year, month, day] = classDateStr.split('-').map(Number);
+    
+    // Create dates in PT by using specific hour offsets
+    // Note: These times are approximate - the actual cron jobs run at these PT times
+    const now = new Date();
+    
+    // Day before class at 10am PT for reminder email
+    const reminderEmail = new Date(year, month - 1, day - 1, 10, 0, 0);
+    
+    // Day before class at 2pm PT for afternoon SMS
+    const afternoonSms = new Date(year, month - 1, day - 1, 14, 0, 0);
+    
+    // Morning of class at 8am PT for pre-class SMS
+    const preclassSms = new Date(year, month - 1, day, 8, 0, 0);
+    
+    // Day after class at 10am PT for follow-up email
+    const followupEmail = new Date(year, month - 1, day + 1, 10, 0, 0);
+
+    return {
+      reminderEmail: { date: reminderEmail, isPast: reminderEmail < now },
+      afternoonSms: { date: afternoonSms, isPast: afternoonSms < now },
+      preclassSms: { date: preclassSms, isPast: preclassSms < now },
+      followupEmail: { date: followupEmail, isPast: followupEmail < now }
+    };
+  }, [rosterData?.classInfo?.date]);
 
 
   // Check authentication
@@ -863,11 +911,11 @@ const AdminAttendancePage = () => {
                                     <span className="truncate max-w-xs">{participant.contactEmail}</span>
                                     {navigator.clipboard && (
                                       <button
-                                        onClick={() => copyToClipboard(participant.contactEmail, 'email')}
+                                        onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
                                         className="text-gray-400 hover:text-gray-600 transition-colors"
                                         title="Copy email"
                                       >
-                                        {copiedField === 'email' ? (
+                                        {copiedField === `email-${participant.id}` ? (
                                           <Check className="w-4 h-4 text-green-600" />
                                         ) : (
                                           <Copy className="w-4 h-4" />
@@ -876,22 +924,32 @@ const AdminAttendancePage = () => {
                                     )}
                                   </div>
                                 )}
-                            {participant.contactPhone && (
-  <div className="flex items-center gap-2 text-sm text-gray-600">
-    <Phone className="w-4 h-4" />
-    <span>{participant.contactPhone}</span>
-    {participant.smsOptedOutDate && (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700" title={`Opted out ${formatPacificTime(participant.smsOptedOutDate)}`}>
-        🚫 SMS Opted Out
-      </span>
-    )}
+                                {participant.contactPhone && (
+                                  <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                                    <Phone className="w-4 h-4" />
+                                    <span>{participant.contactPhone}</span>
+                                    {participant.smsOptedOutDate ? (
+                                      <span 
+                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700" 
+                                        title={`Opted out ${formatPacificTime(participant.smsOptedOutDate)}`}
+                                      >
+                                        🚫 SMS Opted Out
+                                      </span>
+                                    ) : !participant.smsConsentDate ? (
+                                      <span 
+                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700" 
+                                        title="Legacy booking - no SMS consent recorded. Won't receive automated SMS."
+                                      >
+                                        ⚠️ No SMS Consent
+                                      </span>
+                                    ) : null}
                                     {navigator.clipboard && (
                                       <button
-                                        onClick={() => copyToClipboard(participant.contactPhone, 'phone')}
+                                        onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
                                         className="text-gray-400 hover:text-gray-600 transition-colors"
                                         title="Copy phone"
                                       >
-                                        {copiedField === 'phone' ? (
+                                        {copiedField === `phone-${participant.id}` ? (
                                           <Check className="w-4 h-4 text-green-600" />
                                         ) : (
                                           <Copy className="w-4 h-4" />
@@ -912,7 +970,7 @@ const AdminAttendancePage = () => {
                           <td className="px-4 py-4">
                             {participant.isPrimaryContact ? (
                               <div className="space-y-2">
-                                {/* ✅ CONFIRMATION EMAIL - Updated to use ClickedAt */}
+                                {/* CONFIRMATION EMAIL */}
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-gray-500 min-w-[80px]">Confirmation:</span>
@@ -930,7 +988,7 @@ const AdminAttendancePage = () => {
                                   )}
                                 </div>
 
-                                {/* ✅ REMINDER EMAIL - Updated to use ClickedAt */}
+                                {/* REMINDER EMAIL */}
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-gray-500 min-w-[80px]">Reminder:</span>
@@ -948,7 +1006,7 @@ const AdminAttendancePage = () => {
                                   )}
                                 </div>
 
-                                {/* ✅ FOLLOW-UP EMAIL - Updated to use ClickedAt */}
+                                {/* FOLLOW-UP EMAIL */}
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-gray-500 min-w-[90px]">Follow-up:</span>
@@ -1008,6 +1066,71 @@ const AdminAttendancePage = () => {
                 </div>
               )}
             </div>
+
+            {/* Communication Schedule Reference */}
+            {communicationSchedule && (
+              <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Info className="w-5 h-5 text-accent-primary" />
+                  <h3 className="text-lg font-semibold text-navy">Scheduled Communications for This Class</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                  {/* Emails */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-700 flex items-center gap-2">
+                      <Mail className="w-4 h-4" /> Emails
+                    </h4>
+                    <div className="space-y-2 pl-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Confirmation Email:</span>
+                        <span className="text-gray-500 italic">Sent immediately on booking</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Reminder Email:</span>
+                        <span className={communicationSchedule.reminderEmail.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
+                          {communicationSchedule.reminderEmail.isPast ? '✓ ' : ''}
+                          {formatScheduleDateTime(communicationSchedule.reminderEmail.date)} PT
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Follow-up Email:</span>
+                        <span className={communicationSchedule.followupEmail.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
+                          {communicationSchedule.followupEmail.isPast ? '✓ ' : ''}
+                          {formatScheduleDateTime(communicationSchedule.followupEmail.date)} PT
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SMS */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-700 flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" /> SMS (for those with consent)
+                    </h4>
+                    <div className="space-y-2 pl-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Afternoon Reminder:</span>
+                        <span className={communicationSchedule.afternoonSms.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
+                          {communicationSchedule.afternoonSms.isPast ? '✓ ' : ''}
+                          {formatScheduleDateTime(communicationSchedule.afternoonSms.date)} PT
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Pre-class Reminder:</span>
+                        <span className={communicationSchedule.preclassSms.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
+                          {communicationSchedule.preclassSms.isPast ? '✓ ' : ''}
+                          {formatScheduleDateTime(communicationSchedule.preclassSms.date)} PT
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 pl-6">
+                      SMS only sent to participants with consent and who haven't opted out.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
