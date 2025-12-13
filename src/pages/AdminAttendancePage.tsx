@@ -506,14 +506,11 @@ const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate
       
       if (displayStatus === 'Delivered') {
         statusColor = 'text-green-600';
-        icon = '✅';
+        icon = '🟢';
       } else if (displayStatus === 'Clicked' || clickedAt) {
         statusColor = 'text-blue-600';
-        icon = '🖱️';
-      } else if (displayStatus === 'Bounced') {
-        statusColor = 'text-red-600';
-        icon = '⚠️';
-      } else if (displayStatus === 'Failed' || displayStatus === 'Undelivered') {
+        icon = '✅';
+      } else if (displayStatus === 'Bounced' || displayStatus === 'Failed' || displayStatus === 'Undelivered') {
         statusColor = 'text-red-600';
         icon = '❌';
       }
@@ -683,10 +680,12 @@ const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate
       
       <div className="border-t border-gray-200 px-4 py-3 bg-gray-50">
         <div className="flex flex-wrap gap-4 text-xs text-gray-600">
-          <span><span className="text-green-600">✅</span> Delivered</span>
-          <span><span className="text-blue-600">🖱️</span> Clicked</span>
-          <span><span className="text-red-600">⚠️</span> Bounced/Failed</span>
-          <span><span className="italic">Italic</span> = Scheduled (future)</span>
+          <span>🟢 Delivered</span>
+          <span>✅ Clicked</span>
+          <span>❌ Failed</span>
+          <span><span className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">⚠️ None</span> No SMS consent</span>
+          <span><span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700">🚫</span> SMS opted out</span>
+          <span><span className="italic">Italic</span> = Scheduled</span>
           <span><span className="italic">?</span> = Conditional</span>
         </div>
       </div>
