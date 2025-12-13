@@ -1,5 +1,5 @@
 // /src/pages/AdminAttendancePage.tsx
-// ✅ UPDATED: Added SMS consent indicator and communication schedule
+// ✅ REDESIGNED: Summary cards + tabbed interface (Roster & Attendance | Communications)
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -20,65 +20,13 @@ import {
   Check,
   Upload,
   MessageSquare,
-  Info
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 
-// Email Status Badge Component
-const EmailStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
-  if (!status || status === '') {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-        📭 No email sent
-      </span>
-    );
-  }
-  
-  const statusConfig: Record<string, { bg: string; text: string; icon: string; label: string }> = {
-    'Sent': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '📧', label: 'Sent (pending)' },
-    'Delivered': { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Delivered' },
-    'Opened': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '👁️', label: 'Opened' },
-    'Clicked': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🖱️', label: 'Clicked' },
-    'Bounced': { bg: 'bg-red-100', text: 'text-red-800', icon: '⚠️', label: 'Bounced' },
-    'Spam': { bg: 'bg-orange-100', text: 'text-orange-800', icon: '⚠️', label: 'Marked as spam' },
-    'Delayed': { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '⏳', label: 'Delayed' }
-  };
-  
-  const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-600', icon: '❓', label: status };
-  
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-      {config.icon} {config.label}
-    </span>
-  );
-};
-
-// Helper function to format Pacific Time
-const formatPacificTime = (isoTimestamp?: string): string | null => {
-  if (!isoTimestamp) return null;
-  
-  return new Date(isoTimestamp).toLocaleString('en-US', {
-    timeZone: 'America/Los_Angeles',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-};
-
-// Helper to format schedule dates
-const formatScheduleDateTime = (date: Date): string => {
-  return date.toLocaleString('en-US', {
-    timeZone: 'America/Los_Angeles',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-};
+// ============================================
+// TYPES
+// ============================================
 
 interface ClassSchedule {
   id: string;
@@ -101,6 +49,7 @@ interface Participant {
   bookingNumber?: number;
   isPrimaryContact: boolean;
   bookingDate?: string;
+  // Email tracking
   confirmationEmailStatus?: string;
   confirmationEmailSentAt?: string;
   confirmationEmailDeliveredAt?: string;
@@ -111,8 +60,14 @@ interface Participant {
   reminderEmailClickedAt?: string;
   followupEmailStatus?: string;
   followupEmailSentAt?: string;
-  followupEmailDeliveredAt?: string;
   followupEmailClickedAt?: string;
+  // SMS tracking
+  reminderSmsStatus?: string;
+  reminderSmsSentAt?: string;
+  reminderSmsDeliveredAt?: string;
+  preclassSmsStatus?: string;
+  preclassSmsSentAt?: string;
+  preclassSmsDeliveredAt?: string;
 }
 
 interface ClassInfo {
@@ -132,6 +87,640 @@ interface RosterData {
   totalParticipants: number;
 }
 
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+const formatPacificTime = (isoTimestamp?: string): string | null => {
+  if (!isoTimestamp) return null;
+  return new Date(isoTimestamp).toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const formatPacificTimeShort = (isoTimestamp?: string): string | null => {
+  if (!isoTimestamp) return null;
+  return new Date(isoTimestamp).toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const formatScheduleDateTime = (date: Date): string => {
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString + 'T12:00:00').toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
+const formatTime = (timeString: string) => {
+  if (!timeString) return '';
+  try {
+    return new Date(timeString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Los_Angeles'
+    });
+  } catch {
+    return timeString;
+  }
+};
+
+// ============================================
+// SUMMARY CARDS COMPONENT
+// ============================================
+
+interface SummaryCardsProps {
+  roster: Participant[];
+  attendanceState: Record<string, string>;
+}
+
+const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState }) => {
+  // Get unique bookings (primary contacts only)
+  const primaryContacts = roster.filter(p => p.isPrimaryContact);
+  
+  // Attendance counts
+  const presentCount = Object.values(attendanceState).filter(s => s === 'Present').length;
+  const absentCount = Object.values(attendanceState).filter(s => s === 'Absent').length;
+  const notRecordedCount = Object.values(attendanceState).filter(s => s === 'Not Recorded' || !s).length;
+  
+  // Email counts (from primary contacts)
+  const emailDelivered = primaryContacts.filter(p => 
+    p.reminderEmailStatus === 'Delivered' || 
+    p.reminderEmailStatus === 'Opened' || 
+    p.reminderEmailStatus === 'Clicked'
+  ).length;
+  const emailClicked = primaryContacts.filter(p => p.reminderEmailClickedAt).length;
+  const emailBounced = primaryContacts.filter(p => 
+    p.confirmationEmailStatus === 'Bounced' || 
+    p.reminderEmailStatus === 'Bounced'
+  ).length;
+  const emailPending = primaryContacts.filter(p => 
+    !p.reminderEmailStatus || p.reminderEmailStatus === 'Sent'
+  ).length;
+  
+  // SMS counts (from primary contacts)
+  const smsWithConsent = primaryContacts.filter(p => p.smsConsentDate && !p.smsOptedOutDate).length;
+  const smsNoConsent = primaryContacts.filter(p => !p.smsConsentDate && !p.smsOptedOutDate).length;
+  const smsOptedOut = primaryContacts.filter(p => p.smsOptedOutDate).length;
+  const smsSent = primaryContacts.filter(p => p.reminderSmsStatus || p.preclassSmsStatus).length;
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Participants Card */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center gap-2 text-gray-600 mb-2">
+          <Users className="w-5 h-5 text-accent-primary" />
+          <span className="text-sm font-medium">Participants</span>
+        </div>
+        <div className="text-3xl font-bold text-navy">{roster.length}</div>
+        <div className="text-xs text-gray-500 mt-1">
+          {primaryContacts.length} booking{primaryContacts.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {/* Attendance Card */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center gap-2 text-gray-600 mb-2">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <span className="text-sm font-medium">Attendance</span>
+        </div>
+        <div className="text-3xl font-bold text-navy">{presentCount}</div>
+        <div className="text-xs text-gray-500 mt-1 space-x-2">
+          <span className="text-red-600">{absentCount} absent</span>
+          <span>·</span>
+          <span>{notRecordedCount} pending</span>
+        </div>
+      </div>
+
+      {/* Emails Card */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center gap-2 text-gray-600 mb-2">
+          <Mail className="w-5 h-5 text-blue-600" />
+          <span className="text-sm font-medium">Reminder Emails</span>
+        </div>
+        <div className="text-3xl font-bold text-navy">{emailDelivered}</div>
+        <div className="text-xs text-gray-500 mt-1 space-x-2">
+          <span className="text-blue-600">{emailClicked} clicked</span>
+          {emailBounced > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-red-600">{emailBounced} bounced</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* SMS Card */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center gap-2 text-gray-600 mb-2">
+          <MessageSquare className="w-5 h-5 text-purple-600" />
+          <span className="text-sm font-medium">SMS</span>
+        </div>
+        <div className="text-3xl font-bold text-navy">{smsWithConsent}</div>
+        <div className="text-xs text-gray-500 mt-1 space-x-2">
+          <span>{smsSent} sent</span>
+          {smsNoConsent > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-yellow-600">{smsNoConsent} no consent</span>
+            </>
+          )}
+          {smsOptedOut > 0 && (
+            <>
+              <span>·</span>
+              <span className="text-red-600">{smsOptedOut} opted out</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// ROSTER TAB COMPONENT
+// ============================================
+
+interface RosterTabProps {
+  roster: Participant[];
+  attendanceState: Record<string, string>;
+  onAttendanceChange: (participantId: string, value: string) => void;
+  copiedField: string | null;
+  onCopy: (text: string, fieldId: string) => void;
+}
+
+const RosterTab: React.FC<RosterTabProps> = ({ 
+  roster, 
+  attendanceState, 
+  onAttendanceChange,
+  copiedField,
+  onCopy
+}) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Age Group
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Attendance
+              </th>
+            </tr>
+          </thead>
+          
+          <tbody className="bg-white">
+            {roster.map((participant, index) => {
+              const currentStatus = attendanceState[participant.id] || 'Not Recorded';
+              const rowColor = 
+                currentStatus === 'Absent' ? 'bg-red-50' :
+                currentStatus === 'Present' ? 'bg-green-50' :
+                '';
+
+              const isNewBookingGroup = index === 0 || 
+                roster[index - 1].bookingId !== participant.bookingId;
+
+              return (
+                <tr 
+                  key={participant.id} 
+                  className={`
+                    ${rowColor} 
+                    ${isNewBookingGroup ? 'border-t-4 border-gray-600' : 'border-t border-gray-200'}
+                  `}
+                >
+                  {/* Name column */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {participant.isPrimaryContact && (
+                        <>
+                          <span className="px-2 py-1 bg-accent-primary text-white text-xs font-medium rounded">
+                            Primary
+                          </span>
+                          {isNewBookingGroup && participant.bookingNumber && (
+                            <span className="text-xs font-medium text-gray-500">
+                              #{participant.bookingNumber}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      
+                      {!participant.isPrimaryContact && (
+                        <span className="text-gray-400 text-sm mr-2">└─</span>
+                      )}
+                      
+                      <div className="text-sm font-medium text-gray-900">
+                        {participant.firstName} {participant.lastName}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Age Group column */}
+                  <td className="px-4 py-3">
+                    <span className="text-sm text-gray-600">
+                      {participant.ageGroup}
+                    </span>
+                  </td>
+
+                  {/* Contact column */}
+                  <td className="px-4 py-3">
+                    {participant.isPrimaryContact ? (
+                      <div className="space-y-1">
+                        {participant.contactEmail && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate max-w-[180px]">{participant.contactEmail}</span>
+                            <button
+                              onClick={() => onCopy(participant.contactEmail, `email-${participant.id}`)}
+                              className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                              title="Copy email"
+                            >
+                              {copiedField === `email-${participant.id}` ? (
+                                <Check className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                        {participant.contactPhone && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                            <Phone className="w-4 h-4 flex-shrink-0" />
+                            <span>{participant.contactPhone}</span>
+                            {participant.smsOptedOutDate ? (
+                              <span 
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700" 
+                                title="Opted out of SMS"
+                              >
+                                🚫
+                              </span>
+                            ) : !participant.smsConsentDate ? (
+                              <span 
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700" 
+                                title="No SMS consent"
+                              >
+                                ⚠️
+                              </span>
+                            ) : null}
+                            <button
+                              onClick={() => onCopy(participant.contactPhone, `phone-${participant.id}`)}
+                              className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                              title="Copy phone"
+                            >
+                              {copiedField === `phone-${participant.id}` ? (
+                                <Check className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">—</div>
+                    )}
+                  </td>
+
+                  {/* Attendance column */}
+                  <td className="px-4 py-3 text-center">
+                    <select
+                      value={currentStatus}
+                      onChange={(e) => onAttendanceChange(participant.id, e.target.value)}
+                      className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
+                        currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
+                        currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
+                        'text-gray-600 bg-gray-50 border-gray-300'
+                      }`}
+                    >
+                      <option value="Not Recorded">Not Recorded</option>
+                      <option value="Present">Present</option>
+                      <option value="Absent">Absent</option>
+                    </select>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {roster.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No participants registered for this class yet
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// COMMUNICATIONS TAB COMPONENT
+// ============================================
+
+interface CommunicationsTabProps {
+  roster: Participant[];
+  classDate: string;
+  classStartTime: string;
+}
+
+const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate, classStartTime }) => {
+  // Get unique bookings (primary contacts only)
+  const primaryContacts = roster.filter(p => p.isPrimaryContact);
+  
+  // Calculate scheduled times based on class date
+  const scheduledTimes = useMemo(() => {
+    const [year, month, day] = classDate.split('-').map(Number);
+    const now = new Date();
+    
+    // Day before class at 10am PT for reminder email
+    const reminderEmail = new Date(year, month - 1, day - 1, 10, 0, 0);
+    // Day before class at 3pm PT for afternoon SMS
+    const afternoonSms = new Date(year, month - 1, day - 1, 15, 0, 0);
+    // Morning of class - 2 hours before start for pre-class SMS
+    // For simplicity, we'll say 8am PT
+    const preclassSms = new Date(year, month - 1, day, 8, 0, 0);
+    // Day after class at 10am PT for follow-up email
+    const followupEmail = new Date(year, month - 1, day + 1, 10, 0, 0);
+
+    return {
+      reminderEmail: { date: reminderEmail, isPast: reminderEmail < now },
+      afternoonSms: { date: afternoonSms, isPast: afternoonSms < now },
+      preclassSms: { date: preclassSms, isPast: preclassSms < now },
+      followupEmail: { date: followupEmail, isPast: followupEmail < now }
+    };
+  }, [classDate]);
+
+  // Helper to render communication cell
+  const renderCommCell = (
+    status: string | undefined,
+    sentAt: string | undefined,
+    deliveredAt: string | undefined,
+    clickedAt: string | undefined,
+    scheduledDate: Date,
+    isPast: boolean,
+    isConditional: boolean = false,
+    conditionMet: boolean = true
+  ) => {
+    // If no consent or opted out for SMS
+    if (status === 'no-consent') {
+      return <span className="text-yellow-600 text-xs">⚠️ No Consent</span>;
+    }
+    if (status === 'opted-out') {
+      return <span className="text-red-600 text-xs">🚫 Opted Out</span>;
+    }
+    
+    // If already sent, show status
+    if (sentAt || status) {
+      const displayStatus = status || 'Sent';
+      const displayTime = clickedAt || deliveredAt || sentAt;
+      
+      let statusColor = 'text-gray-600';
+      let icon = '📧';
+      
+      if (displayStatus === 'Delivered') {
+        statusColor = 'text-green-600';
+        icon = '✅';
+      } else if (displayStatus === 'Clicked' || clickedAt) {
+        statusColor = 'text-blue-600';
+        icon = '🖱️';
+      } else if (displayStatus === 'Bounced') {
+        statusColor = 'text-red-600';
+        icon = '⚠️';
+      } else if (displayStatus === 'Failed' || displayStatus === 'Undelivered') {
+        statusColor = 'text-red-600';
+        icon = '❌';
+      }
+      
+      return (
+        <div className={`text-xs ${statusColor}`}>
+          <span>{icon} {formatPacificTimeShort(displayTime)}</span>
+        </div>
+      );
+    }
+    
+    // Future - show scheduled time
+    if (!isPast) {
+      return (
+        <span className="text-xs text-gray-500 italic">
+          {formatScheduleDateTime(scheduledDate)}{isConditional ? '?' : ''}
+        </span>
+      );
+    }
+    
+    // Past but not sent (conditional SMS that wasn't needed)
+    if (isConditional && !conditionMet) {
+      return <span className="text-xs text-gray-400">—</span>;
+    }
+    
+    return <span className="text-xs text-gray-400">—</span>;
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Booking
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Confirmation
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reminder Email
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Follow-up Email
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Afternoon SMS
+              </th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Pre-class SMS
+              </th>
+            </tr>
+          </thead>
+          
+          <tbody className="bg-white divide-y divide-gray-200">
+            {primaryContacts.map((participant) => {
+              // Determine SMS eligibility
+              const hasSmsConsent = !!participant.smsConsentDate;
+              const hasOptedOut = !!participant.smsOptedOutDate;
+              const canReceiveSms = hasSmsConsent && !hasOptedOut;
+              
+              // Afternoon SMS is conditional on NOT clicking reminder email
+              const hasClickedReminderEmail = !!participant.reminderEmailClickedAt;
+              
+              return (
+                <tr key={participant.id}>
+                  {/* Booking */}
+                  <td className="px-3 py-3">
+                    <div className="text-sm font-medium text-gray-900">
+                      #{participant.bookingNumber}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {participant.firstName} {participant.lastName}
+                    </div>
+                  </td>
+
+                  {/* Contact */}
+                  <td className="px-3 py-3">
+                    <div className="text-xs text-gray-600 truncate max-w-[150px]">
+                      {participant.contactEmail}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {participant.contactPhone}
+                    </div>
+                  </td>
+
+                  {/* Confirmation Email */}
+                  <td className="px-3 py-3 text-center">
+                    {renderCommCell(
+                      participant.confirmationEmailStatus,
+                      participant.confirmationEmailSentAt,
+                      participant.confirmationEmailDeliveredAt,
+                      participant.confirmationEmailClickedAt,
+                      new Date(), // Not scheduled, sent immediately
+                      true,
+                      false
+                    )}
+                  </td>
+
+                  {/* Reminder Email */}
+                  <td className="px-3 py-3 text-center">
+                    {renderCommCell(
+                      participant.reminderEmailStatus,
+                      participant.reminderEmailSentAt,
+                      participant.reminderEmailDeliveredAt,
+                      participant.reminderEmailClickedAt,
+                      scheduledTimes.reminderEmail.date,
+                      scheduledTimes.reminderEmail.isPast,
+                      false
+                    )}
+                  </td>
+
+                  {/* Follow-up Email */}
+                  <td className="px-3 py-3 text-center">
+                    {renderCommCell(
+                      participant.followupEmailStatus,
+                      participant.followupEmailSentAt,
+                      undefined,
+                      participant.followupEmailClickedAt,
+                      scheduledTimes.followupEmail.date,
+                      scheduledTimes.followupEmail.isPast,
+                      false
+                    )}
+                  </td>
+
+                  {/* Afternoon SMS */}
+                  <td className="px-3 py-3 text-center">
+                    {!canReceiveSms ? (
+                      hasOptedOut ? (
+                        <span className="text-red-600 text-xs">🚫 Opted Out</span>
+                      ) : (
+                        <span className="text-yellow-600 text-xs">⚠️ No Consent</span>
+                      )
+                    ) : (
+                      renderCommCell(
+                        participant.reminderSmsStatus,
+                        participant.reminderSmsSentAt,
+                        participant.reminderSmsDeliveredAt,
+                        undefined,
+                        scheduledTimes.afternoonSms.date,
+                        scheduledTimes.afternoonSms.isPast,
+                        true, // Conditional
+                        !hasClickedReminderEmail // Condition: hasn't clicked email
+                      )
+                    )}
+                  </td>
+
+                  {/* Pre-class SMS */}
+                  <td className="px-3 py-3 text-center">
+                    {!canReceiveSms ? (
+                      hasOptedOut ? (
+                        <span className="text-red-600 text-xs">🚫 Opted Out</span>
+                      ) : (
+                        <span className="text-yellow-600 text-xs">⚠️ No Consent</span>
+                      )
+                    ) : (
+                      renderCommCell(
+                        participant.preclassSmsStatus,
+                        participant.preclassSmsSentAt,
+                        participant.preclassSmsDeliveredAt,
+                        undefined,
+                        scheduledTimes.preclassSms.date,
+                        scheduledTimes.preclassSms.isPast,
+                        false // Not conditional
+                      )
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {primaryContacts.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No bookings for this class yet
+        </div>
+      )}
+      
+      {/* Legend */}
+      <div className="border-t border-gray-200 px-4 py-3 bg-gray-50">
+        <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+          <span><span className="text-green-600">✅</span> Delivered</span>
+          <span><span className="text-blue-600">🖱️</span> Clicked</span>
+          <span><span className="text-red-600">⚠️</span> Bounced/Failed</span>
+          <span><span className="italic">Italic</span> = Scheduled (future)</span>
+          <span><span className="italic">?</span> = Conditional</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
 const AdminAttendancePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -145,39 +734,7 @@ const AdminAttendancePage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Calculate communication schedule based on class date
-  const communicationSchedule = useMemo(() => {
-    if (!rosterData?.classInfo?.date) return null;
-
-    // Parse the class date in Pacific time
-    const classDateStr = rosterData.classInfo.date;
-    const [year, month, day] = classDateStr.split('-').map(Number);
-    
-    // Create dates in PT by using specific hour offsets
-    // Note: These times are approximate - the actual cron jobs run at these PT times
-    const now = new Date();
-    
-    // Day before class at 10am PT for reminder email
-    const reminderEmail = new Date(year, month - 1, day - 1, 10, 0, 0);
-    
-    // Day before class at 2pm PT for afternoon SMS
-    const afternoonSms = new Date(year, month - 1, day - 1, 14, 0, 0);
-    
-    // Morning of class at 8am PT for pre-class SMS
-    const preclassSms = new Date(year, month - 1, day, 8, 0, 0);
-    
-    // Day after class at 10am PT for follow-up email
-    const followupEmail = new Date(year, month - 1, day + 1, 10, 0, 0);
-
-    return {
-      reminderEmail: { date: reminderEmail, isPast: reminderEmail < now },
-      afternoonSms: { date: afternoonSms, isPast: afternoonSms < now },
-      preclassSms: { date: preclassSms, isPast: preclassSms < now },
-      followupEmail: { date: followupEmail, isPast: followupEmail < now }
-    };
-  }, [rosterData?.classInfo?.date]);
-
+  const [activeTab, setActiveTab] = useState<'roster' | 'communications'>('roster');
 
   // Check authentication
   useEffect(() => {
@@ -267,7 +824,7 @@ const AdminAttendancePage = () => {
         
         const queryClassScheduleId = searchParams.get('classScheduleId');
         
-        if (queryClassScheduleId && filtered.find(c => c.id === queryClassScheduleId)) {
+        if (queryClassScheduleId && filtered.find((c: ClassSchedule) => c.id === queryClassScheduleId)) {
           setCurrentClassId(queryClassScheduleId);
         } else {
           const todayStr = today.toISOString().split('T')[0];
@@ -367,8 +924,6 @@ const AdminAttendancePage = () => {
     setAttendanceState(newState);
   };
 
- 
-
   const handleSaveAttendance = async () => {
     setSaving(true);
     setSaveSuccess(false);
@@ -399,9 +954,6 @@ const AdminAttendancePage = () => {
 
       if (!response.ok) throw new Error('Failed to save attendance');
 
-      const result = await response.json();
-      console.log('Attendance saved:', result);
-      
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
@@ -443,152 +995,10 @@ const AdminAttendancePage = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleDownloadAllClassesCSV = async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const allRosterData: Array<{
-        className: string;
-        date: string;
-        participant: any;
-        attendance: string;
-        isPast: boolean;
-        hasUnmarkedAttendance: boolean;
-      }> = [];
-
-      for (const cls of allClasses) {
-        try {
-          const response = await fetch(`/api/admin/class-roster?classScheduleId=${cls.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            const classDate = new Date(data.classInfo.date + 'T00:00:00');
-            const isPast = classDate < today;
-            
-            data.roster.forEach((p: Participant) => {
-              const attendance = p.attendance || 'Not Recorded';
-              const hasUnmarkedAttendance = attendance === 'Not Recorded';
-              
-              allRosterData.push({
-                className: data.classInfo.className,
-                date: data.classInfo.date,
-                participant: p,
-                attendance: attendance,
-                isPast,
-                hasUnmarkedAttendance: isPast && hasUnmarkedAttendance
-              });
-            });
-          }
-        } catch (error) {
-          console.error(`Error fetching roster for class ${cls.id}:`, error);
-        }
-      }
-
-      if (allRosterData.length === 0) {
-        alert('No participant data found.');
-        return;
-      }
-
-      const pastUnmarked = allRosterData.filter(item => item.isPast && item.hasUnmarkedAttendance);
-      const future = allRosterData.filter(item => !item.isPast);
-      const pastMarked = allRosterData.filter(item => item.isPast && !item.hasUnmarkedAttendance);
-
-      const sortByDate = (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime();
-      
-      pastUnmarked.sort(sortByDate);
-      future.sort(sortByDate);
-      pastMarked.sort(sortByDate);
-
-      const headers = ['Class Name', 'Date', 'Booking #', 'Primary Contact', 'Last Name', 'First Name', 'Age Group', 'Attendance', 'Contact Email', 'Contact Phone'];
-      
-      const createRows = (items: typeof allRosterData) => 
-        items.map(item => [
-          item.className,
-          item.date,
-          item.participant.bookingNumber || '',
-          item.participant.isPrimaryContact ? 'Yes' : 'No',
-          item.participant.lastName,
-          item.participant.firstName,
-          item.participant.ageGroup,
-          item.attendance,
-          item.participant.contactEmail,
-          item.participant.contactPhone
-        ]);
-
-      const csvRows: string[] = [];
-      csvRows.push(headers.join(','));
-      
-      if (pastUnmarked.length > 0) {
-        csvRows.push('');
-        csvRows.push('"=== PAST CLASSES - ATTENDANCE NOT MARKED ==="');
-        csvRows.push(headers.join(','));
-        createRows(pastUnmarked).forEach(row => {
-          csvRows.push(row.map(cell => `"${cell || ''}"`).join(','));
-        });
-      }
-      
-      if (future.length > 0) {
-        csvRows.push('');
-        csvRows.push('"=== UPCOMING CLASSES ==="');
-        csvRows.push(headers.join(','));
-        createRows(future).forEach(row => {
-          csvRows.push(row.map(cell => `"${cell || ''}"`).join(','));
-        });
-      }
-      
-      if (pastMarked.length > 0) {
-        csvRows.push('');
-        csvRows.push('"=== PAST CLASSES - ATTENDANCE MARKED ==="');
-        csvRows.push(headers.join(','));
-        createRows(pastMarked).forEach(row => {
-          csvRows.push(row.map(cell => `"${cell || ''}"`).join(','));
-        });
-      }
-
-      const csvContent = csvRows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const todayStr = new Date().toISOString().split('T')[0];
-      a.download = `All_Classes_Attendance_${todayStr}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading all classes CSV:', error);
-      alert('Failed to download CSV. Please try again.');
-    }
-  };
-
   const copyToClipboard = (text: string, fieldId: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(fieldId);
     setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString + 'T12:00:00').toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    if (!timeString) return '';
-    try {
-      return new Date(timeString).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'America/Los_Angeles'
-      });
-    } catch {
-      return timeString;
-    }
   };
 
   if (loading) {
@@ -691,445 +1101,153 @@ const AdminAttendancePage = () => {
         {rosterData && (
           <>
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-bold text-navy mb-4">{rosterData.classInfo.className}</h2>
-              
-              {/* Class Schedule ID - for CSV imports */}
-              <div className="bg-teal-50 border-2 border-accent-primary rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Class Schedule ID (for imports)</p>
-                      <code className="text-lg font-mono text-gray-900 bg-white px-3 py-1 rounded border border-gray-300">
-                        {currentClassId}
-                      </code>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-navy mb-2">{rosterData.classInfo.className}</h2>
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4 text-accent-primary" />
+                      <span>{formatDate(rosterData.classInfo.date)}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4 text-accent-primary" />
+                      <span>{formatTime(rosterData.classInfo.startTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4 text-accent-primary" />
+                      <span>{rosterData.classInfo.location}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <code className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    {currentClassId}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(currentClassId, 'classScheduleId')}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Copy Class Schedule ID"
+                  >
+                    {copiedField === 'classScheduleId' ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => navigate('/admin/import')}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <SummaryCards roster={rosterData.roster} attendanceState={attendanceState} />
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setActiveTab('roster')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  activeTab === 'roster'
+                    ? 'bg-white text-accent-primary border-t-2 border-x border-accent-primary'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Roster & Attendance
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('communications')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  activeTab === 'communications'
+                    ? 'bg-white text-accent-primary border-t-2 border-x border-accent-primary'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Communications
+                </span>
+              </button>
+            </div>
+
+            {/* Action Buttons (only show on Roster tab) */}
+            {activeTab === 'roster' && (
+              <>
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                  <button
+                    onClick={handleDownloadCurrentClassCSV}
+                    className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download CSV
+                  </button>
+                  
+                  <div className="flex gap-3 ml-auto">
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(currentClassId);
-                        setCopiedField('classScheduleId');
-                        setTimeout(() => setCopiedField(null), 2000);
-                      }}
-                      className="text-accent-primary hover:text-accent-dark font-medium transition-colors flex items-center gap-1"
+                      onClick={handleMarkAllPresent}
+                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
                     >
-                      {copiedField === 'classScheduleId' ? (
+                      <CheckCircle className="w-4 h-4" />
+                      Mark All Present
+                    </button>
+                    <button
+                      onClick={handleSaveAttendance}
+                      disabled={saving}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${
+                        saving
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : saveSuccess
+                          ? 'bg-green-600 text-white'
+                          : 'bg-accent-primary hover:bg-accent-dark text-white'
+                      }`}
+                    >
+                      {saveSuccess ? (
                         <>
                           <Check className="w-4 h-4" />
-                          Copied!
+                          Saved!
                         </>
                       ) : (
                         <>
-                          <Copy className="w-4 h-4" />
-                          Copy ID
+                          <Save className="w-4 h-4" />
+                          {saving ? 'Saving...' : 'Save'}
                         </>
                       )}
                     </button>
                   </div>
-                  
-                  {/* Import button for all classes */}
-                  <button
-                    onClick={() => navigate('/admin/import')}
-                    className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors font-medium"
-                  >
-                    <Upload className="w-5 h-5" />
-                    Import Bookings
-                  </button>
                 </div>
-              </div>
 
-              {/* Date/Time/Location Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Calendar className="w-5 h-5 text-accent-primary" />
-                  <span>{formatDate(rosterData.classInfo.date)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Clock className="w-5 h-5 text-accent-primary" />
-                  <span>{formatTime(rosterData.classInfo.startTime)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <MapPin className="w-5 h-5 text-accent-primary" />
-                  <span>{rosterData.classInfo.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Users className="w-5 h-5 text-accent-primary" />
-                  <span>{rosterData.totalParticipants} participants</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleDownloadCurrentClassCSV}
-                  className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors text-sm font-medium"
-                >
-                  <Download className="w-4 h-4" />
-                  Download This Class
-                </button>
-                <span className="text-gray-300">|</span>
-                <button
-                  onClick={handleDownloadAllClassesCSV}
-                  className="flex items-center gap-2 text-accent-primary hover:text-accent-dark transition-colors text-sm font-medium"
-                >
-                  <Download className="w-4 h-4" />
-                  Download All Classes
-                </button>
-              </div>
-              
-              <div className="flex gap-3 ml-auto">
-                <button
-                  onClick={handleMarkAllPresent}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  Mark All as Present
-                </button>
-                <button
-                  onClick={handleSaveAttendance}
-                  disabled={saving}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
-                    saving
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : saveSuccess
-                      ? 'bg-green-600 text-white'
-                      : 'bg-accent-primary hover:bg-accent-dark text-white'
-                  }`}
-                >
-                  {saveSuccess ? (
-                    <>
-                      <Check className="w-5 h-5" />
-                      Saved!
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      {saving ? 'Saving...' : 'Save Attendance'}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {hasUnsavedChanges && (
-              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6 text-sm">
-                ⚠️ You have unsaved changes. Remember to click "Save Attendance" before leaving this page.
-              </div>
+                {hasUnsavedChanges && (
+                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                    ⚠️ You have unsaved changes. Remember to click "Save" before leaving this page.
+                  </div>
+                )}
+              </>
             )}
 
-            
-            {/* Roster Table */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">
-                        Age Group
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
-                        Contact
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                        Email Status
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[18%]">
-                        Attendance
-                      </th>
-                    </tr>
-                  </thead>
-                  
-                  <tbody className="bg-white">
-                    {rosterData.roster.map((participant, index) => {
-                      const currentStatus = attendanceState[participant.id] || 'Not Recorded';
-                      const rowColor = 
-                        currentStatus === 'Absent' ? 'bg-red-50' :
-                        currentStatus === 'Present' ? 'bg-green-50' :
-                        '';
-
-                      const isNewBookingGroup = index === 0 || 
-                        rosterData.roster[index - 1].bookingId !== participant.bookingId;
-
-                      return (
-                        <tr 
-                          key={participant.id} 
-                          className={`
-                            ${rowColor} 
-                            ${isNewBookingGroup ? 'border-t-4 border-gray-600' : 'border-t border-gray-200'}
-                          `}
-                        >
-                          {/* Name column */}
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
-                              {participant.isPrimaryContact && (
-                                <>
-                                  <span className="px-2 py-1 bg-accent-primary text-white text-xs font-medium rounded">
-                                    Primary
-                                  </span>
-                                  {isNewBookingGroup && participant.bookingNumber && (
-                                    <span className="text-xs font-medium text-gray-500">
-                                      #{participant.bookingNumber}
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                              
-                              {!participant.isPrimaryContact && (
-                                <span className="text-gray-400 text-sm mr-2">└─</span>
-                              )}
-                              
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {participant.firstName} {participant.lastName}
-                                </div>
-                                {participant.bookingDate && isNewBookingGroup && (
-                                  <div className="text-xs text-gray-500">
-                                    Booked: {formatDate(participant.bookingDate)}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Age Group column */}
-                          <td className="px-4 py-4">
-                            <span className="text-sm text-gray-600">
-                              {participant.ageGroup}
-                            </span>
-                          </td>
-
-                          {/* Contact column */}
-                          <td className="px-4 py-4">
-                            {participant.isPrimaryContact ? (
-                              <div className="space-y-1">
-                                {participant.contactEmail && (
-                                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <Mail className="w-4 h-4" />
-                                    <span className="truncate max-w-xs">{participant.contactEmail}</span>
-                                    {navigator.clipboard && (
-                                      <button
-                                        onClick={() => copyToClipboard(participant.contactEmail, `email-${participant.id}`)}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                                        title="Copy email"
-                                      >
-                                        {copiedField === `email-${participant.id}` ? (
-                                          <Check className="w-4 h-4 text-green-600" />
-                                        ) : (
-                                          <Copy className="w-4 h-4" />
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                                {participant.contactPhone && (
-                                  <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
-                                    <Phone className="w-4 h-4" />
-                                    <span>{participant.contactPhone}</span>
-                                    {participant.smsOptedOutDate ? (
-                                      <span 
-                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700" 
-                                        title={`Opted out ${formatPacificTime(participant.smsOptedOutDate)}`}
-                                      >
-                                        🚫 SMS Opted Out
-                                      </span>
-                                    ) : !participant.smsConsentDate ? (
-                                      <span 
-                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700" 
-                                        title="Legacy booking - no SMS consent recorded. Won't receive automated SMS."
-                                      >
-                                        ⚠️ No SMS Consent
-                                      </span>
-                                    ) : null}
-                                    {navigator.clipboard && (
-                                      <button
-                                        onClick={() => copyToClipboard(participant.contactPhone, `phone-${participant.id}`)}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                                        title="Copy phone"
-                                      >
-                                        {copiedField === `phone-${participant.id}` ? (
-                                          <Check className="w-4 h-4 text-green-600" />
-                                        ) : (
-                                          <Copy className="w-4 h-4" />
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-gray-400 italic">
-                                See primary contact above
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Email Status column */}
-                          <td className="px-4 py-4">
-                            {participant.isPrimaryContact ? (
-                              <div className="space-y-2">
-                                {/* CONFIRMATION EMAIL */}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-500 min-w-[80px]">Confirmation:</span>
-                                    <EmailStatusBadge status={participant.confirmationEmailStatus} />
-                                  </div>
-                                  {participant.confirmationEmailClickedAt && (
-                                    <div className="text-xs text-gray-500 ml-[88px]">
-                                      Clicked {formatPacificTime(participant.confirmationEmailClickedAt)}
-                                    </div>
-                                  )}
-                                  {participant.confirmationEmailStatus === 'Bounced' && (
-                                    <div className="text-xs text-red-600 font-medium ml-[88px]">
-                                      ⚠️ Bounced
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* REMINDER EMAIL */}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-500 min-w-[80px]">Reminder:</span>
-                                    <EmailStatusBadge status={participant.reminderEmailStatus} />
-                                  </div>
-                                  {participant.reminderEmailClickedAt && (
-                                    <div className="text-xs text-gray-500 ml-[88px]">
-                                      Clicked {formatPacificTime(participant.reminderEmailClickedAt)}
-                                    </div>
-                                  )}
-                                  {participant.reminderEmailStatus === 'Bounced' && (
-                                    <div className="text-xs text-red-600 font-medium ml-[88px]">
-                                      ⚠️ Bounced
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* FOLLOW-UP EMAIL */}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-gray-500 min-w-[90px]">Follow-up:</span>
-                                    <EmailStatusBadge status={participant.followupEmailStatus} />
-                                  </div>
-                                  {participant.followupEmailSentAt && !participant.followupEmailClickedAt && (
-                                    <div className="text-xs text-gray-500 ml-[98px]">
-                                      Sent {formatPacificTime(participant.followupEmailSentAt)}
-                                    </div>
-                                  )}
-                                  {participant.followupEmailClickedAt && (
-                                    <div className="text-xs text-gray-500 ml-[98px]">
-                                      Clicked {formatPacificTime(participant.followupEmailClickedAt)}
-                                    </div>
-                                  )}
-                                  {participant.followupEmailStatus === 'Bounced' && (
-                                    <div className="text-xs text-red-600 font-medium ml-[98px]">
-                                      ⚠️ Bounced
-                                    </div>
-                                  )}
-                                </div>
-                                
-                              </div>
-                            ) : (
-                              <div className="text-sm text-gray-400 italic">
-                                —
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Attendance column */}
-                          <td className="px-4 py-4 text-center">
-                            <select
-                              value={currentStatus}
-                              onChange={(e) => handleAttendanceChange(participant.id, e.target.value)}
-                              className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm font-medium ${
-                                currentStatus === 'Present' ? 'text-green-700 bg-green-50 border-green-300' :
-                                currentStatus === 'Absent' ? 'text-red-700 bg-red-50 border-red-300' :
-                                'text-gray-600 bg-gray-50 border-gray-300'
-                              }`}
-                            >
-                              <option value="Not Recorded">Not Recorded</option>
-                              <option value="Present">Present</option>
-                              <option value="Absent">Absent</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {rosterData.roster.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No participants registered for this class yet
-                </div>
-              )}
-            </div>
-
-            {/* Communication Schedule Reference */}
-            {communicationSchedule && (
-              <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Info className="w-5 h-5 text-accent-primary" />
-                  <h3 className="text-lg font-semibold text-navy">Scheduled Communications for This Class</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                  {/* Emails */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                      <Mail className="w-4 h-4" /> Emails
-                    </h4>
-                    <div className="space-y-2 pl-6">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Confirmation Email:</span>
-                        <span className="text-gray-500 italic">Sent immediately on booking</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Reminder Email:</span>
-                        <span className={communicationSchedule.reminderEmail.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
-                          {communicationSchedule.reminderEmail.isPast ? '✓ ' : ''}
-                          {formatScheduleDateTime(communicationSchedule.reminderEmail.date)} PT
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Follow-up Email:</span>
-                        <span className={communicationSchedule.followupEmail.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
-                          {communicationSchedule.followupEmail.isPast ? '✓ ' : ''}
-                          {formatScheduleDateTime(communicationSchedule.followupEmail.date)} PT
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SMS */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-gray-700 flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4" /> SMS (for those with consent)
-                    </h4>
-                    <div className="space-y-2 pl-6">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Afternoon Reminder:</span>
-                        <span className={communicationSchedule.afternoonSms.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
-                          {communicationSchedule.afternoonSms.isPast ? '✓ ' : ''}
-                          {formatScheduleDateTime(communicationSchedule.afternoonSms.date)} PT
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Pre-class Reminder:</span>
-                        <span className={communicationSchedule.preclassSms.isPast ? 'text-green-600' : 'text-gray-900 font-medium'}>
-                          {communicationSchedule.preclassSms.isPast ? '✓ ' : ''}
-                          {formatScheduleDateTime(communicationSchedule.preclassSms.date)} PT
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-6">
-                      SMS only sent to participants with consent and who haven't opted out.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            {/* Tab Content */}
+            {activeTab === 'roster' ? (
+              <RosterTab 
+                roster={rosterData.roster}
+                attendanceState={attendanceState}
+                onAttendanceChange={handleAttendanceChange}
+                copiedField={copiedField}
+                onCopy={copyToClipboard}
+              />
+            ) : (
+              <CommunicationsTab 
+                roster={rosterData.roster}
+                classDate={rosterData.classInfo.date}
+                classStartTime={rosterData.classInfo.startTime}
+              />
             )}
           </>
         )}
