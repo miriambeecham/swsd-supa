@@ -138,6 +138,7 @@ return {
   contactEmail: booking?.fields['Contact Email'],
   contactPhone: booking?.fields['Contact Phone'],
   smsOptedOutDate: booking?.fields['SMS Opted Out Date'],
+  smsConsentDate: booking?.fields['SMS Consent Date'],
   bookingId: booking?.id,
   bookingNumber: booking?.fields['Booking ID'],
   isPrimaryContact,
