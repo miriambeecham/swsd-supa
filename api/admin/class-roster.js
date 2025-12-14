@@ -203,19 +203,27 @@ export default async function handler(req, res) {
     });
 
     // Fetch survey responses for this class schedule
+    // Note: Class Schedule is a linked record field (array of IDs), so we fetch all and filter in JS
     let surveyResponses = [];
     try {
-      // Class Schedule is a linked record field, so we need to use FIND with ARRAYJOIN
-      const surveyFilter = `FIND('${classScheduleId}', ARRAYJOIN({Class Schedule})) > 0`;
       const surveyResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Satisfaction%20Surveys?filterByFormula=${encodeURIComponent(surveyFilter)}`,
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Satisfaction%20Surveys`,
         { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
       );
       
       if (surveyResponse.ok) {
         const surveyData = await surveyResponse.json();
-        console.log(`[CLASS-ROSTER] Found ${surveyData.records?.length || 0} survey responses for class ${classScheduleId}`);
-        surveyResponses = (surveyData.records || []).map(record => ({
+        const allSurveys = surveyData.records || [];
+        
+        // Filter surveys for this specific class schedule (linked record is an array of IDs)
+        const matchingSurveys = allSurveys.filter(survey => {
+          const surveyScheduleIds = survey.fields['Class Schedule'] || [];
+          return surveyScheduleIds.includes(classScheduleId);
+        });
+        
+        console.log(`[CLASS-ROSTER] Found ${matchingSurveys.length} survey responses for class ${classScheduleId} (out of ${allSurveys.length} total)`);
+        
+        surveyResponses = matchingSurveys.map(record => ({
           id: record.id,
           submissionDate: record.fields['Submission Date'] || record.createdTime,
           firstName: record.fields['First Name'],
