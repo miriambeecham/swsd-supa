@@ -204,8 +204,26 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState, su
   const smsOptedOut = primaryContacts.filter(p => p.smsOptedOutDate).length;
   const smsSent = primaryContacts.filter(p => p.reminderSmsStatus || p.preclassSmsStatus).length;
 
-  // Survey counts
-  const surveyCompleted = surveyResponses.length;
+  // Survey counts - count only surveys that match to a participant
+  const matchedSurveyCount = primaryContacts.filter(participant => {
+    return surveyResponses.some(survey => {
+      if (survey.email && participant.contactEmail && 
+          survey.email.toLowerCase() === participant.contactEmail.toLowerCase()) {
+        return true;
+      }
+      if (survey.phone && participant.contactPhone && 
+          normalizePhone(survey.phone) === normalizePhone(participant.contactPhone)) {
+        return true;
+      }
+      if (survey.firstName && survey.lastName && 
+          survey.firstName.toLowerCase() === participant.firstName?.toLowerCase() &&
+          survey.lastName.toLowerCase() === participant.lastName?.toLowerCase()) {
+        return true;
+      }
+      return false;
+    });
+  }).length;
+  
   const followupSent = primaryContacts.filter(p => p.followupEmailSentAt).length;
 
   return (
@@ -260,7 +278,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState, su
           <ClipboardList className="w-5 h-5 text-purple-600" />
           <span className="text-sm font-medium">Surveys</span>
         </div>
-        <div className="text-3xl font-bold text-navy">{surveyCompleted}</div>
+        <div className="text-3xl font-bold text-navy">{matchedSurveyCount}</div>
         <div className="text-xs text-gray-500 mt-1">
           of {followupSent} sent
         </div>
@@ -712,6 +730,9 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
   const followupDate = new Date(year, month - 1, day + 1, 10, 0, 0);
   const isPastFollowup = followupDate < new Date();
 
+  // Track which surveys have been matched
+  const matchedSurveyIds = new Set<string>();
+
   // Match surveys to participants
   const participantSurveyData = primaryContacts.map(participant => {
     // Try to match survey by email, then phone, then name
@@ -732,6 +753,11 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
       return false;
     });
 
+    // Track matched survey
+    if (matchedSurvey) {
+      matchedSurveyIds.add(matchedSurvey.id);
+    }
+
     // Determine status
     let status: 'completed' | 'sent' | 'not-sent' = 'not-sent';
     if (matchedSurvey) {
@@ -746,6 +772,9 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
       status
     };
   });
+
+  // Find unmatched surveys
+  const unmatchedSurveys = surveyResponses.filter(survey => !matchedSurveyIds.has(survey.id));
 
   const getRatingDisplay = (rating?: string) => {
     if (!rating) return '—';
@@ -963,6 +992,47 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
           <span><span className="text-gray-500">⏳</span> Follow-up not yet sent</span>
         </div>
       </div>
+
+      {/* Unmatched Surveys Section */}
+      {unmatchedSurveys.length > 0 && (
+        <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h4 className="font-semibold text-orange-800 mb-3 flex items-center gap-2">
+            ⚠️ Unmatched Surveys ({unmatchedSurveys.length})
+          </h4>
+          <p className="text-xs text-orange-700 mb-3">
+            These surveys are linked to this class but couldn't be matched to a booking by email, phone, or name.
+          </p>
+          <div className="space-y-2">
+            {unmatchedSurveys.map(survey => (
+              <div key={survey.id} className="bg-white rounded p-3 border border-orange-200">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {survey.firstName} {survey.lastName || '(no name)'}
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      {survey.email && <div>📧 {survey.email}</div>}
+                      {survey.phone && <div>📱 {survey.phone}</div>}
+                      <div>Submitted: {formatPacificTimeShort(survey.submissionDate)}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm">{getRatingDisplay(survey.overallExperience)}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {survey.wouldRecommend === 'Yes' ? '👍 Would recommend' : survey.wouldRecommend === 'No' ? '👎 Would not recommend' : ''}
+                    </div>
+                  </div>
+                </div>
+                {survey.writtenTestimonial && (
+                  <div className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded italic">
+                    "{survey.writtenTestimonial}"
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
