@@ -208,7 +208,7 @@ export default async function handler(req, res) {
       // Class Schedule is a linked record field, so we need to use FIND with ARRAYJOIN
       const surveyFilter = `FIND('${classScheduleId}', ARRAYJOIN({Class Schedule})) > 0`;
       const surveyResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Survey%20Responses?filterByFormula=${encodeURIComponent(surveyFilter)}`,
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Satisfaction%20Surveys?filterByFormula=${encodeURIComponent(surveyFilter)}`,
         { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
       );
       
