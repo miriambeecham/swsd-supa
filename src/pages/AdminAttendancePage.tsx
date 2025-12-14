@@ -227,7 +227,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState, su
   const followupSent = primaryContacts.filter(p => p.followupEmailSentAt).length;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Participants Card */}
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center gap-2 text-gray-600 mb-2">
@@ -1400,11 +1400,13 @@ const AdminAttendancePage = () => {
             </div>
 
             {/* Summary Cards */}
-            <SummaryCards 
-              roster={rosterData.roster} 
-              attendanceState={attendanceState} 
-              surveyResponses={rosterData.surveyResponses || []}
-            />
+            <div className="bg-gray-100 rounded-lg p-4 mb-6">
+              <SummaryCards 
+                roster={rosterData.roster} 
+                attendanceState={attendanceState} 
+                surveyResponses={rosterData.surveyResponses || []}
+              />
+            </div>
 
             {/* Tabs */}
             <div className="flex gap-2 mb-4">
@@ -1416,7 +1418,7 @@ const AdminAttendancePage = () => {
               >
                 <span className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
-                  Roster
+                  <span className="font-bold">Roster</span>
                 </span>
               </button>
               <button
@@ -1427,7 +1429,7 @@ const AdminAttendancePage = () => {
               >
                 <span className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  Communications
+                  <span className="font-bold">Communications</span>
                 </span>
               </button>
               <button
@@ -1438,7 +1440,7 @@ const AdminAttendancePage = () => {
               >
                 <span className="flex items-center gap-2">
                   <ClipboardList className="w-4 h-4" />
-                  Surveys
+                  <span className="font-bold">Surveys</span>
                 </span>
               </button>
             </div>
