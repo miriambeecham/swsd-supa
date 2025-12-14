@@ -204,26 +204,8 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState, su
   const smsOptedOut = primaryContacts.filter(p => p.smsOptedOutDate).length;
   const smsSent = primaryContacts.filter(p => p.reminderSmsStatus || p.preclassSmsStatus).length;
 
-  // Survey counts - count only surveys that match to a participant
-  const matchedSurveyCount = primaryContacts.filter(participant => {
-    return surveyResponses.some(survey => {
-      if (survey.email && participant.contactEmail && 
-          survey.email.toLowerCase() === participant.contactEmail.toLowerCase()) {
-        return true;
-      }
-      if (survey.phone && participant.contactPhone && 
-          normalizePhone(survey.phone) === normalizePhone(participant.contactPhone)) {
-        return true;
-      }
-      if (survey.firstName && survey.lastName && 
-          survey.firstName.toLowerCase() === participant.firstName?.toLowerCase() &&
-          survey.lastName.toLowerCase() === participant.lastName?.toLowerCase()) {
-        return true;
-      }
-      return false;
-    });
-  }).length;
-  
+  // Survey counts - count all surveys for this class
+  const surveyCompleted = surveyResponses.length;
   const followupSent = primaryContacts.filter(p => p.followupEmailSentAt).length;
 
   return (
@@ -278,7 +260,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState, su
           <ClipboardList className="w-5 h-5 text-purple-600" />
           <span className="text-sm font-medium">Surveys</span>
         </div>
-        <div className="text-3xl font-bold text-navy">{matchedSurveyCount}</div>
+        <div className="text-3xl font-bold text-navy">{surveyCompleted}</div>
         <div className="text-xs text-gray-500 mt-1">
           of {followupSent} sent
         </div>
@@ -1004,28 +986,103 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
           </p>
           <div className="space-y-2">
             {unmatchedSurveys.map(survey => (
-              <div key={survey.id} className="bg-white rounded p-3 border border-orange-200">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {survey.firstName} {survey.lastName || '(no name)'}
+              <div key={survey.id} className={`bg-white rounded border ${expandedSurveyId === survey.id ? 'border-orange-400' : 'border-orange-200'}`}>
+                <div className="p-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {survey.firstName} {survey.lastName || '(no name)'}
+                      </div>
+                      <div className="text-xs text-gray-600 space-y-0.5">
+                        {survey.email && <div>📧 {survey.email}</div>}
+                        {survey.phone && <div>📱 {survey.phone}</div>}
+                        <div>Submitted: {formatPacificTimeShort(survey.submissionDate)}</div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 space-y-0.5">
-                      {survey.email && <div>📧 {survey.email}</div>}
-                      {survey.phone && <div>📱 {survey.phone}</div>}
-                      <div>Submitted: {formatPacificTimeShort(survey.submissionDate)}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm">{getRatingDisplay(survey.overallExperience)}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {survey.wouldRecommend === 'Yes' ? '👍 Would recommend' : survey.wouldRecommend === 'No' ? '👎 Would not recommend' : ''}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-sm">{getRatingDisplay(survey.overallExperience)}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {survey.wouldRecommend === 'Yes' ? '👍 Would recommend' : survey.wouldRecommend === 'No' ? '👎 Would not recommend' : ''}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setExpandedSurveyId(
+                          expandedSurveyId === survey.id ? null : survey.id
+                        )}
+                        className="text-accent-primary hover:text-accent-dark transition-colors"
+                      >
+                        {expandedSurveyId === survey.id ? (
+                          <ChevronUp className="w-5 h-5" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
-                {survey.writtenTestimonial && (
-                  <div className="mt-2 text-xs text-gray-700 bg-gray-50 p-2 rounded italic">
-                    "{survey.writtenTestimonial}"
+
+                {/* Expanded Details */}
+                {expandedSurveyId === survey.id && (
+                  <div className="px-3 pb-3 border-t border-orange-200">
+                    <div className="rounded-lg bg-gray-50 p-4 mt-3">
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className="font-semibold text-navy">Survey Response Details</h4>
+                        <button
+                          onClick={() => setExpandedSurveyId(null)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-500 text-xs uppercase mb-1">Submitted</p>
+                          <p className="text-gray-900">{formatPacificTimeShort(survey.submissionDate) || 'Unknown'}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-gray-500 text-xs uppercase mb-1">Confidence Level</p>
+                          <p className="text-gray-900">{survey.confidenceLevel || '—'}</p>
+                        </div>
+                        
+                        {survey.mostValuable && (
+                          <div className="md:col-span-2">
+                            <p className="text-gray-500 text-xs uppercase mb-1">Most Valuable Part</p>
+                            <p className="text-gray-900 bg-white p-2 rounded">{survey.mostValuable}</p>
+                          </div>
+                        )}
+                        
+                        {survey.areasForImprovement && (
+                          <div className="md:col-span-2">
+                            <p className="text-gray-500 text-xs uppercase mb-1">Areas for Improvement</p>
+                            <p className="text-gray-900 bg-white p-2 rounded">{survey.areasForImprovement}</p>
+                          </div>
+                        )}
+                        
+                        {survey.writtenTestimonial && (
+                          <div className="md:col-span-2">
+                            <p className="text-gray-500 text-xs uppercase mb-1">Written Testimonial</p>
+                            <p className="text-gray-900 bg-blue-50 p-3 rounded border border-blue-200 italic">
+                              "{survey.writtenTestimonial}"
+                            </p>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <p className="text-gray-500 text-xs uppercase mb-1">Opt-in to Communications</p>
+                          <p className="text-gray-900">{survey.optInCommunication || '—'}</p>
+                        </div>
+                        
+                        {survey.reviewPlatformClicked && (
+                          <div>
+                            <p className="text-gray-500 text-xs uppercase mb-1">Review Platform Clicked</p>
+                            <p className="text-gray-900">{survey.reviewPlatformClicked}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
