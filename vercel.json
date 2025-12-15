@@ -24,7 +24,7 @@
     },
     {
       "path": "/api/send-class-followup",
-      "schedule": "0 * * * *"
+      "schedule": "0,30 * * * *"
     }
   ]
 }
