@@ -20,7 +20,7 @@
     },
     {
       "path": "/api/send-preclass-sms-reminders",
-      "schedule": "0 * * * *"
+      "schedule": "0,15,30,45 * * * *"
     },
     {
       "path": "/api/send-class-followup",
