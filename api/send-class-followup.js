@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000));
     const fortyFiveMinsAgo = new Date(now.getTime() - (45 * 60 * 1000));
-    const seventyFiveMinsAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+    const seventyFiveMinsAgo = new Date(now.getTime() - (75 * 60 * 1000));
 
     console.log('[FOLLOWUP-CRON] Looking for classes that ended between', seventyFiveMinsAgo.toISOString(), 'and', fortyFiveMinsAgo.toISOString());
 
