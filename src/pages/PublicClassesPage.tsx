@@ -548,7 +548,7 @@ const PublicClassesPage = () => {
     <div className="min-h-screen bg-white">
       {/*SEO Tags*/}
       <Helmet>
-        <title>Women's Self Defense Classes | Walnut Creek | East Bay | SF Bay Area</title>
+        <title>Women's Self Defense Classes | SF Bay Area | Walnut Creek & East Bay | </title>
         <meta name="description" content="Women-only self defense classes in Walnut Creek, CA. Serving East Bay and San Francisco residents including Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, and surrounding areas. Mother-daughter training and adult/teen programs." />
         <meta name="keywords" content="women's self defense Walnut Creek, East Bay self defense, mother daughter classes, teen self defense, Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, Bay Area women's safety" />
         <meta property="og:title" content="Women's Self Defense Classes | Walnut Creek | Streetwise Self Defense" />
