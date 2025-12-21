@@ -53,7 +53,7 @@ const AdultBookingPage: React.FC = () => {
     );
   }
 
-  const pricePerPerson = NumbergetAdjustedPrice(classSchedule.price, classSchedule.date, 'swsd website') || 0;
+  const pricePerPerson = getAdjustedPrice(classSchedule.price, classSchedule.date, 'swsd website') || 0;
   const totalParticipants = 1 + additionalAdults.length;
   const totalPrice = pricePerPerson * totalParticipants;
 
