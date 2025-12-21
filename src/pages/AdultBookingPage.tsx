@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { getAdjustedPrice } from '../utils/pricing';
 
 type AdditionalAdult = { firstName: string; lastName: string };
 
@@ -52,7 +53,7 @@ const AdultBookingPage: React.FC = () => {
     );
   }
 
-  const pricePerPerson = Number(classSchedule.price) || 0;
+  const pricePerPerson = NumbergetAdjustedPrice(classSchedule.price, classSchedule.date, 'swsd website') || 0;
   const totalParticipants = 1 + additionalAdults.length;
   const totalPrice = pricePerPerson * totalParticipants;
 
