@@ -752,7 +752,7 @@ const PublicClassesPage = () => {
                     yourselves. Classes are led by experienced instructors. The cost is $139-156 per mother-daughter pair for a 3-hour class, depending on location.
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                    <span>• 2-3-hour sessions</span>
+                    <span>• 3-hour sessions</span>
                     <span>• Maximum 5 pairs per class</span>
                     <span>• All skill levels welcome</span>
                   </div>
