@@ -749,7 +749,7 @@ const PublicClassesPage = () => {
                     A unique bonding experience that empowers both mothers and daughters with essential self-defense
                     skills. These classes focus on building confidence, communication, and practical techniques in a fun,
                     supportive environment. Perfect for strengthening your relationship while learning to protect
-                    yourselves. Classes are led by experienced instructors. The cost is $139-158 per mother-daughter pair for a 3-hour class, depending on location.
+                    yourselves. Classes are led by experienced instructors. The cost is $139-156 per mother-daughter pair for a 3-hour class, depending on location.
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                     <span>• 2-3-hour sessions</span>
