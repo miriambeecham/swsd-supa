@@ -137,6 +137,24 @@ export default async function handler(req, res) {
       }
     }
 
+// Adjust price to recover Stripe fees for classes on or after Jan 1, 2025
+    const adjustPriceForStripeFee = (basePrice, classDate) => {
+      const cutoffDate = new Date('2025-01-01');
+      const classDateObj = new Date(classDate);
+      
+      cutoffDate.setHours(0, 0, 0, 0);
+      classDateObj.setHours(0, 0, 0, 0);
+      
+      if (classDateObj >= cutoffDate) {
+        return Math.ceil(basePrice / 0.9701);
+      }
+      
+      return basePrice;
+    };
+
+    // Calculate price
+    const toNumber = (v) => {
+    
     // Calculate price
     const toNumber = (v) => {
       if (v == null) return NaN;
@@ -156,7 +174,11 @@ export default async function handler(req, res) {
     }
 
     const requestedSeats = participants.length;
-    const totalAmount = pricePerParticipant * requestedSeats;
+        // Get class date from schedule and apply Stripe fee adjustment
+    const classDate = schedule.fields?.['Date'];
+    const adjustedPricePerParticipant = adjustPriceForStripeFee(pricePerParticipant, classDate);
+    
+    const totalAmount = adjustedPricePerParticipant * requestedSeats;
     const unitAmountCents = Math.round(totalAmount * 100);
 
     if (!Number.isInteger(unitAmountCents) || unitAmountCents <= 0) {
