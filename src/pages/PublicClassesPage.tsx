@@ -658,7 +658,7 @@ const PublicClassesPage = () => {
                     Comprehensive self-defense training for teens and adults in a women-only environment. Learn practical
                     techniques, situational awareness, and confidence-building strategies. Our classes combine physical
                     techniques with mental preparedness to help you feel safe and empowered. Classes are led by experienced 
-                    instructors and cost $75 per person.
+                    instructors and cost $75-78 per person, depending on location.
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                     <span>• 3-hour sessions</span>
@@ -749,10 +749,10 @@ const PublicClassesPage = () => {
                     A unique bonding experience that empowers both mothers and daughters with essential self-defense
                     skills. These classes focus on building confidence, communication, and practical techniques in a fun,
                     supportive environment. Perfect for strengthening your relationship while learning to protect
-                    yourselves. Classes are led by experienced instructors. The cost is $139 per mother-daughter pair for a 3-hour class sponsored by the City of Walnut Creek, or $99 per pair for a 2-hour class sponsored by Diablo Valley College.
+                    yourselves. Classes are led by experienced instructors. The cost is $139-156 per mother-daughter pair for a 3-hour class, depending on location.
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                    <span>• 2-3-hour sessions</span>
+                    <span>• 3-hour sessions</span>
                     <span>• Maximum 5 pairs per class</span>
                     <span>• All skill levels welcome</span>
                   </div>

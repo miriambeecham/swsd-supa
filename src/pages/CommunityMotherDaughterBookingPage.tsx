@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Calendar, Clock, MapPin, Users, Shield } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { getAdjustedPrice } from '../utils/pricing';
 
 type AgeGroup = '' | 'Under 12' | '12-15' | '16+';
 
@@ -119,7 +120,8 @@ const CommunityMotherDaughterBookingPage = () => {
   };
 
   const totalParticipants = 1 + additionalParticipants.length;
-  const totalPrice = classSchedule ? classSchedule.price * totalParticipants : 0;
+  const pricePerPerson = classSchedule ? getAdjustedPrice(classSchedule.price, classSchedule.date, 'swsd website') : 0;
+  const totalPrice = pricePerPerson * totalParticipants;
 
   const handleRecaptchaChange = (value: string | null) => setRecaptchaValue(value);
 
@@ -577,7 +579,7 @@ window.location.href = result.checkoutUrl;
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Price per person:</span>
-                    <span className="text-gray-900">${classSchedule.price}</span>
+                    <span className="text-gray-900">${pricePerPerson}</span>
                   </div>
                   <div className="border-t pt-2 mt-3">
                     <div className="flex justify-between font-semibold text-lg">
