@@ -152,8 +152,7 @@ export default async function handler(req, res) {
       return basePrice;
     };
 
-    // Calculate price
-    const toNumber = (v) => {
+
     
     // Calculate price
     const toNumber = (v) => {
