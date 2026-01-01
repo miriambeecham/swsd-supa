@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import TeachingAssistantsTab from '../components/admin/TeachingAssistantsTab';
 import { 
   Calendar, 
   Clock, 
@@ -25,6 +26,7 @@ import {
   Star,
   ChevronDown,
   ChevronUp,
+  GraduationCap,
   X
 } from 'lucide-react';
 
@@ -1111,7 +1113,7 @@ const AdminAttendancePage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'roster' | 'communications' | 'surveys'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'communications' | 'surveys' | 'assistants'>('roster');
 
   // Check authentication
   useEffect(() => {
@@ -1500,6 +1502,17 @@ const AdminAttendancePage = () => {
                   <span className="font-bold">Surveys</span>
                 </span>
               </button>
+              <button
+                onClick={() => setActiveTab('assistants')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  activeTab === 'assistants' ? 'bg-white text-accent-primary border-t-2 border-x border-accent-primary' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+            >
+                <span className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  <span className="font-bold">Teaching Assistants</span>
+                </span>
+            </button>
             </div>
 
             {/* Action Buttons (only on Roster tab) */}
@@ -1563,6 +1576,12 @@ const AdminAttendancePage = () => {
                 roster={rosterData.roster}
                 surveyResponses={rosterData.surveyResponses || []}
                 classDate={rosterData.classInfo.date}
+              />
+            )}
+            {activeTab === 'assistants' && (
+              <TeachingAssistantsTab 
+                classScheduleId={currentClassId}
+                roster={rosterData.roster}
               />
             )}
           </>
