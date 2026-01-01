@@ -1,6 +1,6 @@
 // /api/send-morning-email-reminders.js
-// ✅ NEW: Runs at 9 AM Pacific Time - sends comprehensive email reminder
-// Replaces the old combined email+SMS job
+// ✅ UPDATED: Runs at 9 AM Pacific Time - sends comprehensive email reminder
+// Also sends reminders to Teaching Assistants with modified messaging
 
 export default async function handler(req, res) {
   // Verify this is called by Vercel Cron or with proper auth
@@ -74,12 +74,27 @@ export default async function handler(req, res) {
         success: true, 
         message: 'No classes scheduled for tomorrow',
         classesFound: 0,
-        emailsSent: 0
+        emailsSent: 0,
+        taEmailsSent: 0
       });
     }
 
+    // Fetch all Teaching Assistants for later lookup
+    const allTAsResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assistants`,
+      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+    );
+    
+    let allTAs = [];
+    if (allTAsResponse.ok) {
+      const allTAsData = await allTAsResponse.json();
+      allTAs = allTAsData.records || [];
+    }
+    console.log(`[MORNING-EMAIL] Loaded ${allTAs.length} teaching assistants`);
+
     const results = [];
     let totalEmailsSent = 0;
+    let totalTAEmailsSent = 0;
 
     // Process each class schedule
     for (const schedule of schedules) {
@@ -100,6 +115,186 @@ export default async function handler(req, res) {
             classData = await classResponse.json();
           }
         }
+
+        // Common formatting helpers
+        const formatTimeForDisplay = (timeStr) => {
+          if (!timeStr) return 'TBD';
+          
+          if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Los_Angeles'
+            });
+          }
+          
+          return timeStr;
+        };
+
+        const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
+        const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
+        
+        const formattedDate = schedule.fields?.Date 
+          ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            })
+          : 'TBD';
+
+        const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
+        const classLocation = classData?.fields?.Location || 'Location TBD';
+
+        // Class prep URL
+        const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
+
+        // ============================================
+        // SEND REMINDERS TO TEACHING ASSISTANTS
+        // ============================================
+        const assignedTAIds = schedule.fields['Teaching Assistants'] || [];
+        
+        if (assignedTAIds.length > 0) {
+          console.log(`[MORNING-EMAIL] Found ${assignedTAIds.length} TAs assigned to schedule ${schedule.id}`);
+          
+          for (const taId of assignedTAIds) {
+            const ta = allTAs.find(t => t.id === taId);
+            if (!ta) {
+              console.log(`[MORNING-EMAIL] TA ${taId} not found in database`);
+              continue;
+            }
+
+            const taEmail = ta.fields['Email'];
+            const taName = ta.fields['Name'] || 'Teaching Assistant';
+            const taFirstName = taName.split(' ')[0];
+            const taStatus = ta.fields['Status'];
+
+            // Skip inactive TAs
+            if (taStatus === 'Inactive') {
+              console.log(`[MORNING-EMAIL] Skipping inactive TA: ${taName}`);
+              continue;
+            }
+
+            // Skip if no email
+            if (!taEmail) {
+              console.log(`[MORNING-EMAIL] Skipping TA ${taName} - no email`);
+              continue;
+            }
+
+            // TA-specific email HTML
+            const taEmailHTML = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
+  </div>
+  
+  <h1 style="color: #2C3E50; text-align: center; font-size: 32px; margin-bottom: 10px;">You're Helping Teach Tomorrow!</h1>
+  
+  <p style="font-size: 16px; line-height: 1.6;">Hi ${taFirstName},</p>
+  
+  <p style="font-size: 16px; line-height: 1.6;">This is a friendly reminder that you're scheduled to <strong>help teach</strong> a self-defense class tomorrow. Thank you so much for volunteering your time!</p>
+  
+  <div style="background: #F0F4F8; border: 2px solid #2C3E50; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Class Details</h2>
+    <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50; width: 35%;">Class:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${className}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Date:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${formattedDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Time:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${displayStartTime} - ${displayEndTime}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; font-weight: bold; color: #2C3E50;">Location:</td>
+        <td style="padding: 12px 8px; color: #1E293B;">${classLocation}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="background: #E0F2FE; border: 2px solid #0284C7; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #0369A1; margin-top: 0; font-size: 22px;">📋 TA Reminders</h2>
+    <ul style="font-size: 15px; color: #0C4A6E; margin: 15px 0; line-height: 1.8;">
+      <li>Please arrive <strong>15-20 minutes early</strong> to help with setup</li>
+      <li>Wear comfortable clothes you can move in</li>
+      <li>Bring water and any equipment we discussed</li>
+      <li>Let me know ASAP if anything comes up and you can't make it</li>
+    </ul>
+  </div>
+  
+  <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">Questions? Call or text:</p>
+    <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
+      <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">(925) 532-9953</a>
+    </p>
+    <p style="margin-top: 20px; font-size: 16px; color: #374151;">Thanks again for your help!</p>
+    <p style="font-weight: bold; margin-top: 15px; font-size: 18px; color: #2C3E50;">See you tomorrow!</p>
+  </div>
+  
+  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Warm regards,</p>
+    <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
+    <p style="color: #6B7280; font-size: 15px; margin: 8px 0;">Streetwise Self Defense</p>
+  </div>
+</body>
+</html>
+`;
+
+            // Send TA email
+            try {
+              const { Resend } = await import('resend');
+              const resend = new Resend(RESEND_API_KEY);
+
+              const { data, error } = await resend.emails.send({
+                from: FROM_EMAIL,
+                to: taEmail,
+                reply_to: 'jay@streetwiseselfdefense.com',
+                subject: `Tomorrow: You're Helping Teach ${className}`,
+                html: taEmailHTML
+              });
+
+              if (error) {
+                console.error(`[MORNING-EMAIL] Resend error for TA ${taName}:`, error);
+                throw error;
+              }
+
+              console.log(`[MORNING-EMAIL] ✅ Sent TA email to ${taEmail} (${taName})`);
+
+              totalTAEmailsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                recipientType: 'TA',
+                taId: ta.id,
+                taName: taName,
+                email: taEmail,
+                success: true
+              });
+
+              await sleep(600);
+              
+            } catch (taEmailErr) {
+              console.error(`[MORNING-EMAIL] ❌ Failed to send TA email to ${taName}:`, taEmailErr);
+              results.push({
+                scheduleId: schedule.id,
+                recipientType: 'TA',
+                taId: ta.id,
+                taName: taName,
+                email: taEmail,
+                success: false,
+                error: taEmailErr.message
+              });
+            }
+          }
+        }
+
+        // ============================================
+        // SEND REMINDERS TO STUDENTS (existing logic)
+        // ============================================
 
         // Get confirmed bookings for this schedule
         const bookingIds = schedule.fields.Bookings || [];
@@ -193,38 +388,6 @@ export default async function handler(req, res) {
             const allParticipantNames = bookingParticipants.length > 0
               ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
               : contactFirstName;
-            
-            // Format times
-            const formatTimeForDisplay = (timeStr) => {
-              if (!timeStr) return 'TBD';
-              
-              if (timeStr.includes('T')) {
-                const date = new Date(timeStr);
-                return date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'America/Los_Angeles'
-                });
-              }
-              
-              return timeStr;
-            };
-
-            const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
-            const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
-            
-            const formattedDate = schedule.fields?.Date 
-              ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
-                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-                })
-              : 'TBD';
-
-            const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
-            const classLocation = classData?.fields?.Location || 'Location TBD';
-
-            // Class prep URL
-            const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
 
             // Email HTML - ORIGINAL TEMPLATE from send-class-reminders.js
             const emailHTML = `
@@ -370,6 +533,7 @@ export default async function handler(req, res) {
               totalEmailsSent++;
               results.push({
                 scheduleId: schedule.id,
+                recipientType: 'Student',
                 bookingId: booking.id,
                 email: contactEmail,
                 success: true
@@ -381,6 +545,7 @@ export default async function handler(req, res) {
               console.error(`[MORNING-EMAIL] ❌ Failed for booking ${booking.id}:`, emailErr);
               results.push({
                 scheduleId: schedule.id,
+                recipientType: 'Student',
                 bookingId: booking.id,
                 email: contactEmail,
                 success: false,
@@ -398,13 +563,14 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`[MORNING-EMAIL] ✅ Complete. Emails sent: ${totalEmailsSent}`);
+    console.log(`[MORNING-EMAIL] ✅ Complete. Student emails: ${totalEmailsSent}, TA emails: ${totalTAEmailsSent}`);
 
     return res.json({
       success: true,
       message: '9 AM email reminders sent',
       classesFound: schedules.length,
       emailsSent: totalEmailsSent,
+      taEmailsSent: totalTAEmailsSent,
       results
     });
 
