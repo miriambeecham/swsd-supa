@@ -1,5 +1,6 @@
 // /src/components/admin/TeachingAssistantsTab.tsx
 // Teaching Assistants tab - assign TAs to this class
+// ✅ UPDATED: Uses Persons + Teaching Assignments tables
 // Note: Converting students to TAs is done on the Roster tab
 
 import React, { useState, useEffect } from 'react';
@@ -12,17 +13,35 @@ import {
   Phone,
   Loader2,
   GraduationCap,
-  Trash2
+  Trash2,
+  Edit2,
+  User,
+  Heart,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 // Types
-interface TeachingAssistant {
+interface Person {
   id: string;
   name: string;
   email: string;
   phone: string;
+  roles: string[];
   status: 'Active' | 'Inactive';
   notes: string;
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
+  emergencyContactEmail?: string;
+}
+
+interface TeachingAssignment {
+  id: string;
+  personId: string;
+  person: Person | null;
+  classScheduleId: string;
+  assignmentNotes: string;
 }
 
 interface Participant {
@@ -37,88 +56,185 @@ interface TeachingAssistantsTabProps {
   roster: Participant[];
 }
 
-// Add New TA Modal Component
-const AddTAModal: React.FC<{
+// TA Form Data Type
+interface PersonFormData {
+  name: string;
+  email: string;
+  phone: string;
+  notes: string;
+  emergencyContactName: string;
+  emergencyContactRelationship: string;
+  emergencyContactPhone: string;
+  emergencyContactEmail: string;
+}
+
+const emptyFormData: PersonFormData = {
+  name: '',
+  email: '',
+  phone: '',
+  notes: '',
+  emergencyContactName: '',
+  emergencyContactRelationship: '',
+  emergencyContactPhone: '',
+  emergencyContactEmail: ''
+};
+
+// Add/Edit Person Modal Component
+const PersonModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onSave: (ta: { name: string; email: string; phone: string; notes: string }) => Promise<void>;
+  onSave: (data: PersonFormData) => Promise<void>;
   saving: boolean;
-}> = ({ isOpen, onClose, onSave, saving }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [notes, setNotes] = useState('');
+  initialData?: PersonFormData;
+  mode: 'add' | 'edit';
+}> = ({ isOpen, onClose, onSave, saving, initialData, mode }) => {
+  const [formData, setFormData] = useState<PersonFormData>(initialData || emptyFormData);
+
+  // Reset form when modal opens with new data
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialData || emptyFormData);
+    }
+  }, [isOpen, initialData]);
+
+  const handleChange = (field: keyof PersonFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSave({ name, email, phone, notes });
-    setName('');
-    setEmail('');
-    setPhone('');
-    setNotes('');
+    await onSave(formData);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="text-lg font-semibold text-navy">Add New Teaching Assistant</h3>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+          <h3 className="text-lg font-semibold text-navy">
+            {mode === 'add' ? 'Add New Teaching Assistant' : 'Edit Teaching Assistant'}
+          </h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
-              placeholder="Full name"
-            />
+          {/* Basic Info Section */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-gray-700 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Basic Information
+            </h4>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                placeholder="Full name"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  placeholder="email@example.com"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  placeholder="(555) 555-5555"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => handleChange('notes', e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                placeholder="Availability, specialties, etc."
+              />
+            </div>
+          </div>
+
+          {/* Emergency Contact Section */}
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            <h4 className="font-medium text-gray-700 flex items-center gap-2">
+              <Heart className="w-4 h-4 text-red-500" />
+              Emergency Contact
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                <input
+                  type="text"
+                  value={formData.emergencyContactName}
+                  onChange={(e) => handleChange('emergencyContactName', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  placeholder="Emergency contact name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
+                <input
+                  type="text"
+                  value={formData.emergencyContactRelationship}
+                  onChange={(e) => handleChange('emergencyContactRelationship', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  placeholder="e.g., Spouse, Parent, Friend"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+                <input
+                  type="tel"
+                  value={formData.emergencyContactPhone}
+                  onChange={(e) => handleChange('emergencyContactPhone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  placeholder="(555) 555-5555"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                <input
+                  type="email"
+                  value={formData.emergencyContactEmail}
+                  onChange={(e) => handleChange('emergencyContactEmail', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  placeholder="emergency@example.com"
+                />
+              </div>
+            </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
-              placeholder="email@example.com"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
-              placeholder="(555) 555-5555"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
-              placeholder="Availability, specialties, etc."
-            />
-          </div>
-          
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -128,7 +244,7 @@ const AddTAModal: React.FC<{
             </button>
             <button
               type="submit"
-              disabled={saving || !name.trim()}
+              disabled={saving || !formData.name.trim()}
               className="flex-1 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {saving ? (
@@ -138,8 +254,8 @@ const AddTAModal: React.FC<{
                 </>
               ) : (
                 <>
-                  <UserPlus className="w-4 h-4" />
-                  Add TA
+                  {mode === 'add' ? <UserPlus className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                  {mode === 'add' ? 'Add TA' : 'Save Changes'}
                 </>
               )}
             </button>
@@ -155,16 +271,19 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
   classScheduleId, 
   roster 
 }) => {
-  const [assignedTAs, setAssignedTAs] = useState<TeachingAssistant[]>([]);
-  const [allTAs, setAllTAs] = useState<TeachingAssistant[]>([]);
+  const [assignments, setAssignments] = useState<TeachingAssignment[]>([]);
+  const [allTAPersons, setAllTAPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedTAToAdd, setSelectedTAToAdd] = useState<string>('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [selectedPersonToAdd, setSelectedPersonToAdd] = useState<string>('');
+  const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null);
 
-  // Fetch assigned TAs and all TAs on mount
+  // Fetch assignments and all TA persons on mount
   useEffect(() => {
     fetchData();
   }, [classScheduleId]);
@@ -174,19 +293,19 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
     setError(null);
     
     try {
-      // Fetch TAs assigned to this class
-      const assignedResponse = await fetch(
-        `/api/admin/class-schedule-assistants-list?classScheduleId=${classScheduleId}`
+      // Fetch teaching assignments for this class (includes person details)
+      const assignmentsResponse = await fetch(
+        `/api/admin/teaching-assignments?classScheduleId=${classScheduleId}`
       );
-      if (!assignedResponse.ok) throw new Error('Failed to fetch assigned TAs');
-      const assignedData = await assignedResponse.json();
-      setAssignedTAs(assignedData.assistants || []);
+      if (!assignmentsResponse.ok) throw new Error('Failed to fetch teaching assignments');
+      const assignmentsData = await assignmentsResponse.json();
+      setAssignments(assignmentsData.assignments || []);
 
-      // Fetch all TAs for the dropdown
-      const allResponse = await fetch('/api/admin/teaching-assistants');
-      if (!allResponse.ok) throw new Error('Failed to fetch all TAs');
-      const allData = await allResponse.json();
-      setAllTAs(allData.assistants || []);
+      // Fetch all persons with "Teaching Assistant" role for the dropdown
+      const personsResponse = await fetch('/api/admin/persons?role=Teaching%20Assistant');
+      if (!personsResponse.ok) throw new Error('Failed to fetch persons');
+      const personsData = await personsResponse.json();
+      setAllTAPersons(personsData.persons || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -200,32 +319,30 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
   };
 
   const handleAssignTA = async () => {
-    if (!selectedTAToAdd) return;
+    if (!selectedPersonToAdd) return;
     
     setSaving(true);
     setError(null);
     
     try {
-      const newTAIds = [...assignedTAs.map(ta => ta.id), selectedTAToAdd];
-      
-      const response = await fetch('/api/admin/class-schedule-assistants', {
-        method: 'PATCH',
+      const response = await fetch('/api/admin/teaching-assignments', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          classScheduleId, 
-          teachingAssistantIds: newTAIds 
+          personId: selectedPersonToAdd,
+          classScheduleId
         })
       });
       
-      if (!response.ok) throw new Error('Failed to assign TA');
-      
-      // Add the TA to the assigned list
-      const taToAdd = allTAs.find(ta => ta.id === selectedTAToAdd);
-      if (taToAdd) {
-        setAssignedTAs([...assignedTAs, taToAdd]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to assign TA');
       }
       
-      setSelectedTAToAdd('');
+      // Refresh data to get the new assignment with person details
+      await fetchData();
+      
+      setSelectedPersonToAdd('');
       showSuccess('Teaching assistant assigned to class');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign TA');
@@ -234,27 +351,20 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
     }
   };
 
-  const handleUnassignTA = async (taId: string) => {
+  const handleUnassignTA = async (assignmentId: string) => {
     if (!confirm('Remove this teaching assistant from this class?')) return;
     
     setSaving(true);
     setError(null);
     
     try {
-      const newTAIds = assignedTAs.filter(ta => ta.id !== taId).map(ta => ta.id);
-      
-      const response = await fetch('/api/admin/class-schedule-assistants', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          classScheduleId, 
-          teachingAssistantIds: newTAIds 
-        })
+      const response = await fetch(`/api/admin/teaching-assignments?id=${assignmentId}`, {
+        method: 'DELETE'
       });
       
       if (!response.ok) throw new Error('Failed to remove TA');
       
-      setAssignedTAs(assignedTAs.filter(ta => ta.id !== taId));
+      setAssignments(assignments.filter(a => a.id !== assignmentId));
       showSuccess('Teaching assistant removed from class');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove TA');
@@ -263,36 +373,88 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
     }
   };
 
-  const handleCreateTA = async (taData: { name: string; email: string; phone: string; notes: string }) => {
+  const handleCreatePerson = async (formData: PersonFormData) => {
     setSaving(true);
     setError(null);
     
     try {
-      const response = await fetch('/api/admin/teaching-assistants', {
+      const response = await fetch('/api/admin/persons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taData)
+        body: JSON.stringify({
+          ...formData,
+          roles: ['Teaching Assistant']
+        })
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create TA');
+        throw new Error(errorData.error || 'Failed to create person');
       }
       
       const data = await response.json();
-      setAllTAs([...allTAs, data.assistant]);
+      setAllTAPersons([...allTAPersons, data.person]);
       setShowAddModal(false);
-      showSuccess(`Teaching assistant "${data.assistant.name}" created`);
+      showSuccess(`Teaching assistant "${data.person.name}" created`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create TA');
+      setError(err instanceof Error ? err.message : 'Failed to create person');
     } finally {
       setSaving(false);
     }
   };
 
-  // Get available TAs (not already assigned)
-  const availableTAs = allTAs.filter(
-    ta => ta.status === 'Active' && !assignedTAs.some(assigned => assigned.id === ta.id)
+  const handleEditPerson = async (formData: PersonFormData) => {
+    if (!editingPerson) return;
+    
+    setSaving(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/admin/persons', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingPerson.id,
+          ...formData
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update person');
+      }
+      
+      const data = await response.json();
+      
+      // Update in allTAPersons
+      setAllTAPersons(allTAPersons.map(p => p.id === data.person.id ? data.person : p));
+      
+      // Update in assignments if present
+      setAssignments(assignments.map(a => 
+        a.personId === data.person.id 
+          ? { ...a, person: data.person }
+          : a
+      ));
+      
+      setShowEditModal(false);
+      setEditingPerson(null);
+      showSuccess(`Teaching assistant "${data.person.name}" updated`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update person');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditModal = (person: Person) => {
+    setEditingPerson(person);
+    setShowEditModal(true);
+  };
+
+  // Get available persons (not already assigned to this class)
+  const assignedPersonIds = assignments.map(a => a.personId);
+  const availablePersons = allTAPersons.filter(
+    p => p.status === 'Active' && !assignedPersonIds.includes(p.id)
   );
 
   if (loading) {
@@ -338,46 +500,132 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
             Teaching Assistants for This Class
           </h3>
           <span className="text-sm text-gray-500">
-            {assignedTAs.length} assigned
+            {assignments.length} assigned
           </span>
         </div>
 
-        {assignedTAs.length === 0 ? (
+        {assignments.length === 0 ? (
           <p className="text-gray-500 text-sm italic mb-4">No teaching assistants assigned to this class yet.</p>
         ) : (
           <div className="space-y-3 mb-4">
-            {assignedTAs.map(ta => (
-              <div 
-                key={ta.id} 
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-navy">{ta.name}</div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
-                    {ta.email && (
-                      <span className="flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        {ta.email}
-                      </span>
-                    )}
-                    {ta.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {ta.phone}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleUnassignTA(ta.id)}
-                  disabled={saving}
-                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                  title="Remove from class"
+            {assignments.map(assignment => {
+              const person = assignment.person;
+              if (!person) return null;
+
+              return (
+                <div 
+                  key={assignment.id} 
+                  className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+                  {/* Main Row */}
+                  <div className="flex items-center justify-between p-3">
+                    <div 
+                      className="flex-1 cursor-pointer"
+                      onClick={() => setExpandedPersonId(expandedPersonId === person.id ? null : person.id)}
+                    >
+                      <div className="font-medium text-navy">{person.name}</div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
+                        {person.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {person.email}
+                          </span>
+                        )}
+                        {person.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {person.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setExpandedPersonId(expandedPersonId === person.id ? null : person.id)}
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Show details"
+                      >
+                        {expandedPersonId === person.id ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => openEditModal(person)}
+                        className="p-2 text-gray-500 hover:text-accent-primary hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Edit TA"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleUnassignTA(assignment.id)}
+                        disabled={saving}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Remove from class"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Details */}
+                  {expandedPersonId === person.id && (
+                    <div className="px-3 pb-3 border-t border-gray-200 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3">
+                        {/* Notes */}
+                        {person.notes && (
+                          <div className="sm:col-span-2">
+                            <p className="text-xs text-gray-500 uppercase mb-1">Notes</p>
+                            <p className="text-sm text-gray-700">{person.notes}</p>
+                          </div>
+                        )}
+                        
+                        {/* Emergency Contact */}
+                        {(person.emergencyContactName || person.emergencyContactPhone || person.emergencyContactEmail) && (
+                          <div className="sm:col-span-2 bg-red-50 rounded-lg p-3 border border-red-100">
+                            <p className="text-xs text-red-700 uppercase mb-2 font-medium flex items-center gap-1">
+                              <Heart className="w-3 h-3" />
+                              Emergency Contact
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                              {person.emergencyContactName && (
+                                <div>
+                                  <span className="text-gray-500">Name: </span>
+                                  <span className="text-gray-900">{person.emergencyContactName}</span>
+                                  {person.emergencyContactRelationship && (
+                                    <span className="text-gray-500"> ({person.emergencyContactRelationship})</span>
+                                  )}
+                                </div>
+                              )}
+                              {person.emergencyContactPhone && (
+                                <div>
+                                  <span className="text-gray-500">Phone: </span>
+                                  <span className="text-gray-900">{person.emergencyContactPhone}</span>
+                                </div>
+                              )}
+                              {person.emergencyContactEmail && (
+                                <div>
+                                  <span className="text-gray-500">Email: </span>
+                                  <span className="text-gray-900">{person.emergencyContactEmail}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* No extra info message */}
+                        {!person.notes && !person.emergencyContactName && !person.emergencyContactPhone && !person.emergencyContactEmail && (
+                          <p className="text-sm text-gray-400 italic sm:col-span-2">
+                            No additional information. Click Edit to add notes or emergency contact.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -388,20 +636,20 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
           </label>
           <div className="flex gap-2">
             <select
-              value={selectedTAToAdd}
-              onChange={(e) => setSelectedTAToAdd(e.target.value)}
+              value={selectedPersonToAdd}
+              onChange={(e) => setSelectedPersonToAdd(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
             >
               <option value="">Select a teaching assistant...</option>
-              {availableTAs.map(ta => (
-                <option key={ta.id} value={ta.id}>
-                  {ta.name}{ta.email ? ` (${ta.email})` : ''}
+              {availablePersons.map(person => (
+                <option key={person.id} value={person.id}>
+                  {person.name}{person.email ? ` (${person.email})` : ''}
                 </option>
               ))}
             </select>
             <button
               onClick={handleAssignTA}
-              disabled={!selectedTAToAdd || saving}
+              disabled={!selectedPersonToAdd || saving}
               className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
@@ -426,12 +674,35 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
         </p>
       </div>
 
-      {/* Add TA Modal */}
-      <AddTAModal
+      {/* Add Person Modal */}
+      <PersonModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSave={handleCreateTA}
+        onSave={handleCreatePerson}
         saving={saving}
+        mode="add"
+      />
+
+      {/* Edit Person Modal */}
+      <PersonModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingPerson(null);
+        }}
+        onSave={handleEditPerson}
+        saving={saving}
+        mode="edit"
+        initialData={editingPerson ? {
+          name: editingPerson.name,
+          email: editingPerson.email || '',
+          phone: editingPerson.phone || '',
+          notes: editingPerson.notes || '',
+          emergencyContactName: editingPerson.emergencyContactName || '',
+          emergencyContactRelationship: editingPerson.emergencyContactRelationship || '',
+          emergencyContactPhone: editingPerson.emergencyContactPhone || '',
+          emergencyContactEmail: editingPerson.emergencyContactEmail || ''
+        } : undefined}
       />
     </div>
   );
