@@ -1,605 +1,334 @@
 // /api/send-class-reminders.js
 // Cron job to send reminder emails 1 day before class
-// ✅ UPDATED: Also sends reminders to Teaching Assistants
+// ✅ UPDATED: Uses Persons + Teaching Assignments tables (not old Teaching Assistants table)
 
 export default async function handler(req, res) {
   // Verify this is called by Vercel Cron or with proper auth
   const authHeader = req.headers.authorization;
-  const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
-  const bypassToken = req.headers['x-vercel-protection-bypass'] || req.query['x-vercel-protection-bypass'];
-  const expectedBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
   
-  const isAuthorized = authHeader === expectedAuth || bypassToken === expectedBypass;
-  
-  if (!isAuthorized) {
-    console.log('[REMINDER-CRON] Unauthorized request');
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-   // Helper function to delay execution (rate limiting)
-  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+  const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
   try {
-    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
-
-    if (!RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY not configured');
-    }
-
-    console.log('[REMINDER-CRON] Starting class reminder job...');
-
-    // Calculate tomorrow's date (24 hours from now)
-    const tomorrow = new Date();
+    // Get tomorrow's date range in Pacific time
+    const now = new Date();
+    const pacificTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    
+    const tomorrow = new Date(pacificTime);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDateStr = tomorrow.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const tomorrowStart = new Date(tomorrow.setHours(0, 0, 0, 0));
+    const tomorrowEnd = new Date(tomorrow.setHours(23, 59, 59, 999));
 
-    console.log('[REMINDER-CRON] Looking for classes on:', tomorrowDateStr);
-
-    // Fetch ALL class schedules (no filter - same approach as /api/admin/class-schedules.js)
-    const schedulesResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules`,
-      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-    );
-
-    if (!schedulesResponse.ok) {
-      throw new Error(`Failed to fetch schedules: ${schedulesResponse.status}`);
-    }
-
-    const schedulesData = await schedulesResponse.json();
-    const allSchedules = schedulesData.records || [];
-
-    // Filter for tomorrow's date AND NOT cancelled in JavaScript
-    const schedules = allSchedules.filter(schedule => {
-      const scheduleDate = schedule.fields.Date;
-      const isCancelled = schedule.fields['Is Cancelled'];
-      
-      // Skip if no date or if cancelled
-      if (!scheduleDate || isCancelled) return false;
-      
-      // Handle different date formats - convert to YYYY-MM-DD
-      const dateObj = new Date(scheduleDate);
-      const scheduleDateStr = dateObj.toISOString().split('T')[0];
-      
-      return scheduleDateStr === tomorrowDateStr;
-    });
-
-    console.log(`[REMINDER-CRON] Found ${schedules.length} classes scheduled for tomorrow`);
-
-    if (schedules.length === 0) {
-      return res.json({ 
-        success: true, 
-        message: 'No classes scheduled for tomorrow',
-        classesFound: 0,
-        emailsSent: 0,
-        taEmailsSent: 0
-      });
-    }
-
-    // Fetch all Teaching Assistants for later lookup
-    const allTAsResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assistants`,
-      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+    // Fetch class schedules for tomorrow
+    const classesResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedule?filterByFormula=AND(IS_AFTER({Class Date}, '${tomorrowStart.toISOString()}'), IS_BEFORE({Class Date}, '${tomorrowEnd.toISOString()}'), {Status} = 'Scheduled')`,
+      {
+        headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+      }
     );
     
-    let allTAs = [];
-    if (allTAsResponse.ok) {
-      const allTAsData = await allTAsResponse.json();
-      allTAs = allTAsData.records || [];
+    if (!classesResponse.ok) {
+      throw new Error('Failed to fetch class schedules');
     }
-    console.log(`[REMINDER-CRON] Loaded ${allTAs.length} teaching assistants`);
+    
+    const classesData = await classesResponse.json();
+    const classes = classesData.records || [];
 
-    const results = [];
-    let totalEmailsSent = 0;
-    let totalTAEmailsSent = 0;
+    if (classes.length === 0) {
+      return res.status(200).json({ message: 'No classes tomorrow', sent: 0 });
+    }
 
-    // Process each class schedule
-    for (const schedule of schedules) {
-      try {
-        console.log(`[REMINDER-CRON] Processing schedule ${schedule.id}`);
+    let emailsSent = 0;
+    let taEmailsSent = 0;
+    const errors = [];
 
-        // Get class details
-        const classId = schedule.fields.Class?.[0];
-        let classData = null;
+    for (const classRecord of classes) {
+      const classId = classRecord.id;
+      const classFields = classRecord.fields;
+      const className = classFields['Class Name'] || 'Self-Defense Class';
+      const classDate = classFields['Class Date'];
+      const location = classFields['Location'] || '';
+      const locationAddress = classFields['Location Address'] || '';
 
-        if (classId) {
-          const classResponse = await fetch(
-            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`,
-            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-          );
-          if (classResponse.ok) {
-            classData = await classResponse.json();
-          }
+      // Format date/time for email
+      const classDateTime = new Date(classDate);
+      const formattedDate = classDateTime.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/Los_Angeles'
+      });
+      const formattedTime = classDateTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'America/Los_Angeles'
+      });
+
+      // ========================================
+      // SEND REMINDERS TO STUDENTS
+      // ========================================
+      
+      // Fetch bookings for this class
+      const bookingsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND({Class Schedule} = '${classId}', {Status} = 'Confirmed')`,
+        {
+          headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
         }
-
-        // Common class info for emails
-        const formatTimeForDisplay = (timeStr) => {
-          if (!timeStr) return 'TBD';
-          
-          if (timeStr.includes('T')) {
-            const date = new Date(timeStr);
-            return date.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-              timeZone: 'America/Los_Angeles'
-            });
-          }
-          
-          return timeStr;
-        };
-
-        const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
-        const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
-        
-        const formattedDate = schedule.fields?.Date 
-          ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
-              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-            })
-          : 'TBD';
-
-        const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
-        const location = schedule.fields?.Location || classData?.fields?.Location || 'Location TBD';
-
-        // ============================================
-        // SEND REMINDERS TO TEACHING ASSISTANTS
-        // ============================================
-        const assignedTAIds = schedule.fields['Teaching Assistants'] || [];
-        
-        if (assignedTAIds.length > 0) {
-          console.log(`[REMINDER-CRON] Found ${assignedTAIds.length} TAs assigned to schedule ${schedule.id}`);
-          
-          for (const taId of assignedTAIds) {
-            const ta = allTAs.find(t => t.id === taId);
-            if (!ta) {
-              console.log(`[REMINDER-CRON] TA ${taId} not found in database`);
-              continue;
-            }
-
-            const taEmail = ta.fields['Email'];
-            const taName = ta.fields['Name'] || 'Teaching Assistant';
-            const taFirstName = taName.split(' ')[0];
-            const taStatus = ta.fields['Status'];
-
-            // Skip inactive TAs
-            if (taStatus === 'Inactive') {
-              console.log(`[REMINDER-CRON] Skipping inactive TA: ${taName}`);
-              continue;
-            }
-
-            // Skip if no email
-            if (!taEmail) {
-              console.log(`[REMINDER-CRON] Skipping TA ${taName} - no email`);
-              continue;
-            }
-
-            // Format location with map links
-            const locationFormatted = location !== 'Location TBD' 
-              ? `${location} (<a href="https://maps.google.com/?q=${encodeURIComponent(location)}" style="color: #20B2AA; text-decoration: none;">Google Maps</a> | <a href="https://maps.apple.com/?q=${encodeURIComponent(location)}" style="color: #20B2AA; text-decoration: none;">Apple Maps</a>)`
-              : location;
-
-            // TA-specific email HTML
-            const taEmailHTML = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="text-align: center; margin-bottom: 30px;">
-    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
-  </div>
-  
-  <h1 style="color: #2C3E50; text-align: center; font-size: 32px; margin-bottom: 10px;">You're Helping Teach Tomorrow!</h1>
-  
-  <p style="font-size: 16px; line-height: 1.6;">Hi ${taFirstName},</p>
-  
-  <p style="font-size: 16px; line-height: 1.6;">This is a friendly reminder that you're scheduled to <strong>help teach</strong> a self-defense class tomorrow. Thank you so much for volunteering your time!</p>
-  
-  <div style="background: #F0F4F8; border: 2px solid #2C3E50; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Class Details</h2>
-    <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50; width: 35%;">Class:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${className}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Date:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${formattedDate}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Time:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${displayStartTime} - ${displayEndTime}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; font-weight: bold; color: #2C3E50;">Location:</td>
-        <td style="padding: 12px 8px; color: #1E293B;">${locationFormatted}</td>
-      </tr>
-    </table>
-  </div>
-  
-  <div style="background: #E0F2FE; border: 2px solid #0284C7; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #0369A1; margin-top: 0; font-size: 22px;">📋 TA Reminders</h2>
-    <ul style="font-size: 15px; color: #0C4A6E; margin: 15px 0; line-height: 1.8;">
-      <li>Please arrive <strong>15-20 minutes early</strong> to help with setup</li>
-      <li>Wear comfortable clothes you can move in</li>
-      <li>Bring water and any equipment we discussed</li>
-      <li>Let me know ASAP if anything comes up and you can't make it</li>
-    </ul>
-  </div>
-  
-  <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
-    <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">Questions? Call or text:</p>
-    <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
-      <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">(925) 532-9953</a>
-    </p>
-    <p style="margin-top: 20px; font-size: 16px; color: #374151;">Thanks again for your help!</p>
-    <p style="font-weight: bold; margin-top: 15px; font-size: 18px; color: #2C3E50;">See you tomorrow!</p>
-  </div>
-  
-  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
-    <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Warm regards,</p>
-    <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
-    <p style="color: #6B7280; font-size: 15px; margin: 8px 0;">Streetwise Self Defense</p>
-  </div>
-</body>
-</html>
-`;
-
-            // Send TA email
-            try {
-              const { Resend } = await import('resend');
-              const resend = new Resend(RESEND_API_KEY);
-
-              const { data, error } = await resend.emails.send({
-                from: FROM_EMAIL,
-                to: taEmail,
-                reply_to: 'jay@streetwiseselfdefense.com',
-                subject: `Reminder: You're Helping Teach Tomorrow! - ${className}`,
-                html: taEmailHTML
-              });
-
-              if (error) {
-                console.error(`[REMINDER-CRON] Resend error for TA ${taName}:`, error);
-                throw error;
-              }
-
-              console.log(`[REMINDER-CRON] ✅ Sent TA email to ${taEmail} (${taName})`);
-
-              totalTAEmailsSent++;
-              results.push({
-                scheduleId: schedule.id,
-                recipientType: 'TA',
-                taId: ta.id,
-                taName: taName,
-                email: taEmail,
-                success: true
-              });
-
-              await sleep(600);
-              
-            } catch (taEmailErr) {
-              console.error(`[REMINDER-CRON] Failed to send TA email to ${taName}:`, taEmailErr);
-              results.push({
-                scheduleId: schedule.id,
-                recipientType: 'TA',
-                taId: ta.id,
-                taName: taName,
-                email: taEmail,
-                success: false,
-                error: taEmailErr.message
-              });
-            }
-          }
-        }
-
-        // ============================================
-        // SEND REMINDERS TO STUDENTS (existing logic)
-        // ============================================
-        
-        // Get all confirmed bookings for this schedule
-        const bookingIds = schedule.fields.Bookings || [];
-        if (bookingIds.length === 0) {
-          console.log(`[REMINDER-CRON] No bookings for schedule ${schedule.id}`);
-          continue;
-        }
-
-        const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-        const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
-        
-        const bookingsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-          { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-        );
-
-        if (!bookingsResponse.ok) {
-          throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
-        }
-
+      );
+      
+      if (bookingsResponse.ok) {
         const bookingsData = await bookingsResponse.json();
         const bookings = bookingsData.records || [];
 
-        console.log(`[REMINDER-CRON] Found ${bookings.length} confirmed bookings for schedule ${schedule.id}`);
+        for (const booking of bookings) {
+          const email = booking.fields['Contact Email'];
+          const firstName = booking.fields['Contact First Name'] || 'Student';
+          const trackingId = booking.id;
 
-        // Get all participants for these bookings
-        const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
-        let participantsMap = new Map();
+          if (!email) continue;
 
-        if (allParticipantIds.length > 0) {
-          const participantOrConditions = allParticipantIds.map(id => `RECORD_ID()="${id}"`).join(',');
-          const participantFilterFormula = `OR(${participantOrConditions})`;
-          
-          const participantsResponse = await fetch(
-            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(participantFilterFormula)}`,
-            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-          );
-
-          if (participantsResponse.ok) {
-            const participantsData = await participantsResponse.json();
-            const participants = participantsData.records || [];
-            
-            // Create a map of bookingId -> participants
-            participants.forEach(p => {
-              const bookingId = p.fields.Booking?.[0];
-              if (bookingId) {
-                if (!participantsMap.has(bookingId)) {
-                  participantsMap.set(bookingId, []);
-                }
-                participantsMap.get(bookingId).push(p);
-              }
+          try {
+            // Send email via Resend
+            const emailResponse = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                from: 'Streetwise Self Defense <notifications@streetwiseselfdefense.com>',
+                to: email,
+                subject: `Reminder: Your ${className} is Tomorrow!`,
+                html: generateStudentReminderEmail({
+                  firstName,
+                  className,
+                  formattedDate,
+                  formattedTime,
+                  location,
+                  locationAddress,
+                  trackingId
+                })
+              })
             });
+
+            if (emailResponse.ok) {
+              emailsSent++;
+              
+              // Record that reminder was sent
+              await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  fields: {
+                    'Day Before Reminder Sent': new Date().toISOString()
+                  }
+                })
+              });
+            }
+          } catch (emailError) {
+            errors.push(`Student email error for ${email}: ${emailError.message}`);
           }
         }
+      }
 
-       // Send reminder email to each booking
-        for (const booking of bookings) {
-          try {
-            const contactEmail = booking.fields['Contact Email'];
-            const contactFirstName = booking.fields['Contact First Name'] || 'Valued Customer';
-            
-            if (!contactEmail) {
-              console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - no email`);
-              continue;
+      // ========================================
+      // SEND REMINDERS TO TEACHING ASSISTANTS
+      // ========================================
+      
+      // Fetch all Teaching Assignments (no filterByFormula on linked records)
+      const assignmentsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
+        {
+          headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+        }
+      );
+
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        const allAssignments = assignmentsData.records || [];
+        
+        // Filter to assignments for this class
+        const classAssignments = allAssignments.filter(assignment => {
+          const linkedClassIds = assignment.fields['Class Schedule'] || [];
+          return linkedClassIds.includes(classId);
+        });
+
+        // Get Person IDs from assignments
+        const personIds = classAssignments
+          .map(a => a.fields['Person']?.[0])
+          .filter(Boolean);
+
+        if (personIds.length > 0) {
+          // Fetch Person records
+          const personsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
+            {
+              headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
             }
+          );
 
-            // Skip if reminder already sent (duplicate prevention)
-            if (booking.fields['Reminder Email ID']) {
-              console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - reminder already sent (Email ID: ${booking.fields['Reminder Email ID']})`);
-              continue;
-            }
-
-            // Get participants for this booking
-            const bookingParticipants = participantsMap.get(booking.id) || [];
-            const participantCount = booking.fields['Number of Participants'] || bookingParticipants.length || 1;
+          if (personsResponse.ok) {
+            const personsData = await personsResponse.json();
+            const allPersons = personsData.records || [];
             
-            // Build list of ALL participant names (including booker)
-            const allParticipantNames = bookingParticipants.length > 0
-              ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
-              : contactFirstName;
-            
-            // Use Waiver URL from schedule, fallback to general waiver page
-            const waiverUrl = schedule.fields?.['Waiver URL'] || 'https://www.streetwiseselfdefense.com/waiver';
-            
-            // Make class prep URL environment-aware
-            const host = req.headers?.host || 'www.streetwiseselfdefense.com';
-            const protocol = host.includes('localhost') ? 'http' : 'https';
-            const baseUrl = `${protocol}://${host}`;
-            const classPrepUrl = `${baseUrl}/class-prep/${schedule.id}`;
+            // Filter to just the persons we need
+            const taPersons = allPersons.filter(p => personIds.includes(p.id));
 
-            // Format location with map links
-            const locationFormatted = location !== 'Location TBD' 
-              ? `${location} (<a href="https://maps.google.com/?q=${encodeURIComponent(location)}" style="color: #20B2AA; text-decoration: none;">Google Maps</a> | <a href="https://maps.apple.com/?q=${encodeURIComponent(location)}" style="color: #20B2AA; text-decoration: none;">Apple Maps</a>)`
-              : location;
+            for (const person of taPersons) {
+              const email = person.fields['Email'];
+              const name = person.fields['Name'] || 'Teaching Assistant';
+              const firstName = name.split(' ')[0];
 
-            // Build HTML email
-            const emailHTML = `
-<!DOCTYPE html>
-<html>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="text-align: center; margin-bottom: 30px;">
-    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
-  </div>
-  
-  <h1 style="color: #2C3E50; text-align: center; font-size: 32px; margin-bottom: 10px;">Your Class is Tomorrow!</h1>
-  
-  <p style="font-size: 16px; line-height: 1.6;">Hi ${contactFirstName},</p>
-  
-  <p style="font-size: 16px; line-height: 1.6;">This is an <strong>eye-opening, fun, practical, and empowering</strong> experience that builds confidence from the get-go! You'll even practice your new striking skills against a real male "attacker" during simulated scenarios.</p>
-  
-  <div style="text-align: center; margin: 30px 0;">
-    <img src="https://www.streetwiseselfdefense.com/self-defense-action.png" alt="Self-defense training in action" style="max-width: 100%; height: auto; border-radius: 8px;">
-  </div>
-  
-  <div style="background: #F0F4F8; border: 2px solid #2C3E50; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Your Class Details</h2>
-    <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50; width: 35%;">Class:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${className}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Date:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${formattedDate}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Time:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${displayStartTime} - ${displayEndTime}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; font-weight: bold; color: #2C3E50;">Location:</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #CBD5E0; color: #1E293B;">${locationFormatted}</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 8px; font-weight: bold; color: #2C3E50;">Registered:</td>
-        <td style="padding: 12px 8px; color: #1E293B;">${allParticipantNames}</td>
-      </tr>
-    </table>
-  </div>
-  
-  <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #92400E; margin-top: 0; font-size: 22px;">⚠️ Waiver</h2>
-    <p style="font-size: 15px; color: #78350F; line-height: 1.7;">If you haven't already, please complete your waiver. <strong>Each participant</strong> must complete their waiver before class to ensure a smooth check-in.${participantCount > 1 ? ' <strong>If you booked for multiple people, please forward this email to everyone attending!</strong>' : ''}</p>
-    <p style="text-align: center; margin: 25px 0;">
-      <a href="${waiverUrl}" style="background: #20B2AA; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">Complete Waiver Now</a>
-    </p>
-    <p style="font-size: 14px; color: #92400E; margin-top: 20px;"><strong>Important Waiver Instructions:</strong></p>
-    <ul style="font-size: 14px; color: #92400E; margin: 10px 0; line-height: 1.8;">
-      <li><strong>Adults (18+):</strong> Select "Myself"</li>
-      <li><strong>Teens (15-17):</strong> Select "Minors Only" (parent/guardian must sign)</li>
-      <li><strong>Teens with parent:</strong> Select "Parent/Guardian & Minor"</li>
-    </ul>
-    <p style="font-size: 13px; color: #92400E; font-style: italic; margin-top: 15px;">Pro tip: On mobile, scroll down for the "Continue" button!</p>
-  </div>
-  
-  <div style="background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">What to Expect</h2>
-    <p style="font-size: 15px; line-height: 1.7;">Review important details about your class experience:</p>
-    <ul style="line-height: 2; font-size: 15px; color: #374151;">
-      <li>Workshop experience overview</li>
-      <li>Detailed directions & parking info</li>
-      <li>What to bring (and what NOT to bring)</li>
-      <li>Recommended attire</li>
-      <li>Photography policy</li>
-    </ul>
-    <p style="text-align: center; margin: 25px 0;">
-      <a href="${classPrepUrl}" style="color: #20B2AA; font-weight: bold; text-decoration: underline; font-size: 16px;">View What to Expect Page →</a>
-    </p>
-  </div>
-  
-  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <h2 style="color: #2C3E50; margin-top: 0; font-size: 22px;">Quick Favor</h2>
-    <p style="font-size: 15px; line-height: 1.6; color: #374151;">I've had some deliverability issues with these emails landing in spam. If you could briefly reply confirming you received this and plan to attend, it would help me out tremendously!</p>
-    <p style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 12px;">You can also respond to the text message reminder I may send.</p>
-  </div>
-  
-  <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-left: 4px solid #20B2AA; border-radius: 8px; padding: 25px; margin: 30px 0;">
-    <p style="font-size: 16px; line-height: 1.7; font-style: italic; color: #374151; margin: 0;">Bring any male-focused frustration you might have... take it out on me, with no judgment! First one to knock me down gets bragging rights! 😄</p>
-  </div>
-  
-  <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
-    <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">If you have any last-minute questions, feel free to call or text:</p>
-    <p style="font-size: 22px; font-weight: bold; color: #2C3E50; margin: 15px 0;">
-      <a href="tel:+19255329953" style="color: #20B2AA; text-decoration: none;">(925) 532-9953</a>
-    </p>
-    <p style="margin-top: 20px; font-size: 16px; color: #374151;">I'm looking forward to working with you!</p>
-    <p style="font-weight: bold; margin-top: 15px; font-size: 18px; color: #2C3E50;">See you tomorrow!</p>
-  </div>
-  
-  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
-    <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Warm regards,</p>
-    <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
-    <p style="color: #6B7280; font-size: 15px; margin: 8px 0;">Streetwise Self Defense</p>
-    <p style="color: #6B7280; font-size: 14px; line-height: 1.6; margin-top: 12px;">
-      Empowering women and vulnerable populations through practical self-defense training<br>
-      Walnut Creek, CA | (925) 532-9953
-    </p>
-  </div>
-</body>
-</html>
-`;
+              if (!email) continue;
 
-            // Send email via Resend
-            try {
-              const { Resend } = await import('resend');
-              const resend = new Resend(RESEND_API_KEY);
-
-              const { data, error } = await resend.emails.send({
-                from: FROM_EMAIL,
-                to: contactEmail,
-                reply_to: 'jay@streetwiseselfdefense.com',
-                cc: 'reminders@streetwiseselfdefense.com',
-                subject: `Reminder: Your Class is Tomorrow! - ${className}`,
-                html: emailHTML
-              });
-
-              if (error) {
-                console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, error);
-                throw error;
-              }
-
-              console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
-              console.log(`[REMINDER-CRON] Reminder Email ID: ${data.id}`);
-
-              // Store reminder email ID and status in Airtable
-              if (data && data.id) {
-                await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
-                  method: 'PATCH',
+              try {
+                const emailResponse = await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
                   headers: {
-                    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                    'Authorization': `Bearer ${RESEND_API_KEY}`,
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
-                    fields: {
-                      'Reminder Email ID': data.id,
-                      'Reminder Email Status': 'Sent',
-                      'Reminder Email Sent At': new Date().toISOString()
-                    }
+                    from: 'Streetwise Self Defense <notifications@streetwiseselfdefense.com>',
+                    to: email,
+                    subject: `Reminder: You're Helping Teach ${className} Tomorrow!`,
+                    html: generateTAReminderEmail({
+                      firstName,
+                      className,
+                      formattedDate,
+                      formattedTime,
+                      location,
+                      locationAddress
+                    })
                   })
                 });
-                
-                console.log(`[REMINDER-CRON] Stored reminder email tracking data for booking ${booking.id}`);
+
+                if (emailResponse.ok) {
+                  taEmailsSent++;
+                }
+              } catch (emailError) {
+                errors.push(`TA email error for ${email}: ${emailError.message}`);
               }
-
-              totalEmailsSent++;
-              results.push({
-                scheduleId: schedule.id,
-                recipientType: 'Student',
-                bookingId: booking.id,
-                email: contactEmail,
-                success: true
-              });
-
-  // Rate limit: wait 600ms between emails (allows ~1.6 emails/second, safely under 2/sec limit)
-              await sleep(600);
-              
-            } catch (resendErr) {
-              console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, resendErr);
-              results.push({
-                scheduleId: schedule.id,
-                recipientType: 'Student',
-                bookingId: booking.id,
-                email: contactEmail,
-                success: false,
-                error: resendErr.message
-              });
             }
-          } catch (bookingError) {
-            console.error(`[REMINDER-CRON] Error processing booking ${booking.id}:`, bookingError);
-            results.push({
-              scheduleId: schedule.id,
-              bookingId: booking.id,
-              success: false,
-              error: bookingError.message
-            });
           }
         }
-
-        console.log(`[REMINDER-CRON] Processed schedule ${schedule.id}: ${totalEmailsSent} student emails, ${totalTAEmailsSent} TA emails`);
-
-      } catch (scheduleError) {
-        console.error(`[REMINDER-CRON] Error processing schedule ${schedule.id}:`, scheduleError);
-        results.push({
-          scheduleId: schedule.id,
-          success: false,
-          error: scheduleError.message
-        });
       }
     }
 
-    console.log(`[REMINDER-CRON] Reminder job complete. Student emails: ${totalEmailsSent}, TA emails: ${totalTAEmailsSent}`);
-
-    return res.json({
+    return res.status(200).json({
       success: true,
-      classesFound: schedules.length,
-      emailsSent: totalEmailsSent,
-      taEmailsSent: totalTAEmailsSent,
-      results
+      classesProcessed: classes.length,
+      studentEmailsSent: emailsSent,
+      taEmailsSent: taEmailsSent,
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
-    console.error('[REMINDER-CRON] Fatal error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    console.error('Send reminders error:', error);
+    return res.status(500).json({ error: error.message });
   }
+}
+
+// Student reminder email template
+function generateStudentReminderEmail({ firstName, className, formattedDate, formattedTime, location, locationAddress, trackingId }) {
+  const trackingPixelUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://streetwiseselfdefense.com'}/api/track-email-open?id=${trackingId}`;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #1a365d; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: white; margin: 0;">Class Reminder</h1>
+      </div>
+      
+      <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px;">
+        <p>Hi ${firstName},</p>
+        
+        <p>This is a friendly reminder that your <strong>${className}</strong> is tomorrow!</p>
+        
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #e53e3e;">
+          <p style="margin: 0 0 10px 0;"><strong>📅 Date:</strong> ${formattedDate}</p>
+          <p style="margin: 0 0 10px 0;"><strong>🕐 Time:</strong> ${formattedTime}</p>
+          ${location ? `<p style="margin: 0 0 10px 0;"><strong>📍 Location:</strong> ${location}</p>` : ''}
+          ${locationAddress ? `<p style="margin: 0;"><strong>🗺️ Address:</strong> ${locationAddress}</p>` : ''}
+        </div>
+        
+        <h3 style="color: #1a365d;">What to Bring:</h3>
+        <ul>
+          <li>Comfortable clothing you can move in</li>
+          <li>Athletic shoes (no sandals or heels)</li>
+          <li>Water bottle</li>
+          <li>A positive attitude!</li>
+        </ul>
+        
+        <p>We look forward to seeing you!</p>
+        
+        <p style="margin-top: 30px;">
+          Best regards,<br>
+          <strong>Streetwise Self Defense</strong>
+        </p>
+      </div>
+      
+      <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+        <p>Questions? Reply to this email or call us.</p>
+      </div>
+      
+      <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="" />
+    </body>
+    </html>
+  `;
+}
+
+// TA reminder email template (modified messaging)
+function generateTAReminderEmail({ firstName, className, formattedDate, formattedTime, location, locationAddress }) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #553c9a; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: white; margin: 0;">Teaching Assistant Reminder</h1>
+      </div>
+      
+      <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px;">
+        <p>Hi ${firstName},</p>
+        
+        <p>This is a reminder that you're scheduled to help teach <strong>${className}</strong> tomorrow!</p>
+        
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #553c9a;">
+          <p style="margin: 0 0 10px 0;"><strong>📅 Date:</strong> ${formattedDate}</p>
+          <p style="margin: 0 0 10px 0;"><strong>🕐 Time:</strong> ${formattedTime}</p>
+          ${location ? `<p style="margin: 0 0 10px 0;"><strong>📍 Location:</strong> ${location}</p>` : ''}
+          ${locationAddress ? `<p style="margin: 0;"><strong>🗺️ Address:</strong> ${locationAddress}</p>` : ''}
+        </div>
+        
+        <p><strong>Please arrive 15-20 minutes early</strong> to help with setup.</p>
+        
+        <p>If you can no longer make it, please let us know ASAP so we can make arrangements.</p>
+        
+        <p style="margin-top: 30px;">
+          Thank you for your help!<br>
+          <strong>Streetwise Self Defense</strong>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
 }
