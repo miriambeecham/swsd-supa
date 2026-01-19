@@ -1,5 +1,6 @@
 // /src/components/admin/TeachingAssistantsTab.tsx
-// Teaching Assistants tab for the AdminAttendancePage
+// Teaching Assistants tab - assign TAs to this class
+// Note: Converting students to TAs is done on the Roster tab
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -7,7 +8,6 @@ import {
   X, 
   Check, 
   AlertCircle, 
-  Users, 
   Mail, 
   Phone,
   Loader2,
@@ -163,20 +163,11 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedTAToAdd, setSelectedTAToAdd] = useState<string>('');
-  const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
-  const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; taId?: string; taName?: string }>>({});
 
   // Fetch assigned TAs and all TAs on mount
   useEffect(() => {
     fetchData();
   }, [classScheduleId]);
-
-  // Check TA status for all roster participants
-  useEffect(() => {
-    if (roster.length > 0) {
-      checkParticipantTAStatus();
-    }
-  }, [roster, allTAs]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -201,28 +192,6 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const checkParticipantTAStatus = async () => {
-    const statusMap: Record<string, { isTA: boolean; taId?: string; taName?: string }> = {};
-    
-    for (const participant of roster) {
-      // Check if any TA has this participant as source or matches by name
-      const fullName = `${participant.firstName} ${participant.lastName}`.toLowerCase();
-      const matchingTA = allTAs.find(ta => ta.name.toLowerCase() === fullName);
-      
-      if (matchingTA) {
-        statusMap[participant.id] = { 
-          isTA: true, 
-          taId: matchingTA.id,
-          taName: matchingTA.name 
-        };
-      } else {
-        statusMap[participant.id] = { isTA: false };
-      }
-    }
-    
-    setParticipantTAStatus(statusMap);
   };
 
   const showSuccess = (message: string) => {
@@ -321,49 +290,6 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
     }
   };
 
-  const handleConvertParticipant = async (participantId: string) => {
-    setConvertingParticipant(participantId);
-    setError(null);
-    
-    try {
-      const response = await fetch('/api/admin/teaching-assistants/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.existingTA) {
-          throw new Error(`${errorData.error}: ${errorData.existingTA.name}`);
-        }
-        throw new Error(errorData.error || 'Failed to convert participant');
-      }
-      
-      const data = await response.json();
-      
-      // Add to all TAs list
-      setAllTAs([...allTAs, data.assistant]);
-      
-      // Update participant status
-      setParticipantTAStatus(prev => ({
-        ...prev,
-        [participantId]: { 
-          isTA: true, 
-          taId: data.assistant.id,
-          taName: data.assistant.name 
-        }
-      }));
-      
-      const contactInfo = data.contactInfoCopied ? ' (email & phone copied)' : ' (no contact info available)';
-      showSuccess(`Converted to teaching assistant${contactInfo}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert participant');
-    } finally {
-      setConvertingParticipant(null);
-    }
-  };
-
   // Get available TAs (not already assigned)
   const availableTAs = allTAs.filter(
     ta => ta.status === 'Active' && !assignedTAs.some(assigned => assigned.id === ta.id)
@@ -409,17 +335,17 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-navy flex items-center gap-2">
             <GraduationCap className="w-5 h-5" />
-            Assigned to This Class
+            Teaching Assistants for This Class
           </h3>
           <span className="text-sm text-gray-500">
-            {assignedTAs.length} assistant{assignedTAs.length !== 1 ? 's' : ''}
+            {assignedTAs.length} assigned
           </span>
         </div>
 
         {assignedTAs.length === 0 ? (
-          <p className="text-gray-500 text-sm italic">No teaching assistants assigned to this class yet.</p>
+          <p className="text-gray-500 text-sm italic mb-4">No teaching assistants assigned to this class yet.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 mb-4">
             {assignedTAs.map(ta => (
               <div 
                 key={ta.id} 
@@ -456,9 +382,9 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
         )}
 
         {/* Add Existing TA Dropdown */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="pt-4 border-t border-gray-200">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Add Existing Teaching Assistant
+            Assign a Teaching Assistant
           </label>
           <div className="flex gap-2">
             <select
@@ -493,79 +419,11 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
         </div>
       </div>
 
-      {/* Convert from Roster Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-navy flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5" />
-          Convert Student to Teaching Assistant
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Click "Convert to TA" next to any student to add them as a teaching assistant. 
-          If they booked for themselves, their email and phone will be copied automatically.
+      {/* Help Text */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Tip:</strong> To convert a student to a Teaching Assistant, go to the <strong>Roster</strong> tab and click the "Convert" button next to their name. Their contact info will be copied automatically if they were the one who booked.
         </p>
-
-        {roster.length === 0 ? (
-          <p className="text-gray-500 text-sm italic">No students in the roster.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-3 font-medium text-gray-700">Name</th>
-                  <th className="text-left py-2 px-3 font-medium text-gray-700">Primary Contact</th>
-                  <th className="text-right py-2 px-3 font-medium text-gray-700">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roster.map(participant => {
-                  const taStatus = participantTAStatus[participant.id];
-                  const isConverting = convertingParticipant === participant.id;
-                  
-                  return (
-                    <tr key={participant.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 px-3">
-                        {participant.firstName} {participant.lastName}
-                      </td>
-                      <td className="py-2 px-3">
-                        {participant.isPrimaryContact && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            Yes
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        {taStatus?.isTA ? (
-                          <span className="inline-flex items-center gap-1 text-green-600 text-xs">
-                            <Check className="w-3 h-3" />
-                            Already a TA
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleConvertParticipant(participant.id)}
-                            disabled={isConverting}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-xs bg-accent-primary text-white rounded hover:bg-accent-dark transition-colors disabled:bg-gray-400"
-                          >
-                            {isConverting ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Converting...
-                              </>
-                            ) : (
-                              <>
-                                <GraduationCap className="w-3 h-3" />
-                                Convert to TA
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* Add TA Modal */}
