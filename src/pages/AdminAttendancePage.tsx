@@ -272,6 +272,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ roster, attendanceState, su
 };
 
 // ============================================
+// ============================================
 // ROSTER TAB COMPONENT
 // ============================================
 
@@ -281,7 +282,8 @@ interface RosterTabProps {
   onAttendanceChange: (participantId: string, value: string) => void;
   copiedField: string | null;
   onCopy: (text: string, fieldId: string) => void;
-  onParticipantConvertedToTA?: () => void; // Callback to refresh TA data
+  classScheduleId: string; // Added for convert functionality
+  onParticipantConvertedToTA?: () => void;
 }
 
 const RosterTab: React.FC<RosterTabProps> = ({ 
@@ -290,32 +292,33 @@ const RosterTab: React.FC<RosterTabProps> = ({
   onAttendanceChange,
   copiedField,
   onCopy,
+  classScheduleId,
   onParticipantConvertedToTA
 }) => {
   const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
-  const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; taName?: string }>>({});
+  const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; personName?: string }>>({});
   const [conversionMessage, setConversionMessage] = useState<{ participantId: string; message: string; type: 'success' | 'error' } | null>(null);
 
   // Check TA status for all participants on mount
   useEffect(() => {
     const checkAllParticipantTAStatus = async () => {
       try {
-        // Fetch all TAs once
-        const response = await fetch('/api/admin/teaching-assistants');
+        // Fetch all persons with TA role
+        const response = await fetch('/api/admin/persons?role=Teaching%20Assistant');
         if (!response.ok) return;
         
         const data = await response.json();
-        const allTAs = data.assistants || [];
+        const allTAPersons = data.persons || [];
         
         // Build status map by matching names
-        const statusMap: Record<string, { isTA: boolean; taName?: string }> = {};
+        const statusMap: Record<string, { isTA: boolean; personName?: string }> = {};
         
         for (const participant of roster) {
           const fullName = `${participant.firstName} ${participant.lastName}`.toLowerCase().trim();
-          const matchingTA = allTAs.find((ta: any) => ta.name.toLowerCase().trim() === fullName);
+          const matchingPerson = allTAPersons.find((p: any) => p.name.toLowerCase().trim() === fullName);
           
-          if (matchingTA) {
-            statusMap[participant.id] = { isTA: true, taName: matchingTA.name };
+          if (matchingPerson) {
+            statusMap[participant.id] = { isTA: true, personName: matchingPerson.name };
           } else {
             statusMap[participant.id] = { isTA: false };
           }
@@ -337,17 +340,21 @@ const RosterTab: React.FC<RosterTabProps> = ({
     setConversionMessage(null);
     
     try {
-      const response = await fetch('/api/admin/teaching-assistants/convert', {
+      // Use the new convert endpoint that creates Person + Teaching Assignment
+      const response = await fetch('/api/admin/persons/convert-from-participant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId })
+        body: JSON.stringify({ 
+          participantId,
+          classScheduleId // Optionally assign to this class immediately
+        })
       });
       
       const data = await response.json();
       
       if (!response.ok) {
-        if (data.existingTA) {
-          throw new Error(`Already exists: ${data.existingTA.name}`);
+        if (data.existingPerson) {
+          throw new Error(`Already exists: ${data.existingPerson.name}`);
         }
         throw new Error(data.error || 'Failed to convert');
       }
@@ -355,13 +362,14 @@ const RosterTab: React.FC<RosterTabProps> = ({
       // Update local status
       setParticipantTAStatus(prev => ({
         ...prev,
-        [participantId]: { isTA: true, taName: data.assistant.name }
+        [participantId]: { isTA: true, personName: data.person.name }
       }));
       
       const contactInfo = data.contactInfoCopied ? ' (contact info copied)' : '';
+      const assignmentInfo = data.assignmentCreated ? ' & assigned to this class' : '';
       setConversionMessage({
         participantId,
-        message: `Converted to TA${contactInfo}`,
+        message: `Converted to TA${contactInfo}${assignmentInfo}`,
         type: 'success'
       });
       
@@ -1688,15 +1696,16 @@ const AdminAttendancePage = () => {
             )}
 
             {/* Tab Content */}
-            {activeTab === 'roster' && (
-              <RosterTab 
-                roster={rosterData.roster}
-                attendanceState={attendanceState}
-                onAttendanceChange={handleAttendanceChange}
-                copiedField={copiedField}
-                onCopy={copyToClipboard}
-              />
-            )}
+          {activeTab === 'roster' && (
+  <RosterTab 
+    roster={rosterData.roster}
+    attendanceState={attendanceState}
+    onAttendanceChange={handleAttendanceChange}
+    copiedField={copiedField}
+    onCopy={copyToClipboard}
+    classScheduleId={currentClassId}
+  />
+)}
             {activeTab === 'communications' && (
               <CommunicationsTab 
                 roster={rosterData.roster}
