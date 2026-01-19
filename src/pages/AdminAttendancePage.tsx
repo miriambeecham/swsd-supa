@@ -281,6 +281,7 @@ interface RosterTabProps {
   onAttendanceChange: (participantId: string, value: string) => void;
   copiedField: string | null;
   onCopy: (text: string, fieldId: string) => void;
+  onParticipantConvertedToTA?: () => void; // Callback to refresh TA data
 }
 
 const RosterTab: React.FC<RosterTabProps> = ({ 
@@ -288,8 +289,102 @@ const RosterTab: React.FC<RosterTabProps> = ({
   attendanceState, 
   onAttendanceChange,
   copiedField,
-  onCopy
+  onCopy,
+  onParticipantConvertedToTA
 }) => {
+  const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
+  const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; taName?: string }>>({});
+  const [conversionMessage, setConversionMessage] = useState<{ participantId: string; message: string; type: 'success' | 'error' } | null>(null);
+
+  // Check TA status for all participants on mount
+  useEffect(() => {
+    const checkAllParticipantTAStatus = async () => {
+      try {
+        // Fetch all TAs once
+        const response = await fetch('/api/admin/teaching-assistants');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const allTAs = data.assistants || [];
+        
+        // Build status map by matching names
+        const statusMap: Record<string, { isTA: boolean; taName?: string }> = {};
+        
+        for (const participant of roster) {
+          const fullName = `${participant.firstName} ${participant.lastName}`.toLowerCase().trim();
+          const matchingTA = allTAs.find((ta: any) => ta.name.toLowerCase().trim() === fullName);
+          
+          if (matchingTA) {
+            statusMap[participant.id] = { isTA: true, taName: matchingTA.name };
+          } else {
+            statusMap[participant.id] = { isTA: false };
+          }
+        }
+        
+        setParticipantTAStatus(statusMap);
+      } catch (error) {
+        console.error('Error checking TA status:', error);
+      }
+    };
+    
+    if (roster.length > 0) {
+      checkAllParticipantTAStatus();
+    }
+  }, [roster]);
+
+  const handleConvertToTA = async (participantId: string) => {
+    setConvertingParticipant(participantId);
+    setConversionMessage(null);
+    
+    try {
+      const response = await fetch('/api/admin/teaching-assistants/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.existingTA) {
+          throw new Error(`Already exists: ${data.existingTA.name}`);
+        }
+        throw new Error(data.error || 'Failed to convert');
+      }
+      
+      // Update local status
+      setParticipantTAStatus(prev => ({
+        ...prev,
+        [participantId]: { isTA: true, taName: data.assistant.name }
+      }));
+      
+      const contactInfo = data.contactInfoCopied ? ' (contact info copied)' : '';
+      setConversionMessage({
+        participantId,
+        message: `Converted to TA${contactInfo}`,
+        type: 'success'
+      });
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setConversionMessage(null), 3000);
+      
+      // Notify parent to refresh TA data if needed
+      if (onParticipantConvertedToTA) {
+        onParticipantConvertedToTA();
+      }
+      
+    } catch (error) {
+      setConversionMessage({
+        participantId,
+        message: error instanceof Error ? error.message : 'Failed to convert',
+        type: 'error'
+      });
+      setTimeout(() => setConversionMessage(null), 4000);
+    } finally {
+      setConvertingParticipant(null);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
@@ -308,6 +403,9 @@ const RosterTab: React.FC<RosterTabProps> = ({
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                 Attendance
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                TA
+              </th>
             </tr>
           </thead>
           
@@ -321,6 +419,10 @@ const RosterTab: React.FC<RosterTabProps> = ({
 
               const isNewBookingGroup = index === 0 || 
                 roster[index - 1].bookingId !== participant.bookingId;
+
+              const taStatus = participantTAStatus[participant.id];
+              const isConverting = convertingParticipant === participant.id;
+              const messageForThis = conversionMessage?.participantId === participant.id ? conversionMessage : null;
 
               return (
                 <tr 
@@ -437,6 +539,36 @@ const RosterTab: React.FC<RosterTabProps> = ({
                       <option value="Present">Present</option>
                       <option value="Absent">Absent</option>
                     </select>
+                  </td>
+
+                  {/* TA column */}
+                  <td className="px-4 py-3 text-center">
+                    {messageForThis ? (
+                      <span className={`text-xs ${messageForThis.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                        {messageForThis.message}
+                      </span>
+                    ) : taStatus?.isTA ? (
+                      <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium">
+                        <Check className="w-3 h-3" />
+                        TA
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleConvertToTA(participant.id)}
+                        disabled={isConverting}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400"
+                        title="Convert to Teaching Assistant"
+                      >
+                        {isConverting ? (
+                          <span className="animate-pulse">...</span>
+                        ) : (
+                          <>
+                            <GraduationCap className="w-3 h-3" />
+                            Convert
+                          </>
+                        )}
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
