@@ -1,238 +1,430 @@
 // /api/send-preclass-sms-reminders.js
-// ✅ UPDATED: Runs multiple times throughout the day
+// ✅ NEW: Runs multiple times throughout the day
+// ✅ UPDATED: Also sends SMS reminders to Teaching Assistants via Persons + Teaching Assignments tables
 // Sends final SMS reminder 2 hours before class starts
-// ✅ Uses Persons + Teaching Assignments tables
-// ✅ TAs assumed to have SMS consent (no consent check required)
+// Includes address, time, and encouraging message
 
 export default async function handler(req, res) {
   // Verify authorization
   const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
+  const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+  const bypassToken = req.headers['x-vercel-protection-bypass'] || req.query['x-vercel-protection-bypass'];
+  const expectedBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const isAuthorized = authHeader === expectedAuth || bypassToken === expectedBypass;
+  
+  if (!isAuthorized) {
+    console.log('[PRECLASS-SMS] Unauthorized request');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-  const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-  const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-  const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Helper to format phone number
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) return `+1${digits}`;
+    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+    return null;
+  };
 
   try {
-    // Get current time and 2-hour window in Pacific time
+    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
+    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+    const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+    const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+    const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
+
+    const twilioConfigured = TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER;
+
+    if (!twilioConfigured) {
+      console.log('[PRECLASS-SMS] ⚠️ Twilio not configured - job skipped');
+      return res.json({ success: true, message: 'Twilio not configured', smsSent: 0, taSmsSent: 0 });
+    }
+
+    console.log('[PRECLASS-SMS] Starting pre-class SMS reminder job...');
+
+    // Initialize Twilio
+    const twilio = await import('twilio');
+    const twilioClient = twilio.default(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+    // Get current time in Pacific Time
     const now = new Date();
-    const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    
-    // Classes starting between now and 2.5 hours from now (to catch 2-hour window with buffer)
-    const windowStart = new Date(pacificNow);
-    const windowEnd = new Date(pacificNow);
-    windowEnd.setHours(windowEnd.getHours() + 2, windowEnd.getMinutes() + 30);
+    const twoHoursFromNow = new Date(now.getTime() + (2 * 60 * 60 * 1000));
+    const twoHoursFifteenMinsFromNow = new Date(now.getTime() + (2.25 * 60 * 60 * 1000));
 
-    // Fetch class schedules in the window
-    const classesResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedule?filterByFormula=AND(IS_AFTER({Class Date}, '${windowStart.toISOString()}'), IS_BEFORE({Class Date}, '${windowEnd.toISOString()}'), {Status} = 'Scheduled')`,
-      {
-        headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
-      }
+    console.log(`[PRECLASS-SMS] Current time: ${now.toISOString()}`);
+    console.log(`[PRECLASS-SMS] Looking for classes starting between ${twoHoursFromNow.toISOString()} and ${twoHoursFifteenMinsFromNow.toISOString()}`);
+
+    // Fetch all class schedules
+    const schedulesResponse = await fetch(
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules`,
+      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
     );
-    
-    if (!classesResponse.ok) {
-      throw new Error('Failed to fetch class schedules');
-    }
-    
-    const classesData = await classesResponse.json();
-    const classes = classesData.records || [];
 
-    if (classes.length === 0) {
-      return res.status(200).json({ message: 'No classes starting in ~2 hours', sent: 0 });
+    if (!schedulesResponse.ok) {
+      throw new Error(`Failed to fetch schedules: ${schedulesResponse.status}`);
     }
 
-    let smsSent = 0;
-    let taSmsSent = 0;
-    const errors = [];
+    const schedulesData = await schedulesResponse.json();
+    const allSchedules = schedulesData.records || [];
 
-    for (const classRecord of classes) {
-      const classId = classRecord.id;
-      const classFields = classRecord.fields;
-      const className = classFields['Class Name'] || 'Self-Defense Class';
-      const classDate = classFields['Class Date'];
-      const location = classFields['Location'] || '';
-      const locationAddress = classFields['Location Address'] || '';
+    // Filter for classes starting in ~2 hours AND NOT cancelled
+    const schedules = allSchedules.filter(schedule => {
+      const isCancelled = schedule.fields['Is Cancelled'];
+      if (isCancelled) return false;
 
-      const classDateTime = new Date(classDate);
-      const formattedTime = classDateTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: 'America/Los_Angeles'
+      const startTimeStr = schedule.fields['Start Time New'];
+      if (!startTimeStr) return false;
+
+      try {
+        const startTime = new Date(startTimeStr);
+        
+        // Check if class starts between 2 hours and 2 hours 15 mins from now
+        // The 15-minute window accounts for cron job timing variations
+        return startTime >= twoHoursFromNow && startTime <= twoHoursFifteenMinsFromNow;
+      } catch (err) {
+        console.error(`[PRECLASS-SMS] Error parsing start time for schedule ${schedule.id}:`, err);
+        return false;
+      }
+    });
+
+    console.log(`[PRECLASS-SMS] Found ${schedules.length} classes starting in ~2 hours`);
+
+    if (schedules.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'No classes starting in 2 hours',
+        classesFound: 0,
+        smsSent: 0,
+        taSmsSent: 0
       });
+    }
 
-      // Calculate minutes until class
-      const minutesUntilClass = Math.round((classDateTime - pacificNow) / (1000 * 60));
-      
-      // Only send if class is 90-150 minutes away (to avoid duplicate sends)
-      if (minutesUntilClass < 90 || minutesUntilClass > 150) continue;
+    // ========================================
+    // FETCH ALL TEACHING ASSIGNMENTS & PERSONS (once, for efficiency)
+    // ========================================
+    let allAssignments = [];
+    let allPersons = [];
 
-      // ========================================
-      // SEND SMS TO STUDENTS
-      // ========================================
-      
-      // Fetch bookings that haven't received preclass SMS
-      const bookingsResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=AND({Class Schedule} = '${classId}', {Status} = 'Confirmed', {Preclass SMS Sent} = BLANK())`,
-        {
-          headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
-        }
+    try {
+      const assignmentsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
       );
-      
-      if (bookingsResponse.ok) {
-        const bookingsData = await bookingsResponse.json();
-        const bookings = bookingsData.records || [];
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        allAssignments = assignmentsData.records || [];
+        console.log(`[PRECLASS-SMS] Fetched ${allAssignments.length} teaching assignments`);
+      }
 
-        for (const booking of bookings) {
-          const phone = booking.fields['Contact Phone'];
-          const firstName = booking.fields['Contact First Name'] || '';
-          const smsConsent = booking.fields['SMS Consent Date'];
-          const smsOptedOut = booking.fields['SMS Opted Out Date'];
+      const personsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (personsResponse.ok) {
+        const personsData = await personsResponse.json();
+        allPersons = personsData.records || [];
+        console.log(`[PRECLASS-SMS] Fetched ${allPersons.length} persons`);
+      }
+    } catch (taFetchError) {
+      console.warn('[PRECLASS-SMS] Could not fetch TA data, continuing with student SMS only:', taFetchError.message);
+    }
 
-          // Skip if no phone, no consent, or opted out
-          if (!phone || !smsConsent || smsOptedOut) continue;
+    const results = [];
+    let totalSmsSent = 0;
+    let totalSmsSkipped = 0;
+    let totalTaSmsSent = 0;
 
-          try {
-            const message = `Hi${firstName ? ` ${firstName}` : ''}! Your ${className} starts in about 2 hours at ${formattedTime}${location ? `. Location: ${location}` : ''}${locationAddress ? ` (${locationAddress})` : ''}. See you soon! - Streetwise`;
+    // Process each class schedule
+    for (const schedule of schedules) {
+      try {
+        console.log(`[PRECLASS-SMS] Processing schedule ${schedule.id}`);
 
-            const twilioResponse = await fetch(
-              `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
-                  'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                  To: phone,
-                  From: TWILIO_PHONE_NUMBER,
-                  Body: message
-                })
-              }
-            );
+        // Get class details
+        const classId = schedule.fields.Class?.[0];
+        let classData = null;
+        
+        if (classId) {
+          const classResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`,
+            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+          );
+          
+          if (classResponse.ok) {
+            classData = await classResponse.json();
+          }
+        }
 
-            if (twilioResponse.ok) {
-              smsSent++;
+        // Common formatting for this schedule
+        const formatTimeForDisplay = (timeStr) => {
+          if (!timeStr) return 'TBD';
+          if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Los_Angeles'
+            });
+          }
+          return timeStr;
+        };
+
+        const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
+        const className = classData?.fields?.['Class Name'] || 'class';
+        const classLocation = classData?.fields?.Location || 'the location';
+        
+        // Create Google Maps link
+        const mapsLink = classLocation !== 'the location' 
+          ? `https://maps.google.com/?q=${encodeURIComponent(classLocation)}`
+          : '';
+
+        // Class prep URL for waiver link
+        const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
+
+        // ========================================
+        // SEND SMS TO STUDENTS (existing code)
+        // ========================================
+
+        // Get confirmed bookings for this schedule
+        const bookingIds = schedule.fields.Bookings || [];
+        if (bookingIds.length === 0) {
+          console.log(`[PRECLASS-SMS] No bookings linked to schedule ${schedule.id}`);
+        } else {
+          const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+          
+          const bookingsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
+            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+          );
+
+          if (!bookingsResponse.ok) {
+            throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
+          }
+
+          const bookingsData = await bookingsResponse.json();
+          const bookings = bookingsData.records || [];
+
+          console.log(`[PRECLASS-SMS] Found ${bookings.length} confirmed bookings`);
+
+          // Send SMS to each booking
+          for (const booking of bookings) {
+            try {
+              const contactPhone = booking.fields['Contact Phone'];
+              const contactFirstName = booking.fields['Contact First Name'] || 'there';
+              const smsConsentDate = booking.fields['SMS Consent Date'];
+              const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
               
-              // Record that preclass SMS was sent
+              // ELIGIBILITY CHECKS
+              
+              // 1. Must have phone number
+              if (!contactPhone) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no phone number`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 2. Must have given SMS consent
+              if (!smsConsentDate) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 3. Must NOT have opted out of SMS
+              if (smsOptedOutDate) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 4. Must not have already received pre-class SMS
+              if (booking.fields['Preclass SMS ID']) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - pre-class SMS already sent`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // Format phone number
+              const formattedPhone = formatPhoneNumber(contactPhone);
+              if (!formattedPhone) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - invalid phone format`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // SMS Message - user's requested wording
+              const smsMessage = `🎉 Your Streetwise Self Defense class starts at ${displayStartTime}. The address is: ${classLocation}${mapsLink ? ` ${mapsLink}` : ''}
+
+If you haven't signed your waiver yet, click here ${classPrepUrl}. Text or call (925) 532-9953 with any questions.
+
+See you there!
+~Jay`;
+
+              console.log(`[PRECLASS-SMS] Sending pre-class SMS to ${formattedPhone} for booking ${booking.id}`);
+
+              // Send SMS via Twilio
+              const message = await twilioClient.messages.create({
+                body: smsMessage,
+                from: TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+              });
+
+              console.log(`[PRECLASS-SMS] ✅ Sent SMS - SID: ${message.sid}`);
+
+              // Store tracking info
               await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
                 method: 'PATCH',
                 headers: {
-                  'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+                  Authorization: `Bearer ${AIRTABLE_API_KEY}`,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                   fields: {
-                    'Preclass SMS Sent': new Date().toISOString()
+                    'Preclass SMS ID': message.sid,
+                    'Preclass SMS Status': 'Sent',
+                    'Preclass SMS Sent At': new Date().toISOString()
                   }
                 })
               });
+
+              totalSmsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                phone: formattedPhone,
+                recipientType: 'student',
+                success: true,
+                classTime: displayStartTime
+              });
+
+              await sleep(1000); // Twilio rate limiting
+
+            } catch (smsError) {
+              console.error(`[PRECLASS-SMS] ❌ Error for booking ${booking.id}:`, smsError);
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                recipientType: 'student',
+                success: false,
+                error: smsError.message
+              });
             }
-          } catch (smsError) {
-            errors.push(`Student SMS error for ${phone}: ${smsError.message}`);
           }
         }
-      }
 
-      // ========================================
-      // SEND SMS TO TEACHING ASSISTANTS
-      // ========================================
-      
-      // Fetch all Teaching Assignments
-      const assignmentsResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
-        {
-          headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
-        }
-      );
-
-      if (assignmentsResponse.ok) {
-        const assignmentsData = await assignmentsResponse.json();
-        const allAssignments = assignmentsData.records || [];
+        // ========================================
+        // SEND SMS TO TEACHING ASSISTANTS
+        // ========================================
         
-        // Filter to assignments for this class
+        // Filter assignments for this class schedule
         const classAssignments = allAssignments.filter(assignment => {
-          const linkedClassIds = assignment.fields['Class Schedule'] || [];
-          return linkedClassIds.includes(classId);
+          const linkedScheduleIds = assignment.fields['Class Schedule'] || [];
+          return linkedScheduleIds.includes(schedule.id);
         });
 
-        // Get Person IDs from assignments
-        const personIds = classAssignments
-          .map(a => a.fields['Person']?.[0])
-          .filter(Boolean);
+        console.log(`[PRECLASS-SMS] Found ${classAssignments.length} TA assignments for schedule ${schedule.id}`);
 
-        if (personIds.length > 0) {
-          // Fetch Person records
-          const personsResponse = await fetch(
-            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
-            {
-              headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
+        if (classAssignments.length > 0) {
+          // Get Person IDs from assignments
+          const personIds = classAssignments
+            .map(a => a.fields['Person']?.[0])
+            .filter(Boolean);
+
+          // Filter persons to just those assigned to this class
+          const taPersons = allPersons.filter(p => personIds.includes(p.id));
+
+          for (const person of taPersons) {
+            const taPhone = person.fields['Phone'];
+            const taName = person.fields['Name'] || 'Teaching Assistant';
+            const taFirstName = taName.split(' ')[0];
+
+            if (!taPhone) {
+              console.log(`[PRECLASS-SMS] Skipping TA ${person.id} - no phone`);
+              continue;
             }
-          );
 
-          if (personsResponse.ok) {
-            const personsData = await personsResponse.json();
-            const allPersons = personsData.records || [];
-            
-            // Filter to just the persons we need
-            const taPersons = allPersons.filter(p => personIds.includes(p.id));
+            // Format phone number
+            const formattedPhone = formatPhoneNumber(taPhone);
+            if (!formattedPhone) {
+              console.log(`[PRECLASS-SMS] Skipping TA ${person.id} - invalid phone format`);
+              continue;
+            }
 
-            for (const person of taPersons) {
-              const phone = person.fields['Phone'];
-              const name = person.fields['Name'] || 'Teaching Assistant';
-              const firstName = name.split(' ')[0];
-              const smsOptedOut = person.fields['SMS Opted Out Date'];
+            // Check if TA has opted out of SMS (respect opt-out, but don't require consent)
+            if (person.fields['SMS Opted Out Date']) {
+              console.log(`[PRECLASS-SMS] Skipping TA ${taFirstName} - opted out of SMS`);
+              continue;
+            }
 
-              // Skip if no phone or opted out (but NO consent check - TAs assumed to consent)
-              if (!phone || smsOptedOut) continue;
+            try {
+              // TA-specific SMS message - reminds them to arrive early
+              const taSmsMessage = `Hi ${taFirstName}! Class starts at ${displayStartTime}. Address: ${classLocation}${mapsLink ? ` ${mapsLink}` : ''}
 
-              try {
-                const message = `Hi ${firstName}! ${className} starts in ~2 hours at ${formattedTime}${location ? ` at ${location}` : ''}. Please arrive 15-20 min early for setup. Thanks! - Streetwise`;
+Please arrive by now if you haven't already! Text me if you're running late.
 
-                const twilioResponse = await fetch(
-                  `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
-                      'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams({
-                      To: phone,
-                      From: TWILIO_PHONE_NUMBER,
-                      Body: message
-                    })
-                  }
-                );
+~Jay`;
 
-                if (twilioResponse.ok) {
-                  taSmsSent++;
-                }
-              } catch (smsError) {
-                errors.push(`TA SMS error for ${phone}: ${smsError.message}`);
-              }
+              console.log(`[PRECLASS-SMS] Sending TA pre-class SMS to ${formattedPhone}`);
+
+              const message = await twilioClient.messages.create({
+                body: taSmsMessage,
+                from: TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+              });
+
+              console.log(`[PRECLASS-SMS] ✅ Sent TA SMS - SID: ${message.sid}`);
+
+              totalTaSmsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                personId: person.id,
+                phone: formattedPhone,
+                recipientType: 'TA',
+                success: true,
+                classTime: displayStartTime
+              });
+
+              await sleep(1000); // Twilio rate limiting
+
+            } catch (taSmsError) {
+              console.error(`[PRECLASS-SMS] ❌ Error sending TA SMS to ${taFirstName}:`, taSmsError);
+              results.push({
+                scheduleId: schedule.id,
+                personId: person.id,
+                recipientType: 'TA',
+                success: false,
+                error: taSmsError.message
+              });
             }
           }
         }
+
+      } catch (scheduleError) {
+        console.error(`[PRECLASS-SMS] ❌ Error processing schedule ${schedule.id}:`, scheduleError);
       }
     }
 
-    return res.status(200).json({
+    console.log(`[PRECLASS-SMS] ✅ Complete. Student SMS: ${totalSmsSent}, TA SMS: ${totalTaSmsSent}, Skipped: ${totalSmsSkipped}`);
+
+    return res.json({
       success: true,
-      classesProcessed: classes.length,
-      studentSmsSent: smsSent,
-      taSmsSent: taSmsSent,
-      errors: errors.length > 0 ? errors : undefined
+      message: 'Pre-class SMS reminders sent',
+      classesFound: schedules.length,
+      smsSent: totalSmsSent,
+      taSmsSent: totalTaSmsSent,
+      smsSkipped: totalSmsSkipped,
+      results
     });
 
   } catch (error) {
-    console.error('Send preclass SMS error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('[PRECLASS-SMS] ❌ Fatal error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 }
