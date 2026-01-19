@@ -431,7 +431,7 @@ const RosterTab: React.FC<RosterTabProps> = ({
                   key={participant.id} 
                   className={`
                     ${rowColor} 
-                    ${isNewBookingGroup ? 'border-t-4 border-
+                   ${isNewBookingGroup ? 'border-t-4 border-gray-600' : 'border-t border-gray-200'}
 
 // ============================================
 // COMMUNICATIONS TAB COMPONENT
