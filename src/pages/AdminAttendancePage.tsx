@@ -558,7 +558,7 @@ const RosterTab: React.FC<RosterTabProps> = ({
                       <button
                         onClick={() => handleConvertToTA(participant.id)}
                         disabled={isConverting}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors disabled:bg-gray-100 disabled:text-gray-400"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-accent-light text-accent-primary rounded hover:bg-accent-dark hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400"
                         title="Convert to Teaching Assistant"
                       >
                         {isConverting ? (
