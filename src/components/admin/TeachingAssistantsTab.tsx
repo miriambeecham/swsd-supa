@@ -670,7 +670,7 @@ const TeachingAssistantsTab: React.FC<TeachingAssistantsTabProps> = ({
       {/* Help Text */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>Tip:</strong> To convert a student to a Teaching Assistant, go to the <strong>Roster</strong> tab and click the "Convert" button next to their name. Their contact info will be copied automatically if they were the one who booked.
+          <strong>Tip:</strong> To convert a former student to a Teaching Assistant, go to the <strong>Roster</strong> tab of a specific class which they attended as a student, and click the "Add as a potential TA" button next to their name. Their contact info will be copied automatically if they were the one who booked.
         </p>
       </div>
 
