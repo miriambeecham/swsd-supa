@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Calendar, Clock, Users, MapPin, ExternalLink, Mail } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, ExternalLink, Mail, User, UsersRound } from 'lucide-react';
 
 interface ClassSchedule {
   id: string;
@@ -12,6 +12,7 @@ interface ClassSchedule {
   city?: string;
   instructor: string;
   price: number;
+  pricing_unit?: string;
   partner_organization?: string;
   booking_method: 'external' | 'contact' | 'swsd website';
   date: string;
@@ -117,6 +118,11 @@ const PublicClassesPage = () => {
             return null;
           }
 
+          // Price: schedule overrides class default
+          const price = scheduleRecord.fields['Price'] || classRecord.fields['Price'] || 0;
+          // Pricing Unit: schedule overrides class default
+          const pricingUnit = scheduleRecord.fields['Pricing Unit'] || classRecord.fields['Pricing Unit'] || '';
+
           return {
             id: scheduleRecord.id,
             class_name: classRecord.fields['Class Name'] || '',
@@ -125,7 +131,8 @@ const PublicClassesPage = () => {
             location: classRecord.fields['Location'] || '',
             city: classRecord.fields['City'] || '',
             instructor: classRecord.fields['Instructor'] || '',
-            price: classRecord.fields['Price'] || 0,
+            price,
+            pricing_unit: pricingUnit,
             partner_organization: classRecord.fields['Partner Organization'],
             booking_method: classRecord.fields['Booking Method']?.toLowerCase() || 'contact',
             date: scheduleRecord.fields['Date'] || '',
@@ -162,7 +169,7 @@ const PublicClassesPage = () => {
       })));
     } catch (err) {
       console.error('Error fetching classes:', err);
-      setError('Failed to load class schedule. Please try again later.');
+      setError('database_error');
     } finally {
       setLoading(false);
     }
@@ -258,16 +265,62 @@ const PublicClassesPage = () => {
     window.open(mapUrl, '_blank');
   };
 
-  const getEligibilityLine = (type: string) => {
-    if (type === 'public: mother & daughter') {
-      return 'Girls ages 12-15 with participating mother/guardian • 3 hours • $139-156/pair';
+  /**
+   * Shorten a full address to "Venue Name, City" for display.
+   * The full address is still used for the Google Maps link.
+   */
+  const getShortLocation = (fullLocation: string, city?: string) => {
+    if (!fullLocation) return '';
+    
+    // Extract the venue name (everything before the first comma)
+    // e.g. "Mount Diablo Yoga Center, 2121 Ygnacio Valley Rd..." -> "Mount Diablo Yoga Center"
+    const parts = fullLocation.split(',');
+    const venueName = parts[0]?.trim() || fullLocation;
+    
+    if (city) {
+      return `${venueName}, ${city}`;
     }
-    return 'Women ages 15+ • 3-hour class • $75-78';
+    
+    return venueName;
+  };
+
+  /**
+   * Build the eligibility line dynamically from Airtable data.
+   * Price: schedule overrides class default (already resolved during fetch).
+   * Pricing Unit: schedule overrides class default (already resolved during fetch).
+   */
+  const getEligibilityLine = (classData: ClassSchedule) => {
+    const isMotherDaughter = classData.type === 'public: mother & daughter';
+    
+    // Audience segment
+    const audience = isMotherDaughter
+      ? 'Girls ages 12-15 with participating mother/guardian'
+      : 'Women ages 15+';
+    
+    // Price segment from Airtable
+    let priceDisplay = '';
+    if (classData.price) {
+      priceDisplay = `$${classData.price}`;
+      if (classData.pricing_unit) {
+        const unitMap: Record<string, string> = {
+          'Per Person': '/person',
+          'Per Mother/Daughter Pair': '/pair',
+        };
+        priceDisplay += unitMap[classData.pricing_unit] || '';
+      }
+    }
+    
+    const parts = [audience, '3 hours'];
+    if (priceDisplay) parts.push(priceDisplay);
+    
+    return parts.join(' • ');
   };
 
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
     const [isFull, setIsFull] = useState(false);
     const [checkingAvailability, setCheckingAvailability] = useState(true);
+    
+    const isMotherDaughter = classData.type === 'public: mother & daughter';
 
     useEffect(() => {
       const checkIfFull = async () => {
@@ -277,7 +330,6 @@ const PublicClassesPage = () => {
           return;
         }
 
-        const isMotherDaughter = classData.type === 'public: mother & daughter';
         const requiredSeats = isMotherDaughter ? 2 : 1;
 
         try {
@@ -311,28 +363,42 @@ const PublicClassesPage = () => {
     }, [classData.id, classData.available_spots, classData.booking_method, classData.type]);
 
     const registrationClosed = isRegistrationClosed(classData.start_time_new);
+    
+    // Card styling based on class type
+    const borderColor = isMotherDaughter ? 'border-l-navy' : 'border-l-accent-primary';
+    const iconBgClass = isMotherDaughter ? 'bg-navy/10' : 'bg-accent-primary/20';
+    const iconColorClass = isMotherDaughter ? 'text-navy' : 'text-accent-primary';
 
     return (
-      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative">
+      <div className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-4 relative border-l-4 ${borderColor}`}>
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            {/* Class Title */}
-            <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
+            {/* Title row with icon */}
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${iconBgClass}`}>
+                {isMotherDaughter ? (
+                  <UsersRound className={`w-4 h-4 ${iconColorClass}`} />
+                ) : (
+                  <User className={`w-4 h-4 ${iconColorClass}`} />
+                )}
+              </div>
+              <h4 className="text-base font-medium text-navy">{classData.class_name}</h4>
+            </div>
 
             {/* Eligibility Line */}
-            <p className="text-xs text-gray-500 mb-2">
-              {getEligibilityLine(classData.type)}
+            <p className="text-xs text-gray-500 ml-[38px] mb-1.5">
+              {getEligibilityLine(classData)}
             </p>
 
             {/* Partner Organization */}
             {classData.partner_organization && (
-              <p className="text-sm text-gray-500 mb-2">
+              <p className="text-sm text-gray-500 ml-[38px] mb-2">
                 Hosted by {classData.partner_organization}
               </p>
             )}
 
             {/* Date, Time & Location */}
-            <div className="mb-4 space-y-2">
+            <div className="mb-4 space-y-2 ml-[38px]">
               <div className="flex items-start gap-2 min-h-[24px]">
                 <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
@@ -367,7 +433,9 @@ const PublicClassesPage = () => {
                   className="flex items-start gap-2 min-h-[24px] text-accent-primary hover:text-accent-dark transition-colors cursor-pointer text-left"
                 >
                   <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span className="text-md font-medium underline leading-tight">{classData.location}</span>
+                  <span className="text-md font-medium underline leading-tight">
+                    {getShortLocation(classData.location, classData.city)}
+                  </span>
                 </button>
               )}
 
@@ -478,7 +546,7 @@ const PublicClassesPage = () => {
       </div>
     );
   };
-
+//note
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -492,19 +560,53 @@ const PublicClassesPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="text-red-500 mb-4">
-            <ExternalLink className="w-16 h-16 mx-auto" />
+      <div className="min-h-screen bg-white">
+        <Helmet>
+          <title>Public Classes | Streetwise Self Defense</title>
+        </Helmet>
+
+        {/* Still show the hero even during errors */}
+        <section className="relative h-80 lg:h-96 flex items-center overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: 'url(/adult-teen.png)' }}
+          ></div>
+          <div className="absolute inset-0 bg-white/80"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-4xl mx-auto">
+              <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
+              <p className="text-xl text-gray-600 mb-8">
+                Empowering self-defense classes in a supportive, women-only environment for teens, adults, and mother-daughter pairs.
+              </p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Unable to Load Schedule</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={fetchClassesFromAirtable}
-            className="bg-accent-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors duration-300"
-          >
-            Try Again
-          </button>
+        </section>
+
+        {/* Friendly error message */}
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center max-w-lg mx-auto px-4">
+            <div className="bg-accent-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Calendar className="w-8 h-8 text-accent-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-navy mb-4">We'll Be Right Back</h2>
+            <p className="text-gray-600 mb-6">
+              Please check back soon for our latest class schedule. We are currently experiencing a temporary disruption with our database provider.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={fetchClassesFromAirtable}
+                className="bg-accent-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors duration-300"
+              >
+                Try Again
+              </button>
+              <Link
+                to="/contact"
+                className="border-2 border-accent-primary text-accent-primary px-6 py-3 rounded-lg font-semibold hover:bg-accent-primary hover:text-white transition-colors duration-300"
+              >
+                Contact Us
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -518,7 +620,9 @@ const PublicClassesPage = () => {
         cities.add(classData.city);
       }
     });
-    return ['All', ...Array.from(cities).sort()];
+    const result = ['All', ...Array.from(cities).sort()];
+    console.log('Available cities:', result);
+    return result;
   })();
 
   // Filter classes by program type and city
@@ -562,21 +666,22 @@ const PublicClassesPage = () => {
         <meta property="og:url" content="https://www.streetwiseselfdefense.com/public-classes" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Streetwise Self Defense" />
+
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Public Self Defense Classes - Streetwise Self Defense" />
         <meta name="twitter:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs." />
         <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
 
-      {/* Header */}
-      <section className="relative h-80 lg:h-96 flex items-center">
+      {/* Header with Hero Image */}
+      <section className="relative h-80 lg:h-96 flex items-center overflow-hidden">
         <div 
-          className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: 'url(/swsd-logo-bug.png)'
+            backgroundImage: 'url(/adult-teen.png)'
           }}
         ></div>
-        <div className="absolute inset-0 bg-white/85"></div>
+        <div className="absolute inset-0 bg-white/80"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
