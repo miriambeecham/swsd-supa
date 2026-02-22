@@ -26,7 +26,7 @@ interface ClassSchedule {
 const PublicClassesPage = () => {
   const navigate = useNavigate();
   const [classSchedules, setClassSchedules] = useState<ClassSchedule[]>([]);
-  const [activeTab, setActiveTab] = useState<'adult-teen' | 'mother-daughter'>('adult-teen');
+  const [selectedProgram, setSelectedProgram] = useState<'all' | 'adult-teen' | 'mother-daughter'>('all');
   const [selectedCity, setSelectedCity] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,12 +141,10 @@ const PublicClassesPage = () => {
         .filter(classData => {
           // Show classes until their actual start time (not just date)
           if (classData.start_time_new) {
-            // Use the new datetime field
             const classDateTime = new Date(classData.start_time_new);
             const now = new Date();
             return classDateTime > now;
           } else {
-            // Fallback to date-only filtering for old data
             const classDate = new Date(classData.date);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -157,7 +155,6 @@ const PublicClassesPage = () => {
 
       setClassSchedules(combinedData);
       
-      // Debug: Log city data
       console.log('Classes with city data:', combinedData.map(c => ({ 
         name: c.class_name, 
         city: c.city,
@@ -261,20 +258,25 @@ const PublicClassesPage = () => {
     window.open(mapUrl, '_blank');
   };
 
+  const getEligibilityLine = (type: string) => {
+    if (type === 'public: mother & daughter') {
+      return 'Girls ages 12-15 with participating mother/guardian • 3 hours • $139-156/pair';
+    }
+    return 'Women ages 15+ • 3-hour class • $75-78';
+  };
+
   const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
     const [isFull, setIsFull] = useState(false);
     const [checkingAvailability, setCheckingAvailability] = useState(true);
 
     useEffect(() => {
       const checkIfFull = async () => {
-        // Only check availability for SWSD website bookings
-        if (!classData.availableSpots || 
+        if (!classData.available_spots || 
             classData.booking_method?.trim().toLowerCase() !== 'swsd website') {
           setCheckingAvailability(false);
           return;
         }
 
-        // Mother-daughter classes require 2 spots minimum
         const isMotherDaughter = classData.type === 'public: mother & daughter';
         const requiredSeats = isMotherDaughter ? 2 : 1;
 
@@ -289,12 +291,9 @@ const PublicClassesPage = () => {
           });
           
           if (response.status === 409) {
-            // Class is full
             setIsFull(true);
           } else if (response.ok) {
             const data = await response.json();
-            // For mother-daughter, mark full if 1 or fewer spots
-            // For adult classes, mark full if 0 spots
             if (isMotherDaughter) {
               setIsFull(data.remaining <= 1);
             } else {
@@ -309,7 +308,7 @@ const PublicClassesPage = () => {
       };
 
       checkIfFull();
-    }, [classData.id, classData.availaable_spots, classData.booking_method, classData.type]);
+    }, [classData.id, classData.available_spots, classData.booking_method, classData.type]);
 
     const registrationClosed = isRegistrationClosed(classData.start_time_new);
 
@@ -320,14 +319,19 @@ const PublicClassesPage = () => {
             {/* Class Title */}
             <h4 className="text-base font-medium text-navy mb-1">{classData.class_name}</h4>
 
-            {/* Partner Organization - Always show if present */}
+            {/* Eligibility Line */}
+            <p className="text-xs text-gray-500 mb-2">
+              {getEligibilityLine(classData.type)}
+            </p>
+
+            {/* Partner Organization */}
             {classData.partner_organization && (
               <p className="text-sm text-gray-500 mb-2">
                 Hosted by {classData.partner_organization}
               </p>
             )}
 
-            {/* Date, Time & Location - All in one container */}
+            {/* Date, Time & Location */}
             <div className="mb-4 space-y-2">
               <div className="flex items-start gap-2 min-h-[24px]">
                 <Calendar className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0" />
@@ -335,7 +339,6 @@ const PublicClassesPage = () => {
                   <span className="text-md font-semibold text-gray-700 leading-tight">
                     {formatClassDate(classData.date)}
                   </span>
-                  {/* Full Badge - positioned right under the date */}
                   {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' && (
                     <div className="mt-1">
                       <span className="inline-block bg-gray-200 text-gray-600 px-2 py-0.5 rounded text-xs font-medium">
@@ -346,17 +349,17 @@ const PublicClassesPage = () => {
                 </div>
               </div>
               
-          <span className="text-md font-medium text-gray-700 leading-tight">
-  {new Date(classData.start_time_new).toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit', 
-    hour12: true 
-  })} - {new Date(classData.end_time_new).toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit', 
-    hour12: true 
-  })}
-</span>
+              <span className="text-md font-medium text-gray-700 leading-tight">
+                {new Date(classData.start_time_new).toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit', 
+                  hour12: true 
+                })} - {new Date(classData.end_time_new).toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit', 
+                  hour12: true 
+                })}
+              </span>
 
               {classData.location && (
                 <button
@@ -379,10 +382,9 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
-    {/* Button/Registration Area */}
+          {/* Button/Registration Area */}
           <div className="ml-4">
             {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
-              // Class is full - disabled button
               <button
                 disabled
                 className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
@@ -391,7 +393,6 @@ const PublicClassesPage = () => {
                 Class Full
               </button>
             ) : registrationClosed ? (
-              // Registration closed - disabled button
               <button
                 disabled
                 className="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-semibold cursor-not-allowed opacity-60"
@@ -401,9 +402,7 @@ const PublicClassesPage = () => {
               </button>
             ) : (classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
               classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-              // Check if registration hasn't opened yet for SWSD internal booking
               classData.registration_opens && new Date() < new Date(classData.registration_opens) ? (
-                // Coming soon - registration not yet open
                 <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
                   <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
                     Coming Soon
@@ -416,7 +415,6 @@ const PublicClassesPage = () => {
                   </div>
                 </div>
               ) : (
-                // SWSD internal booking - registration is open
                 <button
                   onClick={() => handleBookNow(classData)}
                   className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300"
@@ -425,7 +423,6 @@ const PublicClassesPage = () => {
                 </button>
               )
             ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-              // External partner registration
               <button
                 onClick={() => handleBooking(classData)}
                 className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
@@ -433,7 +430,6 @@ const PublicClassesPage = () => {
                 Register <ExternalLink className="w-4 h-4" />
               </button>
             ) : classData.booking_method === 'contact' ? (
-              // Contact us flow
               <button
                 onClick={() => handleBooking(classData)}
                 className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
@@ -441,7 +437,6 @@ const PublicClassesPage = () => {
                 Contact Us <Mail className="w-4 h-4" />
               </button>
             ) : classData.registration_opens ? (
-              // Coming soon - for other booking methods
               <div className="text-center text-gray-600 text-sm font-medium max-w-[120px]">
                 <div className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block">
                   Coming Soon
@@ -454,7 +449,6 @@ const PublicClassesPage = () => {
                 </div>
               </div>
             ) : (classData.partner_organization?.trim() === 'Streetwise Self Defense') ? (
-              // SWSD classes without specific booking method - show contact
               <button
                 onClick={() => handleBooking(classData)}
                 className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
@@ -462,7 +456,6 @@ const PublicClassesPage = () => {
                 Contact Us <Mail className="w-4 h-4" />
               </button>
             ) : (
-              // Fallback - contact us
               <button
                 onClick={() => handleBooking(classData)}
                 className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
@@ -471,21 +464,21 @@ const PublicClassesPage = () => {
               </button>
             )}
           </div>
-          </div>
+        </div>
 
-        {/* Availability Display - only show if not full, not closed, and SWSD website booking */}
-       {classData.available_spots && classData.start_time_new && 
- classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
- !isFull && !registrationClosed && (
-  <AvailabilityDisplay 
-    classScheduleId={classData.id} 
-    availableSpots={classData.available_spots} 
-  />
-)}
+        {/* Availability Display */}
+        {classData.available_spots && classData.start_time_new && 
+          classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
+          !isFull && !registrationClosed && (
+          <AvailabilityDisplay 
+            classScheduleId={classData.id} 
+            availableSpots={classData.available_spots} 
+          />
+        )}
       </div>
     );
   };
-//note
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -517,7 +510,7 @@ const PublicClassesPage = () => {
     );
   }
 
-  // Get unique cities - moved inside render to ensure classSchedules is available
+  // Get unique cities
   const availableCities = (() => {
     const cities = new Set<string>();
     classSchedules.forEach(classData => {
@@ -525,30 +518,37 @@ const PublicClassesPage = () => {
         cities.add(classData.city);
       }
     });
-    const result = ['All', ...Array.from(cities).sort()];
-    console.log('Available cities:', result);
-    return result;
+    return ['All', ...Array.from(cities).sort()];
   })();
 
-  // Filter classes by type and city
-  const getFilteredClasses = (type: string) => {
-    let filtered = classSchedules.filter(c => c.type === type);
-    
-    if (selectedCity !== 'All') {
-      filtered = filtered.filter(c => c.city === selectedCity);
-    }
-    
-    return filtered;
-  };
+  // Filter classes by program type and city
+  const filteredClasses = classSchedules
+    .filter(c => {
+      // Only show public class types
+      if (c.type !== 'public: adult & teen' && c.type !== 'public: mother & daughter') return false;
 
-  const filteredAdultTeenClasses = getFilteredClasses('public: adult & teen');
-  const filteredMotherDaughterClasses = getFilteredClasses('public: mother & daughter');
+      // Program filter
+      if (selectedProgram === 'adult-teen' && c.type !== 'public: adult & teen') return false;
+      if (selectedProgram === 'mother-daughter' && c.type !== 'public: mother & daughter') return false;
+
+      // City filter
+      if (selectedCity !== 'All' && c.city !== selectedCity) return false;
+
+      return true;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const programOptions = [
+    { value: 'all', label: 'All Programs' },
+    { value: 'adult-teen', label: 'Adult & Teen' },
+    { value: 'mother-daughter', label: 'Mother & Daughter' }
+  ];
 
   return (
     <div className="min-h-screen bg-white">
-      {/*SEO Tags*/}
+      {/* SEO Tags */}
       <Helmet>
-        <title>Women's Self Defense Classes | SF Bay Area | Walnut Creek & East Bay | </title>
+        <title>Women's Self Defense Classes | SF Bay Area | Walnut Creek & East Bay</title>
         <meta name="description" content="Women-only self defense classes in Walnut Creek, CA. Serving East Bay and San Francisco residents including Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, and surrounding areas. Mother-daughter training and adult/teen programs." />
         <meta name="keywords" content="women's self defense Walnut Creek, East Bay self defense, mother daughter classes, teen self defense, Lafayette, Pleasant Hill, Orinda, Berkeley, Oakland, Bay Area women's safety" />
         <meta property="og:title" content="Women's Self Defense Classes | Walnut Creek | Streetwise Self Defense" />
@@ -562,14 +562,13 @@ const PublicClassesPage = () => {
         <meta property="og:url" content="https://www.streetwiseselfdefense.com/public-classes" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Streetwise Self Defense" />
-
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Public Self Defense Classes - Streetwise Self Defense" />
         <meta name="twitter:description" content="Women-only self defense classes in the SF Bay Area. Adult & teen classes and mother-daughter programs." />
         <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
 
-      {/* Header with Background */}
+      {/* Header */}
       <section className="relative h-80 lg:h-96 flex items-center">
         <div 
           className="absolute inset-8 lg:inset-12 bg-contain bg-center bg-no-repeat"
@@ -582,51 +581,18 @@ const PublicClassesPage = () => {
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-navy mb-6">Public Classes</h1>
             <p className="text-xl text-gray-600 mb-8">
-              Join our empowering self-defense classes in a supportive, women-only environment. Choose from our
-              specialized programs designed for different age groups and relationships.
+              Empowering self-defense classes in a supportive, women-only environment for teens, adults, and mother-daughter pairs.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Tabbed Class Sections */}
+      {/* Class Listings */}
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Tab Navigation */}
-          <div className="mb-12">
-            <div className="text-center mb-4">
-              <h3 className="text-lg font-medium text-gray-700">Choose Your Program:</h3>
-            </div>
-            <div className="flex justify-center">
-              <div className="bg-white rounded-lg p-1 border-2 border-gray-200 shadow-sm w-full max-w-2xl flex flex-col md:flex-row">
-                <button
-                  onClick={() => setActiveTab('adult-teen')}
-                  className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
-                    activeTab === 'adult-teen'
-                      ? 'bg-accent-primary text-white shadow-md'
-                      : 'bg-accent-primary/30 text-navy hover:text-accent-primary hover:bg-accent-light'
-                  }`}
-                >
-                  Adult & Teen Classes
-                  <div className="text-sm opacity-80">Ages 15+</div>
-                </button>
-                <button
-                  onClick={() => setActiveTab('mother-daughter')}
-                  className={`flex-1 px-8 py-4 rounded-md font-semibold transition-colors ${
-                    activeTab === 'mother-daughter'
-                      ? 'bg-accent-primary text-white shadow-md'
-                      : 'bg-accent-primary/30 text-navy hover:text-accent-primary hover:bg-accent-light'
-                  }`}
-                >
-                  Mother & Daughter Classes
-                  <div className="text-sm opacity-80">Ages 12-15</div>
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* Private Classes Call-out */}
-          <div className="mb-12 flex justify-center">
+          <div className="mb-8 flex justify-center">
             <div className="max-w-2xl px-4">
               <p className="text-gray-600 text-center">
                 Looking for co-ed classes, training for boys/men, or other specialized instruction? We offer{' '}
@@ -641,188 +607,107 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
-          {activeTab === 'adult-teen' && (
-            <div className="mb-12">
-              <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-                <div className="relative w-full md:w-64 h-auto md:h-48 rounded-lg overflow-hidden md:flex-shrink-0">
-                  <img
-                    src="/adult-teen.png"
-                    alt="Adult & Teen Classes"
-                    className="w-full h-auto md:h-full object-cover"
-                  />
+          {/* Filters */}
+          <div className="mb-8 space-y-4">
+            {/* Mobile Dropdowns */}
+            <div className="md:hidden space-y-3">
+              <div>
+                <label htmlFor="program-filter-mobile" className="block text-sm font-medium text-gray-700 mb-2">
+                  Program:
+                </label>
+                <select
+                  id="program-filter-mobile"
+                  value={selectedProgram}
+                  onChange={(e) => setSelectedProgram(e.target.value as 'all' | 'adult-teen' | 'mother-daughter')}
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                >
+                  {programOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              {availableCities.length > 2 && (
+                <div>
+                  <label htmlFor="city-filter-mobile" className="block text-sm font-medium text-gray-700 mb-2">
+                    City:
+                  </label>
+                  <select
+                    id="city-filter-mobile"
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
+                  >
+                    {availableCities.map(city => (
+                      <option key={city} value={city}>
+                        {city === 'All' ? 'All Cities' : city}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Women's Adult & Teen Classes (Ages 15+)</h2>
-                  <p className="text-gray-600 text-base md:text-lg mb-4">
-                    Comprehensive self-defense training for teens and adults in a women-only environment. Learn practical
-                    techniques, situational awareness, and confidence-building strategies. Our classes combine physical
-                    techniques with mental preparedness to help you feel safe and empowered. Classes are led by experienced 
-                    instructors and cost $75-78 per person, depending on location.
-                  </p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                    <span>• 3-hour sessions</span>
-                    <span>• Maximum 10 participants per class</span>
-                    <span>• Beginner to advanced levels</span>
-                  </div>
+              )}
+            </div>
+
+            {/* Desktop Chips */}
+            <div className="hidden md:block space-y-4">
+              {/* Program Filter */}
+              <div>
+                <span className="text-sm font-medium text-gray-700 mr-3">Program:</span>
+                <div className="inline-flex gap-2 flex-wrap">
+                  {programOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSelectedProgram(opt.value as 'all' | 'adult-teen' | 'mother-daughter')}
+                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                        selectedProgram === opt.value
+                          ? 'bg-accent-primary text-white shadow-md'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
-              {availableCities.length > 1 && (
-                <div className="mb-6">
-                  {/* Mobile Dropdown */}
-                  <div className="md:hidden">
-                    <label htmlFor="city-filter-adult" className="block text-sm font-medium text-gray-700 mb-2">
-                      Filter by City:
-                    </label>
-                    <select
-                      id="city-filter-adult"
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
-                    >
-                      {availableCities.map(city => (
-                        <option key={city} value={city}>
-                          {city === 'All' ? 'All Cities' : city}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Desktop Horizontal Chips */}
-                  <div className="hidden md:block">
-                    <div className="mb-3">
-                      <span className="text-sm font-medium text-gray-700">Filter by City:</span>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {availableCities.map(city => (
-                        <button
-                          key={city}
-                          onClick={() => setSelectedCity(city)}
-                          className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                            selectedCity === city
-                              ? 'bg-accent-primary text-white shadow-md'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                        >
-                          {city === 'All' ? 'All Cities' : city}
-                        </button>
-                      ))}
-                    </div>
+              {/* City Filter */}
+              {availableCities.length > 2 && (
+                <div>
+                  <span className="text-sm font-medium text-gray-700 mr-3">City:</span>
+                  <div className="inline-flex gap-2 flex-wrap">
+                    {availableCities.map(city => (
+                      <button
+                        key={city}
+                        onClick={() => setSelectedCity(city)}
+                        className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                          selectedCity === city
+                            ? 'bg-accent-primary text-white shadow-md'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {city === 'All' ? 'All Cities' : city}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
-
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {filteredAdultTeenClasses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600">
-                      {selectedCity === 'All' 
-                        ? 'No upcoming Adults & Teens classes scheduled.' 
-                        : `No upcoming Adults & Teens classes in ${selectedCity}.`}
-                    </p>
-                  </div>
-                ) : (
-                  filteredAdultTeenClasses.map((classData) => (
-                    <ClassCard key={classData.id} classData={classData} />
-                  ))
-                )}
-              </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === 'mother-daughter' && (
-            <div className="mb-12">
-              <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-                <div className="relative w-full md:w-64 h-auto md:h-48 rounded-lg overflow-hidden md:flex-shrink-0">
-                  <img
-                    src="/mothers-daughters.png"
-                    alt="Mother & Daughter Classes"
-                    className="w-full h-auto md:h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">Mother & Daughter Classes (Ages 12-15)</h2>
-                  <p className="text-gray-600 text-base md:text-lg mb-4">
-                    A unique bonding experience that empowers both mothers and daughters with essential self-defense
-                    skills. These classes focus on building confidence, communication, and practical techniques in a fun,
-                    supportive environment. Perfect for strengthening your relationship while learning to protect
-                    yourselves. Classes are led by experienced instructors. The cost is $139-156 per mother-daughter pair for a 3-hour class, depending on location.
-                  </p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                    <span>• 3-hour sessions</span>
-                    <span>• Maximum 5 pairs per class</span>
-                    <span>• All skill levels welcome</span>
-                  </div>
-                </div>
+          {/* Class Cards */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
+            {filteredClasses.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">
+                  No upcoming classes match your filters. Try adjusting your selection above.
+                </p>
               </div>
-
-              {/* City Filter - Horizontal chips on desktop, dropdown on mobile */}
-              {availableCities.length > 1 && (
-                <div className="mb-6">
-                  {/* Mobile Dropdown */}
-                  <div className="md:hidden">
-                    <label htmlFor="city-filter-mother-daughter" className="block text-sm font-medium text-gray-700 mb-2">
-                      Filter by City:
-                    </label>
-                    <select
-                      id="city-filter-mother-daughter"
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-gray-700"
-                    >
-                      {availableCities.map(city => (
-                        <option key={city} value={city}>
-                          {city === 'All' ? 'All Cities' : city}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Desktop Horizontal Chips */}
-                  <div className="hidden md:block">
-                    <div className="mb-3">
-                      <span className="text-sm font-medium text-gray-700">Filter by City:</span>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {availableCities.map(city => (
-                        <button
-                          key={city}
-                          onClick={() => setSelectedCity(city)}
-                          className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                            selectedCity === city
-                              ? 'bg-accent-primary text-white shadow-md'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                        >
-                          {city === 'All' ? 'All Cities' : city}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-navy mb-4">Upcoming Classes</h3>
-                {filteredMotherDaughterClasses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600">
-                      {selectedCity === 'All' 
-                        ? 'No upcoming Mother & Daughter Classes scheduled.' 
-                        : `No upcoming Mother & Daughter Classes in ${selectedCity}.`}
-                    </p>
-                  </div>
-                ) : (
-                  filteredMotherDaughterClasses.map((classData) => (
-                    <ClassCard key={classData.id} classData={classData} />
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+            ) : (
+              filteredClasses.map((classData) => (
+                <ClassCard key={classData.id} classData={classData} />
+              ))
+            )}
+          </div>
         </div>
       </section>
 
