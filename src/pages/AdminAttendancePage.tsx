@@ -552,7 +552,7 @@ const RosterTab: React.FC<RosterTabProps> = ({
                     ) : taStatus?.isTA ? (
                       <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium">
                         <Check className="w-3 h-3" />
-                        TA
+                        TA INTEREST
                       </span>
                     ) : (
                       <button
@@ -566,7 +566,7 @@ const RosterTab: React.FC<RosterTabProps> = ({
                         ) : (
                           <>
                             <GraduationCap className="w-3 h-3" />
-                            Convert
+                           Add as Potential TA
                           </>
                         )}
                       </button>
