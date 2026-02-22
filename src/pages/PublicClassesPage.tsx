@@ -272,8 +272,6 @@ const PublicClassesPage = () => {
   const getShortLocation = (fullLocation: string, city?: string) => {
     if (!fullLocation) return '';
     
-    // Extract the venue name (everything before the first comma)
-    // e.g. "Mount Diablo Yoga Center, 2121 Ygnacio Valley Rd..." -> "Mount Diablo Yoga Center"
     const parts = fullLocation.split(',');
     const venueName = parts[0]?.trim() || fullLocation;
     
@@ -292,12 +290,10 @@ const PublicClassesPage = () => {
   const getEligibilityLine = (classData: ClassSchedule) => {
     const isMotherDaughter = classData.type === 'public: mother & daughter';
     
-    // Audience segment
     const audience = isMotherDaughter
       ? 'Girls ages 12-15 with participating mother/guardian'
       : 'Women ages 15+';
     
-    // Price segment from Airtable
     let priceDisplay = '';
     if (classData.price) {
       priceDisplay = `$${classData.price}`;
@@ -451,7 +447,7 @@ const PublicClassesPage = () => {
           </div>
 
           {/* Button/Registration Area */}
-          <div className="ml-4">
+          <div className="ml-4 flex-shrink-0">
             {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' ? (
               <button
                 disabled
@@ -491,12 +487,15 @@ const PublicClassesPage = () => {
                 </button>
               )
             ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-              <button
-                onClick={() => handleBooking(classData)}
-                className="bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center gap-2"
+              // External partner registration - text link style
+              <a
+                href={classData.booking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-accent-primary hover:text-accent-dark font-medium text-sm transition-colors"
               >
-                Register <ExternalLink className="w-4 h-4" />
-              </button>
+                Register with our partner <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             ) : classData.booking_method === 'contact' ? (
               <button
                 onClick={() => handleBooking(classData)}
@@ -694,7 +693,7 @@ const PublicClassesPage = () => {
 
       {/* Class Listings */}
       <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Private Classes Call-out */}
           <div className="mb-8 flex justify-center">
@@ -752,7 +751,7 @@ const PublicClassesPage = () => {
               )}
             </div>
 
-            {/* Desktop Chips */}
+            {/* Desktop Chips - Light gray style */}
             <div className="hidden md:block space-y-4">
               {/* Program Filter */}
               <div>
@@ -764,8 +763,8 @@ const PublicClassesPage = () => {
                       onClick={() => setSelectedProgram(opt.value as 'all' | 'adult-teen' | 'mother-daughter')}
                       className={`px-4 py-2 rounded-full font-medium transition-colors ${
                         selectedProgram === opt.value
-                          ? 'bg-accent-primary text-white shadow-md'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          ? 'bg-gray-700 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -785,8 +784,8 @@ const PublicClassesPage = () => {
                         onClick={() => setSelectedCity(city)}
                         className={`px-4 py-2 rounded-full font-medium transition-colors ${
                           selectedCity === city
-                            ? 'bg-accent-primary text-white shadow-md'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            ? 'bg-gray-700 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
                         {city === 'All' ? 'All Cities' : city}
