@@ -350,7 +350,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </ul>
               <div className="mt-6 pt-4 border-t border-slate-800">
                 
-                  href="https://maps.google.com/maps?q=2121+Ygnacio+Valley+Rd+Suite+E207+Walnut+Creek+CA+94598"
+                 <a href="https://maps.google.com/maps?q=2121+Ygnacio+Valley+Rd+Suite+E207+Walnut+Creek+CA+94598"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-start gap-2 text-slate-400 hover:text-white transition-colors"
