@@ -557,34 +557,33 @@ const PublicClassesPage = () => {
         <meta name="twitter:image" content="https://www.streetwiseselfdefense.com/self-defense-action.png" />
       </Helmet>
 
-      {/* Slim Hero */}
+  {/* Slim Hero */}
       <section className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #2C3E50 0%, #3d566e 100%)' }}>
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-cover bg-center opacity-20" style={{ backgroundImage: 'url(/adult-teen.png)' }}></div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">Public Classes</h1>
           <p className="text-sm text-white/60">Empowering self-defense in a supportive, women-only environment</p>
-        </div>
-      </section>
-
-      {/* Class Listings */}
-      <section className="py-5 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-
-          {/* Testimonial — above filters for social proof first */}
           {testimonial && (
-            <div className="flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg mb-4 bg-gray-50 border border-gray-200">
+            <div className="flex items-center gap-2 mt-3">
               <div className="flex gap-0.5 flex-shrink-0">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= testimonial.rating ? '#F59E0B' : 'none'} stroke="#F59E0B" strokeWidth="1.5">
+                  <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i <= testimonial.rating ? '#F59E0B' : 'none'} stroke="#F59E0B" strokeWidth="1.5">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
                 ))}
               </div>
-              <p className="text-xs italic text-gray-600">"{testimonial.content}"</p>
-              <span className="text-xs font-medium whitespace-nowrap text-gray-400">— {getPlatformLabel(testimonial.platform)}</span>
+              <p className="text-xs italic text-white/70">"{testimonial.content}"</p>
+              <span className="text-xs text-white/40 whitespace-nowrap">— {getPlatformLabel(testimonial.platform)}</span>
             </div>
           )}
+        </div>
+      </section>
+      
+      {/* Class Listings */}
+      <section className="py-5 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
+       
           {/* Filters — directly above list */}
           <div className="mb-4">
             {/* Mobile Dropdowns */}
