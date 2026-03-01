@@ -29,7 +29,7 @@ const ContactPage = () => {
       description: 'Send us a detailed message about your needs',
       action: 'mailto:info@streetwiseselfdefense.com',
       buttonText: 'Send Email'
-    }
+    },
     {
       icon: MapPin,
       title: 'Visit Us',
