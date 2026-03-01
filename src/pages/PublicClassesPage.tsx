@@ -564,7 +564,7 @@ const PublicClassesPage = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">Public Classes</h1>
           <p className="text-sm text-white/60">Empowering self-defense in a supportive, women-only environment</p>
           {testimonial && (
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex items-center gap-2 mt-5">
               <div className="flex gap-0.5 flex-shrink-0">
                 {[1, 2, 3, 4, 5].map(i => (
                   <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i <= testimonial.rating ? '#F59E0B' : 'none'} stroke="#F59E0B" strokeWidth="1.5">
@@ -572,8 +572,8 @@ const PublicClassesPage = () => {
                   </svg>
                 ))}
               </div>
-              <p className="text-xs italic text-white/70">"{testimonial.content}"</p>
-              <span className="text-xs text-white/40 whitespace-nowrap">— {getPlatformLabel(testimonial.platform)}</span>
+               <p className="text-xs italic text-white/70">"{testimonial.content}"</p>
+              <div className="w-full text-xs text-white/40 ml-[26px]">— {getPlatformLabel(testimonial.platform)}</div>
             </div>
           )}
         </div>
