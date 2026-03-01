@@ -67,7 +67,6 @@ const PublicClassesPage = () => {
       const response = await fetch('/api/testimonials');
       if (response.ok) {
         const data = await response.json();
-        // Pick a random published, high-rated testimonial
         const good = data.filter((t: any) => t.is_published && t.rating >= 4 && t.content?.length > 20 && t.content?.length < 150);
         if (good.length > 0) {
           const pick = good[Math.floor(Math.random() * good.length)];
@@ -285,7 +284,7 @@ const PublicClassesPage = () => {
     return platform ? labels[platform] || 'Review' : 'Review';
   };
 
-  const ClassCard = ({ classData }: { classData: ClassSchedule }) => {
+  const ClassCard = ({ classData, isLast }: { classData: ClassSchedule; isLast: boolean }) => {
     const [isFull, setIsFull] = useState(false);
     const [checkingAvailability, setCheckingAvailability] = useState(true);
     
@@ -320,23 +319,21 @@ const PublicClassesPage = () => {
     }, [classData.id, classData.available_spots, classData.booking_method, classData.type]);
 
     const registrationClosed = isRegistrationClosed(classData.start_time_new);
-    const borderColor = isMotherDaughter ? 'border-l-navy' : 'border-l-gray-300';
-    const portraitBorder = isMotherDaughter ? 'ring-navy/20' : 'ring-gray-200';
     const portraitSrc = isMotherDaughter ? '/Mom_and_daughter_icon.png' : '/Adult_icon.png';
 
     return (
-      <div className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 px-4 py-3 border-l-4 ${borderColor}`}>
+      <div className={`py-3 ${!isLast ? 'border-b border-gray-100' : ''}`}>
         <div className="flex items-start gap-3">
-          {/* Portrait thumbnail */}
+          {/* Portrait thumbnail — thin ring */}
           <img
             src={portraitSrc}
             alt={isMotherDaughter ? 'Mother and daughter' : 'Adult student'}
-            className={`w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ${portraitBorder}`}
+            className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-1 ring-gray-200"
           />
 
           {/* Class info */}
           <div className="flex-1 min-w-0">
-            {/* Row 1: Title + filling fast badge */}
+            {/* Row 1: Title + badges */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-base font-bold text-navy">{classData.class_name}</span>
               {isFull && classData.booking_method?.trim().toLowerCase() === 'swsd website' && (
@@ -362,11 +359,12 @@ const PublicClassesPage = () => {
               )}
             </div>
 
-            {/* Row 3: Date/time + partner */}
+            {/* Row 3: Date/time — date is bold for scanning */}
             <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
               <Calendar className="w-3 h-3 text-gray-400 flex-shrink-0" />
               <span>
-                {formatClassDate(classData.date)} • {formatTime(classData.start_time_new)} – {formatTime(classData.end_time_new)}
+                <span className="font-semibold text-gray-700">{formatClassDate(classData.date)}</span>
+                {' '}• {formatTime(classData.start_time_new)} – {formatTime(classData.end_time_new)}
               </span>
               {classData.partner_organization && classData.partner_organization.trim() !== 'Streetwise Self Defense' && (
                 <span className="text-gray-400">• via {classData.partner_organization}</span>
@@ -392,7 +390,7 @@ const PublicClassesPage = () => {
               </div>
             )}
 
-            {/* Availability — inline */}
+            {/* Availability */}
             {classData.available_spots && classData.start_time_new && 
               classData.booking_method?.trim().toLowerCase() === 'swsd website' &&
               !isFull && !registrationClosed && (
@@ -572,7 +570,22 @@ const PublicClassesPage = () => {
       <section className="py-5 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* Filters */}
+          {/* Testimonial — above filters for social proof first */}
+          {testimonial && (
+            <div className="flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg mb-4 bg-gray-50 border border-gray-200">
+              <div className="flex gap-0.5 flex-shrink-0">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= testimonial.rating ? '#F59E0B' : 'none'} stroke="#F59E0B" strokeWidth="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-xs italic text-gray-600">"{testimonial.content}"</p>
+              <span className="text-xs font-medium whitespace-nowrap text-gray-400">— {getPlatformLabel(testimonial.platform)}</span>
+            </div>
+          )}
+
+          {/* Filters — directly above list */}
           <div className="mb-4">
             {/* Mobile Dropdowns */}
             <div className="md:hidden space-y-3">
@@ -643,30 +656,19 @@ const PublicClassesPage = () => {
             </div>
           </div>
 
-          {/* Testimonial snippet */}
-          {testimonial && (
-            <div className="flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg mb-4 bg-gray-50 border border-gray-200">
-              <div className="flex gap-0.5 flex-shrink-0">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i <= testimonial.rating ? '#F59E0B' : 'none'} stroke="#F59E0B" strokeWidth="1.5">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-xs italic text-gray-600">"{testimonial.content}"</p>
-              <span className="text-xs font-medium whitespace-nowrap text-gray-400">— {getPlatformLabel(testimonial.platform)}</span>
-            </div>
-          )}
-
-          {/* Class Cards */}
-          <div className="space-y-2">
+          {/* Class List — thin dividers between items */}
+          <div>
             {filteredClasses.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500 text-sm">No upcoming classes match your filters. Try adjusting your selection above.</p>
               </div>
             ) : (
-              filteredClasses.map((classData) => (
-                <ClassCard key={classData.id} classData={classData} />
+              filteredClasses.map((classData, index) => (
+                <ClassCard 
+                  key={classData.id} 
+                  classData={classData} 
+                  isLast={index === filteredClasses.length - 1}
+                />
               ))
             )}
           </div>
