@@ -322,7 +322,7 @@ const PublicClassesPage = () => {
     const portraitSrc = isMotherDaughter ? '/Mom_and_daughter_icon.png' : '/Adult_icon.png';
 
     return (
-      <div className={`py-3 ${!isLast ? 'border-b border-gray-100' : ''}`}>
+      <div className={`py-3 ${!isLast ? 'border-b border-gray-200' : ''}`}>
         <div className="flex items-start gap-3">
           {/* Portrait thumbnail — thin ring */}
           <img
@@ -530,7 +530,7 @@ const PublicClassesPage = () => {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const programOptions = [
-    { value: 'all', label: 'All Programs' },
+    { value: 'all', label: 'All Classes' },
     { value: 'adult-teen', label: 'Adult & Teen' },
     { value: 'mother-daughter', label: 'Mother & Daughter' }
   ];
@@ -590,7 +590,7 @@ const PublicClassesPage = () => {
             {/* Mobile Dropdowns */}
             <div className="md:hidden space-y-3">
               <div>
-                <label htmlFor="program-filter-mobile" className="block text-xs font-medium text-gray-500 mb-1">Program</label>
+                <label htmlFor="program-filter-mobile" className="block text-xs font-medium text-gray-500 mb-1">Class Type</label>
                 <select
                   id="program-filter-mobile"
                   value={selectedProgram}
@@ -618,7 +618,7 @@ const PublicClassesPage = () => {
             {/* Desktop Chips */}
             <div className="hidden md:flex md:items-center md:gap-6">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">Program:</span>
+                <span className="text-xs font-medium text-gray-500">Class Type:</span>
                 <div className="flex gap-1.5">
                   {programOptions.map(opt => (
                     <button
@@ -627,7 +627,7 @@ const PublicClassesPage = () => {
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                         selectedProgram === opt.value
                           ? 'bg-gray-700 text-white'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-gray-100 text-navy-500 hover:bg-gray-200'
                       }`}
                     >
                       {opt.label}
@@ -644,7 +644,7 @@ const PublicClassesPage = () => {
                         key={city}
                         onClick={() => setSelectedCity(city)}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                          selectedCity === city ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          selectedCity === city ? 'bg-gray-700 text-white' : 'bg-gray-100 text-navy-500 hover:bg-gray-200'
                         }`}
                       >
                         {city === 'All' ? 'All Cities' : city}
