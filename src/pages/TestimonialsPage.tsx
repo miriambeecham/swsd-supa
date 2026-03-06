@@ -193,7 +193,7 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 3+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 8+ reviews</div>
                <a
                 href="https://google.com/search?q=streetwise+self+defense+reviews"
                 target="_blank"
@@ -215,7 +215,7 @@ const TestimonialsPage = () => {
               <div className="flex justify-center mb-2">
                 {renderStars(5)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">Based on 12+ reviews</div>
+              <div className="text-sm text-gray-600 mb-3">Based on 16+ reviews</div>
               {/* CTA link in site teal color */}
               <a
                 href="https://www.yelp.com/biz/streetwise-self-defense-walnut-creek"
