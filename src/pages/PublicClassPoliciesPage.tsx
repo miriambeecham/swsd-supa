@@ -1,3 +1,4 @@
+
 // src/pages/PublicClassPoliciesPage.tsx
 import React from 'react';
 import { Calendar, Info, Mail } from 'lucide-react';

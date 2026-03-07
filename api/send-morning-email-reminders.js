@@ -1,5 +1,6 @@
 // /api/send-morning-email-reminders.js
 // ✅ NEW: Runs at 9 AM Pacific Time - sends comprehensive email reminder
+// ✅ UPDATED: Also sends reminders to Teaching Assistants via Persons + Teaching Assignments tables
 // Replaces the old combined email+SMS job
 
 export default async function handler(req, res) {
@@ -74,12 +75,44 @@ export default async function handler(req, res) {
         success: true, 
         message: 'No classes scheduled for tomorrow',
         classesFound: 0,
-        emailsSent: 0
+        emailsSent: 0,
+        taEmailsSent: 0
       });
+    }
+
+    // ========================================
+    // FETCH ALL TEACHING ASSIGNMENTS & PERSONS (once, for efficiency)
+    // ========================================
+    let allAssignments = [];
+    let allPersons = [];
+
+    try {
+      const assignmentsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        allAssignments = assignmentsData.records || [];
+        console.log(`[MORNING-EMAIL] Fetched ${allAssignments.length} teaching assignments`);
+      }
+
+      const personsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (personsResponse.ok) {
+        const personsData = await personsResponse.json();
+        allPersons = personsData.records || [];
+        console.log(`[MORNING-EMAIL] Fetched ${allPersons.length} persons`);
+      }
+    } catch (taFetchError) {
+      console.warn('[MORNING-EMAIL] Could not fetch TA data, continuing with student reminders only:', taFetchError.message);
     }
 
     const results = [];
     let totalEmailsSent = 0;
+    let totalTaEmailsSent = 0;
 
     // Process each class schedule
     for (const schedule of schedules) {
@@ -101,133 +134,132 @@ export default async function handler(req, res) {
           }
         }
 
+        // Common formatting for this schedule
+        const formatTimeForDisplay = (timeStr) => {
+          if (!timeStr) return 'TBD';
+          
+          if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Los_Angeles'
+            });
+          }
+          
+          return timeStr;
+        };
+
+        const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
+        const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
+        
+        const formattedDate = schedule.fields?.Date 
+          ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            })
+          : 'TBD';
+
+        const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
+        const classLocation = classData?.fields?.Location || 'Location TBD';
+
+        // Class prep URL
+        const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
+
+        // ========================================
+        // SEND REMINDERS TO STUDENTS (existing code)
+        // ========================================
+
         // Get confirmed bookings for this schedule
         const bookingIds = schedule.fields.Bookings || [];
         if (bookingIds.length === 0) {
           console.log(`[MORNING-EMAIL] No bookings linked to schedule ${schedule.id}`);
-          continue;
-        }
+        } else {
+          const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+          
+          const bookingsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
+            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+          );
 
-        const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-        const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
-        
-        const bookingsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-          { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-        );
+          if (!bookingsResponse.ok) {
+            throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
+          }
 
-        if (!bookingsResponse.ok) {
-          throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
-        }
+          const bookingsData = await bookingsResponse.json();
+          const bookings = bookingsData.records || [];
 
-        const bookingsData = await bookingsResponse.json();
-        const bookings = bookingsData.records || [];
+          console.log(`[MORNING-EMAIL] Found ${bookings.length} confirmed bookings`);
 
-        console.log(`[MORNING-EMAIL] Found ${bookings.length} confirmed bookings`);
+          if (bookings.length > 0) {
+            // Fetch participants
+            const participantsResponse = await fetch(
+              `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants`,
+              { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+            );
 
-        if (bookings.length === 0) {
-          continue;
-        }
+            let allParticipants = [];
+            if (participantsResponse.ok) {
+              const participantsData = await participantsResponse.json();
+              allParticipants = participantsData.records || [];
+            }
 
-        // Fetch participants
-        const participantsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants`,
-          { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-        );
-
-        let allParticipants = [];
-        if (participantsResponse.ok) {
-          const participantsData = await participantsResponse.json();
-          allParticipants = participantsData.records || [];
-        }
-
-        // Map participants to bookings
-        const participantsMap = new Map();
-        if (allParticipants.length > 0) {
-          allParticipants.forEach(p => {
-            if (p.fields.Booking && p.fields.Booking.length > 0) {
-              const bookingId = p.fields.Booking[0];
-              if (bookingId) {
-                if (!participantsMap.has(bookingId)) {
-                  participantsMap.set(bookingId, []);
+            // Map participants to bookings
+            const participantsMap = new Map();
+            if (allParticipants.length > 0) {
+              allParticipants.forEach(p => {
+                if (p.fields.Booking && p.fields.Booking.length > 0) {
+                  const bookingId = p.fields.Booking[0];
+                  if (bookingId) {
+                    if (!participantsMap.has(bookingId)) {
+                      participantsMap.set(bookingId, []);
+                    }
+                    participantsMap.get(bookingId).push(p);
+                  }
                 }
-                participantsMap.get(bookingId).push(p);
-              }
-            }
-          });
-        }
-
-        // Send email to each booking
-        for (const booking of bookings) {
-          try {
-            const contactEmail = booking.fields['Contact Email'];
-            const contactFirstName = booking.fields['Contact First Name'] || 'Valued Customer';
-            
-            if (!contactEmail) {
-              console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - no email`);
-              continue;
+              });
             }
 
-            // Skip if reminder already sent
-            if (booking.fields['Reminder Email ID']) {
-              console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - reminder already sent`);
-              continue;
-            }
+            // Send email to each booking
+            for (const booking of bookings) {
+              try {
+                const contactEmail = booking.fields['Contact Email'];
+                const contactFirstName = booking.fields['Contact First Name'] || 'Valued Customer';
+                
+                if (!contactEmail) {
+                  console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - no email`);
+                  continue;
+                }
 
-            // Skip if confirmation email bounced
-            if (booking.fields['Confirmation Email Status'] === 'Bounced') {
-              console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - confirmation email bounced`);
-              continue;
-            }
+                // Skip if reminder already sent
+                if (booking.fields['Reminder Email ID']) {
+                  console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - reminder already sent`);
+                  continue;
+                }
 
-            // Skip if unsubscribed
-            if (booking.fields['Email Unsubscribed']) {
-              console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - unsubscribed`);
-              continue;
-            }
+                // Skip if confirmation email bounced
+                if (booking.fields['Confirmation Email Status'] === 'Bounced') {
+                  console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - confirmation email bounced`);
+                  continue;
+                }
 
-            // Get participant info
-            const bookingParticipants = participantsMap.get(booking.id) || [];
-            const participantCount = booking.fields['Number of Participants'] || bookingParticipants.length || 1;
-            
-            const allParticipantNames = bookingParticipants.length > 0
-              ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
-              : contactFirstName;
-            
-            // Format times
-            const formatTimeForDisplay = (timeStr) => {
-              if (!timeStr) return 'TBD';
-              
-              if (timeStr.includes('T')) {
-                const date = new Date(timeStr);
-                return date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'America/Los_Angeles'
-                });
-              }
-              
-              return timeStr;
-            };
+                // Skip if unsubscribed
+                if (booking.fields['Email Unsubscribed']) {
+                  console.log(`[MORNING-EMAIL] Skipping booking ${booking.id} - unsubscribed`);
+                  continue;
+                }
 
-            const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
-            const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
-            
-            const formattedDate = schedule.fields?.Date 
-              ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
-                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-                })
-              : 'TBD';
+                // Get participant info
+                const bookingParticipants = participantsMap.get(booking.id) || [];
+                const participantCount = booking.fields['Number of Participants'] || bookingParticipants.length || 1;
+                
+                const allParticipantNames = bookingParticipants.length > 0
+                  ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
+                  : contactFirstName;
 
-            const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
-            const classLocation = classData?.fields?.Location || 'Location TBD';
-
-            // Class prep URL
-            const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
-
-            // Email HTML - ORIGINAL TEMPLATE from send-class-reminders.js
-            const emailHTML = `
+                // Email HTML - ORIGINAL TEMPLATE from send-class-reminders.js
+                const emailHTML = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -325,71 +357,212 @@ export default async function handler(req, res) {
 </html>
 `;
 
-            // Send email
+                // Send email
+                try {
+                  const { Resend } = await import('resend');
+                  const resend = new Resend(RESEND_API_KEY);
+
+                  const { data, error } = await resend.emails.send({
+                    from: FROM_EMAIL,
+                    to: contactEmail,
+                    cc: 'reminders@streetwiseselfdefense.com',
+                    subject: `Tomorrow: Your ${className} Class`,
+                    html: emailHTML,
+                    headers: {
+                      'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}>`,
+                      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                    }
+                  });
+
+                  if (error) {
+                    console.error(`[MORNING-EMAIL] Resend error for booking ${booking.id}:`, error);
+                    throw error;
+                  }
+
+                  console.log(`[MORNING-EMAIL] ✅ Sent email to ${contactEmail}`);
+
+                  // Store tracking info
+                  if (data && data.id) {
+                    await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        fields: {
+                          'Reminder Email ID': data.id,
+                          'Reminder Email Status': 'Sent',
+                          'Reminder Email Sent At': new Date().toISOString()
+                        }
+                      })
+                    });
+                  }
+
+                  totalEmailsSent++;
+                  results.push({
+                    scheduleId: schedule.id,
+                    bookingId: booking.id,
+                    email: contactEmail,
+                    recipientType: 'student',
+                    success: true
+                  });
+
+                  await sleep(600); // Rate limiting
+                  
+                } catch (emailErr) {
+                  console.error(`[MORNING-EMAIL] ❌ Failed for booking ${booking.id}:`, emailErr);
+                  results.push({
+                    scheduleId: schedule.id,
+                    bookingId: booking.id,
+                    email: contactEmail,
+                    recipientType: 'student',
+                    success: false,
+                    error: emailErr.message
+                  });
+                }
+
+              } catch (bookingError) {
+                console.error(`[MORNING-EMAIL] ❌ Error processing booking ${booking.id}:`, bookingError);
+              }
+            }
+          }
+        }
+
+        // ========================================
+        // SEND REMINDERS TO TEACHING ASSISTANTS
+        // ========================================
+        
+        // Filter assignments for this class schedule
+        const classAssignments = allAssignments.filter(assignment => {
+          const linkedScheduleIds = assignment.fields['Class Schedule'] || [];
+          return linkedScheduleIds.includes(schedule.id);
+        });
+
+        console.log(`[MORNING-EMAIL] Found ${classAssignments.length} TA assignments for schedule ${schedule.id}`);
+
+        if (classAssignments.length > 0) {
+          // Get Person IDs from assignments
+          const personIds = classAssignments
+            .map(a => a.fields['Person']?.[0])
+            .filter(Boolean);
+
+          // Filter persons to just those assigned to this class
+          const taPersons = allPersons.filter(p => personIds.includes(p.id));
+
+          for (const person of taPersons) {
+            const taEmail = person.fields['Email'];
+            const taName = person.fields['Name'] || 'Teaching Assistant';
+            const taFirstName = taName.split(' ')[0];
+
+            if (!taEmail) {
+              console.log(`[MORNING-EMAIL] Skipping TA ${person.id} - no email`);
+              continue;
+            }
+
+            // Check if TA has unsubscribed from emails
+            if (person.fields['Email Unsubscribed']) {
+              console.log(`[MORNING-EMAIL] Skipping TA ${taEmail} - unsubscribed`);
+              continue;
+            }
+
             try {
               const { Resend } = await import('resend');
               const resend = new Resend(RESEND_API_KEY);
 
+              // TA-specific email (different from student email)
+              const taEmailHTML = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
+  </div>
+  
+  <h1 style="color: #553c9a; text-align: center; font-size: 32px; margin-bottom: 10px;">You're Helping Teach Tomorrow!</h1>
+  
+  <p style="font-size: 16px; line-height: 1.6;">Hi ${taFirstName},</p>
+  
+  <p style="font-size: 16px; line-height: 1.6;">This is a friendly reminder that you're scheduled to help teach a class tomorrow. Thank you so much for volunteering your time!</p>
+  
+  <div style="background: #F5F3FF; border: 2px solid #553c9a; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #553c9a; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Class Details</h2>
+    <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; font-weight: bold; color: #553c9a; width: 35%;">Class:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; color: #1E293B;">${className}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; font-weight: bold; color: #553c9a;">Date:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; color: #1E293B;">${formattedDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; font-weight: bold; color: #553c9a;">Time:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; color: #1E293B;">${displayStartTime} - ${displayEndTime}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; font-weight: bold; color: #553c9a;">Location:</td>
+        <td style="padding: 12px 8px; color: #1E293B;">${classLocation}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 30px 0;">
+    <p style="font-size: 15px; line-height: 1.6; color: #92400E; margin: 0;"><strong>⏰ Please arrive 15-20 minutes early</strong> to help with setup and greet students as they arrive.</p>
+  </div>
+  
+  <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">If something comes up and you can't make it, please let me know ASAP:</p>
+    <p style="font-size: 22px; font-weight: bold; color: #553c9a; margin: 15px 0;">
+      <a href="tel:+19255329953" style="color: #553c9a; text-decoration: none;">(925) 532-9953</a>
+    </p>
+  </div>
+  
+  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Thank you!</p>
+    <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
+    <p style="color: #6B7280; font-size: 15px; margin: 8px 0;">Streetwise Self Defense</p>
+  </div>
+</body>
+</html>
+`;
+
               const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
-                to: contactEmail,
-                cc: 'reminders@streetwiseselfdefense.com',
-                subject: `Tomorrow: Your ${className} Class`,
-                html: emailHTML,
-                headers: {
-                  'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}>`,
-                  'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-                }
+                to: taEmail,
+                reply_to: 'jay@streetwiseselfdefense.com',
+                subject: `Tomorrow: You're Helping Teach ${className}!`,
+                html: taEmailHTML
               });
 
               if (error) {
-                console.error(`[MORNING-EMAIL] Resend error for booking ${booking.id}:`, error);
+                console.error(`[MORNING-EMAIL] Resend error for TA ${taEmail}:`, error);
                 throw error;
               }
 
-              console.log(`[MORNING-EMAIL] ✅ Sent email to ${contactEmail}`);
-
-              // Store tracking info
-              if (data && data.id) {
-                await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
-                  method: 'PATCH',
-                  headers: {
-                    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    fields: {
-                      'Reminder Email ID': data.id,
-                      'Reminder Email Status': 'Sent',
-                      'Reminder Email Sent At': new Date().toISOString()
-                    }
-                  })
-                });
-              }
-
-              totalEmailsSent++;
+              console.log(`[MORNING-EMAIL] ✅ Sent TA reminder to ${taEmail}`);
+              totalTaEmailsSent++;
               results.push({
                 scheduleId: schedule.id,
-                bookingId: booking.id,
-                email: contactEmail,
+                personId: person.id,
+                email: taEmail,
+                recipientType: 'TA',
                 success: true
               });
 
               await sleep(600); // Rate limiting
-              
-            } catch (emailErr) {
-              console.error(`[MORNING-EMAIL] ❌ Failed for booking ${booking.id}:`, emailErr);
+
+            } catch (taEmailError) {
+              console.error(`[MORNING-EMAIL] ❌ Failed to send TA email to ${taEmail}:`, taEmailError);
               results.push({
                 scheduleId: schedule.id,
-                bookingId: booking.id,
-                email: contactEmail,
+                personId: person.id,
+                email: taEmail,
+                recipientType: 'TA',
                 success: false,
-                error: emailErr.message
+                error: taEmailError.message
               });
             }
-
-          } catch (bookingError) {
-            console.error(`[MORNING-EMAIL] ❌ Error processing booking ${booking.id}:`, bookingError);
           }
         }
 
@@ -398,13 +571,14 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`[MORNING-EMAIL] ✅ Complete. Emails sent: ${totalEmailsSent}`);
+    console.log(`[MORNING-EMAIL] ✅ Complete. Student emails: ${totalEmailsSent}, TA emails: ${totalTaEmailsSent}`);
 
     return res.json({
       success: true,
       message: '9 AM email reminders sent',
       classesFound: schedules.length,
       emailsSent: totalEmailsSent,
+      taEmailsSent: totalTaEmailsSent,
       results
     });
 

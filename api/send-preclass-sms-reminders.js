@@ -1,5 +1,6 @@
 // /api/send-preclass-sms-reminders.js
 // ✅ NEW: Runs multiple times throughout the day
+// ✅ UPDATED: Also sends SMS reminders to Teaching Assistants via Persons + Teaching Assignments tables
 // Sends final SMS reminder 2 hours before class starts
 // Includes address, time, and encouraging message
 
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
 
     if (!twilioConfigured) {
       console.log('[PRECLASS-SMS] ⚠️ Twilio not configured - job skipped');
-      return res.json({ success: true, message: 'Twilio not configured', smsSent: 0 });
+      return res.json({ success: true, message: 'Twilio not configured', smsSent: 0, taSmsSent: 0 });
     }
 
     console.log('[PRECLASS-SMS] Starting pre-class SMS reminder job...');
@@ -96,13 +97,45 @@ export default async function handler(req, res) {
         success: true, 
         message: 'No classes starting in 2 hours',
         classesFound: 0,
-        smsSent: 0
+        smsSent: 0,
+        taSmsSent: 0
       });
+    }
+
+    // ========================================
+    // FETCH ALL TEACHING ASSIGNMENTS & PERSONS (once, for efficiency)
+    // ========================================
+    let allAssignments = [];
+    let allPersons = [];
+
+    try {
+      const assignmentsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        allAssignments = assignmentsData.records || [];
+        console.log(`[PRECLASS-SMS] Fetched ${allAssignments.length} teaching assignments`);
+      }
+
+      const personsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (personsResponse.ok) {
+        const personsData = await personsResponse.json();
+        allPersons = personsData.records || [];
+        console.log(`[PRECLASS-SMS] Fetched ${allPersons.length} persons`);
+      }
+    } catch (taFetchError) {
+      console.warn('[PRECLASS-SMS] Could not fetch TA data, continuing with student SMS only:', taFetchError.message);
     }
 
     const results = [];
     let totalSmsSent = 0;
     let totalSmsSkipped = 0;
+    let totalTaSmsSent = 0;
 
     // Process each class schedule
     for (const schedule of schedules) {
@@ -124,157 +157,249 @@ export default async function handler(req, res) {
           }
         }
 
+        // Common formatting for this schedule
+        const formatTimeForDisplay = (timeStr) => {
+          if (!timeStr) return 'TBD';
+          if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Los_Angeles'
+            });
+          }
+          return timeStr;
+        };
+
+        const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
+        const className = classData?.fields?.['Class Name'] || 'class';
+        const classLocation = classData?.fields?.Location || 'the location';
+        
+        // Create Google Maps link
+        const mapsLink = classLocation !== 'the location' 
+          ? `https://maps.google.com/?q=${encodeURIComponent(classLocation)}`
+          : '';
+
+        // Class prep URL for waiver link
+        const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
+
+        // ========================================
+        // SEND SMS TO STUDENTS (existing code)
+        // ========================================
+
         // Get confirmed bookings for this schedule
         const bookingIds = schedule.fields.Bookings || [];
         if (bookingIds.length === 0) {
           console.log(`[PRECLASS-SMS] No bookings linked to schedule ${schedule.id}`);
-          continue;
-        }
+        } else {
+          const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+          
+          const bookingsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
+            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+          );
 
-        const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-        const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
-        
-        const bookingsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-          { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-        );
+          if (!bookingsResponse.ok) {
+            throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
+          }
 
-        if (!bookingsResponse.ok) {
-          throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
-        }
+          const bookingsData = await bookingsResponse.json();
+          const bookings = bookingsData.records || [];
 
-        const bookingsData = await bookingsResponse.json();
-        const bookings = bookingsData.records || [];
+          console.log(`[PRECLASS-SMS] Found ${bookings.length} confirmed bookings`);
 
-        console.log(`[PRECLASS-SMS] Found ${bookings.length} confirmed bookings`);
-
-        // Send SMS to each booking
-        for (const booking of bookings) {
-          try {
-            const contactPhone = booking.fields['Contact Phone'];
-            const contactFirstName = booking.fields['Contact First Name'] || 'there';
-            const smsConsentDate = booking.fields['SMS Consent Date'];
-            const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
-            
-            // ELIGIBILITY CHECKS
-            
-            // 1. Must have phone number
-            if (!contactPhone) {
-              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no phone number`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // 2. Must have given SMS consent
-            if (!smsConsentDate) {
-              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // 3. Must NOT have opted out of SMS
-            if (smsOptedOutDate) {
-              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // 4. Must not have already received pre-class SMS
-            if (booking.fields['Preclass SMS ID']) {
-              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - pre-class SMS already sent`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // Format phone number
-            const formattedPhone = formatPhoneNumber(contactPhone);
-            if (!formattedPhone) {
-              console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - invalid phone format`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // Get class details for SMS
-            const formatTimeForDisplay = (timeStr) => {
-              if (!timeStr) return 'TBD';
-              if (timeStr.includes('T')) {
-                const date = new Date(timeStr);
-                return date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'America/Los_Angeles'
-                });
+          // Send SMS to each booking
+          for (const booking of bookings) {
+            try {
+              const contactPhone = booking.fields['Contact Phone'];
+              const contactFirstName = booking.fields['Contact First Name'] || 'there';
+              const smsConsentDate = booking.fields['SMS Consent Date'];
+              const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
+              
+              // ELIGIBILITY CHECKS
+              
+              // 1. Must have phone number
+              if (!contactPhone) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no phone number`);
+                totalSmsSkipped++;
+                continue;
               }
-              return timeStr;
-            };
 
-            const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
-            const className = classData?.fields?.['Class Name'] || 'class';
-            const classLocation = classData?.fields?.Location || 'the location';
-            
-            // Create Google Maps link
-            const mapsLink = classLocation !== 'the location' 
-              ? `https://maps.google.com/?q=${encodeURIComponent(classLocation)}`
-              : '';
+              // 2. Must have given SMS consent
+              if (!smsConsentDate) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
+                totalSmsSkipped++;
+                continue;
+              }
 
-            // Class prep URL for waiver link
-            const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
+              // 3. Must NOT have opted out of SMS
+              if (smsOptedOutDate) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
+                totalSmsSkipped++;
+                continue;
+              }
 
-            // SMS Message - user's requested wording
-            const smsMessage = `🎉 Your Streetwise Self Defense class starts at ${displayStartTime}. The address is: ${classLocation}${mapsLink ? ` ${mapsLink}` : ''}
+              // 4. Must not have already received pre-class SMS
+              if (booking.fields['Preclass SMS ID']) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - pre-class SMS already sent`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // Format phone number
+              const formattedPhone = formatPhoneNumber(contactPhone);
+              if (!formattedPhone) {
+                console.log(`[PRECLASS-SMS] ⏭️ Skipping booking ${booking.id} - invalid phone format`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // SMS Message - user's requested wording
+              const smsMessage = `🎉 Your Streetwise Self Defense class starts at ${displayStartTime}. The address is: ${classLocation}${mapsLink ? ` ${mapsLink}` : ''}
 
 If you haven't signed your waiver yet, click here ${classPrepUrl}. Text or call (925) 532-9953 with any questions.
 
 See you there!
 ~Jay`;
 
-            console.log(`[PRECLASS-SMS] Sending pre-class SMS to ${formattedPhone} for booking ${booking.id}`);
+              console.log(`[PRECLASS-SMS] Sending pre-class SMS to ${formattedPhone} for booking ${booking.id}`);
 
-            // Send SMS via Twilio
-            const message = await twilioClient.messages.create({
-              body: smsMessage,
-              from: TWILIO_PHONE_NUMBER,
-              to: formattedPhone
-            });
+              // Send SMS via Twilio
+              const message = await twilioClient.messages.create({
+                body: smsMessage,
+                from: TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+              });
 
-            console.log(`[PRECLASS-SMS] ✅ Sent SMS - SID: ${message.sid}`);
+              console.log(`[PRECLASS-SMS] ✅ Sent SMS - SID: ${message.sid}`);
 
-            // Store tracking info
-            await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
-              method: 'PATCH',
-              headers: {
-                Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                fields: {
-                  'Preclass SMS ID': message.sid,
-                  'Preclass SMS Status': 'Sent',
-                  'Preclass SMS Sent At': new Date().toISOString()
-                }
-              })
-            });
+              // Store tracking info
+              await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+                method: 'PATCH',
+                headers: {
+                  Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  fields: {
+                    'Preclass SMS ID': message.sid,
+                    'Preclass SMS Status': 'Sent',
+                    'Preclass SMS Sent At': new Date().toISOString()
+                  }
+                })
+              });
 
-            totalSmsSent++;
-            results.push({
-              scheduleId: schedule.id,
-              bookingId: booking.id,
-              phone: formattedPhone,
-              success: true,
-              classTime: displayStartTime
-            });
+              totalSmsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                phone: formattedPhone,
+                recipientType: 'student',
+                success: true,
+                classTime: displayStartTime
+              });
 
-            await sleep(1000); // Twilio rate limiting
+              await sleep(1000); // Twilio rate limiting
 
-          } catch (smsError) {
-            console.error(`[PRECLASS-SMS] ❌ Error for booking ${booking.id}:`, smsError);
-            results.push({
-              scheduleId: schedule.id,
-              bookingId: booking.id,
-              success: false,
-              error: smsError.message
-            });
+            } catch (smsError) {
+              console.error(`[PRECLASS-SMS] ❌ Error for booking ${booking.id}:`, smsError);
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                recipientType: 'student',
+                success: false,
+                error: smsError.message
+              });
+            }
+          }
+        }
+
+        // ========================================
+        // SEND SMS TO TEACHING ASSISTANTS
+        // ========================================
+        
+        // Filter assignments for this class schedule
+        const classAssignments = allAssignments.filter(assignment => {
+          const linkedScheduleIds = assignment.fields['Class Schedule'] || [];
+          return linkedScheduleIds.includes(schedule.id);
+        });
+
+        console.log(`[PRECLASS-SMS] Found ${classAssignments.length} TA assignments for schedule ${schedule.id}`);
+
+        if (classAssignments.length > 0) {
+          // Get Person IDs from assignments
+          const personIds = classAssignments
+            .map(a => a.fields['Person']?.[0])
+            .filter(Boolean);
+
+          // Filter persons to just those assigned to this class
+          const taPersons = allPersons.filter(p => personIds.includes(p.id));
+
+          for (const person of taPersons) {
+            const taPhone = person.fields['Phone'];
+            const taName = person.fields['Name'] || 'Teaching Assistant';
+            const taFirstName = taName.split(' ')[0];
+
+            if (!taPhone) {
+              console.log(`[PRECLASS-SMS] Skipping TA ${person.id} - no phone`);
+              continue;
+            }
+
+            // Format phone number
+            const formattedPhone = formatPhoneNumber(taPhone);
+            if (!formattedPhone) {
+              console.log(`[PRECLASS-SMS] Skipping TA ${person.id} - invalid phone format`);
+              continue;
+            }
+
+            // Check if TA has opted out of SMS (respect opt-out, but don't require consent)
+            if (person.fields['SMS Opted Out Date']) {
+              console.log(`[PRECLASS-SMS] Skipping TA ${taFirstName} - opted out of SMS`);
+              continue;
+            }
+
+            try {
+              // TA-specific SMS message - reminds them to arrive early
+              const taSmsMessage = `Hi ${taFirstName}! Class starts at ${displayStartTime}. Address: ${classLocation}${mapsLink ? ` ${mapsLink}` : ''}
+
+Please arrive by now if you haven't already! Text me if you're running late.
+
+~Jay`;
+
+              console.log(`[PRECLASS-SMS] Sending TA pre-class SMS to ${formattedPhone}`);
+
+              const message = await twilioClient.messages.create({
+                body: taSmsMessage,
+                from: TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+              });
+
+              console.log(`[PRECLASS-SMS] ✅ Sent TA SMS - SID: ${message.sid}`);
+
+              totalTaSmsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                personId: person.id,
+                phone: formattedPhone,
+                recipientType: 'TA',
+                success: true,
+                classTime: displayStartTime
+              });
+
+              await sleep(1000); // Twilio rate limiting
+
+            } catch (taSmsError) {
+              console.error(`[PRECLASS-SMS] ❌ Error sending TA SMS to ${taFirstName}:`, taSmsError);
+              results.push({
+                scheduleId: schedule.id,
+                personId: person.id,
+                recipientType: 'TA',
+                success: false,
+                error: taSmsError.message
+              });
+            }
           }
         }
 
@@ -283,13 +408,14 @@ See you there!
       }
     }
 
-    console.log(`[PRECLASS-SMS] ✅ Complete. SMS sent: ${totalSmsSent}, Skipped: ${totalSmsSkipped}`);
+    console.log(`[PRECLASS-SMS] ✅ Complete. Student SMS: ${totalSmsSent}, TA SMS: ${totalTaSmsSent}, Skipped: ${totalSmsSkipped}`);
 
     return res.json({
       success: true,
       message: 'Pre-class SMS reminders sent',
       classesFound: schedules.length,
       smsSent: totalSmsSent,
+      taSmsSent: totalTaSmsSent,
       smsSkipped: totalSmsSkipped,
       results
     });

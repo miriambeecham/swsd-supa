@@ -1,5 +1,6 @@
 // /api/send-class-reminders.js
 // ✅ UPDATED: Removed all external links - only prep page link remains
+// ✅ UPDATED: Also sends reminders to Teaching Assistants via Persons + Teaching Assignments tables
 // Cron job to send reminder emails 1 day before class
 
 export default async function handler(req, res) {
@@ -73,12 +74,44 @@ export default async function handler(req, res) {
         success: true, 
         message: 'No classes scheduled for tomorrow',
         classesFound: 0,
-        emailsSent: 0
+        emailsSent: 0,
+        taEmailsSent: 0
       });
+    }
+
+    // ========================================
+    // FETCH ALL TEACHING ASSIGNMENTS & PERSONS (once, for efficiency)
+    // ========================================
+    let allAssignments = [];
+    let allPersons = [];
+
+    try {
+      const assignmentsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        allAssignments = assignmentsData.records || [];
+        console.log(`[REMINDER-CRON] Fetched ${allAssignments.length} teaching assignments`);
+      }
+
+      const personsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (personsResponse.ok) {
+        const personsData = await personsResponse.json();
+        allPersons = personsData.records || [];
+        console.log(`[REMINDER-CRON] Fetched ${allPersons.length} persons`);
+      }
+    } catch (taFetchError) {
+      console.warn('[REMINDER-CRON] Could not fetch TA data, continuing with student reminders only:', taFetchError.message);
     }
 
     const results = [];
     let totalEmailsSent = 0;
+    let totalTaEmailsSent = 0;
 
     // Process each class schedule
     for (const schedule of schedules) {
@@ -99,124 +132,124 @@ export default async function handler(req, res) {
           }
         }
 
+        // Common formatting for this schedule
+        const formatTimeForDisplay = (timeStr) => {
+          if (!timeStr) return 'TBD';
+          if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Los_Angeles'
+            });
+          }
+          return timeStr;
+        };
+
+        const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
+        const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
+        
+        const formattedDate = schedule.fields?.Date 
+          ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
+              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            })
+          : 'TBD';
+
+        const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
+        const location = schedule.fields?.Location || classData?.fields?.Location || 'Location TBD';
+
+        // ========================================
+        // SEND REMINDERS TO STUDENTS (existing code)
+        // ========================================
+
         // Get all confirmed bookings for this schedule
         const bookingIds = schedule.fields.Bookings || [];
         if (bookingIds.length === 0) {
           console.log(`[REMINDER-CRON] No bookings for schedule ${schedule.id}`);
-          continue;
-        }
-
-        const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-        const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
-        
-        const bookingsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-          { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-        );
-
-        if (!bookingsResponse.ok) {
-          throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
-        }
-
-        const bookingsData = await bookingsResponse.json();
-        const bookings = bookingsData.records || [];
-
-        console.log(`[REMINDER-CRON] Found ${bookings.length} confirmed bookings for schedule ${schedule.id}`);
-
-        // Get all participants for these bookings
-        const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
-        let participantsMap = new Map();
-
-        if (allParticipantIds.length > 0) {
-          const participantOrConditions = allParticipantIds.map(id => `RECORD_ID()="${id}"`).join(',');
-          const participantFilterFormula = `OR(${participantOrConditions})`;
+        } else {
+          const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
           
-          const participantsResponse = await fetch(
-            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(participantFilterFormula)}`,
+          const bookingsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
             { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
           );
 
-          if (participantsResponse.ok) {
-            const participantsData = await participantsResponse.json();
-            const participants = participantsData.records || [];
-            
-            // Create a map of bookingId -> participants
-            participants.forEach(p => {
-              const bookingId = p.fields.Booking?.[0];
-              if (bookingId) {
-                if (!participantsMap.has(bookingId)) {
-                  participantsMap.set(bookingId, []);
-                }
-                participantsMap.get(bookingId).push(p);
-              }
-            });
+          if (!bookingsResponse.ok) {
+            throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
           }
-        }
 
-       // Send reminder email to each booking
-        for (const booking of bookings) {
-          try {
-            const contactEmail = booking.fields['Contact Email'];
-            const contactFirstName = booking.fields['Contact First Name'] || 'Valued Customer';
-            
-            if (!contactEmail) {
-              console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - no email`);
-              continue;
-            }
+          const bookingsData = await bookingsResponse.json();
+          const bookings = bookingsData.records || [];
 
-            // Skip if reminder already sent (duplicate prevention)
-            if (booking.fields['Reminder Email ID']) {
-              console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - reminder already sent (Email ID: ${booking.fields['Reminder Email ID']})`);
-              continue;
-            }
+          console.log(`[REMINDER-CRON] Found ${bookings.length} confirmed bookings for schedule ${schedule.id}`);
 
-            // Get participants for this booking
-            const bookingParticipants = participantsMap.get(booking.id) || [];
-            const participantCount = booking.fields['Number of Participants'] || bookingParticipants.length || 1;
+          // Get all participants for these bookings
+          const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
+          let participantsMap = new Map();
+
+          if (allParticipantIds.length > 0) {
+            const participantOrConditions = allParticipantIds.map(id => `RECORD_ID()="${id}"`).join(',');
+            const participantFilterFormula = `OR(${participantOrConditions})`;
             
-            // Build list of ALL participant names (including booker)
-            const allParticipantNames = bookingParticipants.length > 0
-              ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
-              : contactFirstName;
-            
-            // Format time helpers
-            const formatTimeForDisplay = (timeStr) => {
-              if (!timeStr) return 'TBD';
+            const participantsResponse = await fetch(
+              `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants?filterByFormula=${encodeURIComponent(participantFilterFormula)}`,
+              { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+            );
+
+            if (participantsResponse.ok) {
+              const participantsData = await participantsResponse.json();
+              const participants = participantsData.records || [];
               
-              if (timeStr.includes('T')) {
-                const date = new Date(timeStr);
-                return date.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'America/Los_Angeles'
-                });
+              // Create a map of bookingId -> participants
+              participants.forEach(p => {
+                const bookingId = p.fields.Booking?.[0];
+                if (bookingId) {
+                  if (!participantsMap.has(bookingId)) {
+                    participantsMap.set(bookingId, []);
+                  }
+                  participantsMap.get(bookingId).push(p);
+                }
+              });
+            }
+          }
+
+          // Send reminder email to each booking
+          for (const booking of bookings) {
+            try {
+              const contactEmail = booking.fields['Contact Email'];
+              const contactFirstName = booking.fields['Contact First Name'] || 'Valued Customer';
+              
+              if (!contactEmail) {
+                console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - no email`);
+                continue;
               }
+
+              // Skip if reminder already sent (duplicate prevention)
+              if (booking.fields['Reminder Email ID']) {
+                console.log(`[REMINDER-CRON] Skipping booking ${booking.id} - reminder already sent (Email ID: ${booking.fields['Reminder Email ID']})`);
+                continue;
+              }
+
+              // Get participants for this booking
+              const bookingParticipants = participantsMap.get(booking.id) || [];
+              const participantCount = booking.fields['Number of Participants'] || bookingParticipants.length || 1;
               
-              return timeStr;
-            };
+              // Build list of ALL participant names (including booker)
+              const allParticipantNames = bookingParticipants.length > 0
+                ? bookingParticipants.map(p => `${p.fields['First Name']} ${p.fields['Last Name']}`).join(', ')
+                : contactFirstName;
+              
+              // Make class prep URL environment-aware
+              const BASE_URL = process.env.BASE_URL || 'https://www.streetwiseselfdefense.com';
+              const classPrepUrl = `${BASE_URL}/class-prep/${schedule.id}`;
 
-            const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
-            const displayEndTime = formatTimeForDisplay(schedule.fields?.['End Time New']);
-            
-            const formattedDate = schedule.fields?.Date 
-              ? new Date(schedule.fields.Date + 'T12:00:00').toLocaleDateString('en-US', { 
-                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-                })
-              : 'TBD';
+              // ✅ UPDATED: Location is plain text only (no map links)
+              const locationFormatted = location;
 
-            const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
-            const location = schedule.fields?.Location || classData?.fields?.Location || 'Location TBD';
-            
-            // Make class prep URL environment-aware
-        const BASE_URL = process.env.BASE_URL || 'https://www.streetwiseselfdefense.com';
-const classPrepUrl = `${BASE_URL}/class-prep/${schedule.id}`;
-
-            // ✅ UPDATED: Location is plain text only (no map links)
-            const locationFormatted = location;
-
-            // Build HTML email
-            const emailHTML = `
+              // Build HTML email (student version)
+              const emailHTML = `
 <!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -315,81 +348,222 @@ const classPrepUrl = `${BASE_URL}/class-prep/${schedule.id}`;
 </html>
 `;
 
-            // Send email via Resend
+              // Send email via Resend
+              try {
+                const { Resend } = await import('resend');
+                const resend = new Resend(RESEND_API_KEY);
+
+                const { data, error } = await resend.emails.send({
+                  from: FROM_EMAIL,
+                  to: contactEmail,
+                  reply_to: 'jay@streetwiseselfdefense.com',
+                  cc: 'reminders@streetwiseselfdefense.com',
+                  subject: `Reminder: Your Class is Tomorrow! - ${className}`,
+                  html: emailHTML
+                });
+
+                if (error) {
+                  console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, error);
+                  throw error;
+                }
+
+                console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
+                console.log(`[REMINDER-CRON] Reminder Email ID: ${data.id}`);
+
+                // Store reminder email ID and status in Airtable
+                if (data && data.id) {
+                  await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                      Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      fields: {
+                        'Reminder Email ID': data.id,
+                        'Reminder Email Status': 'Sent',
+                        'Reminder Email Sent At': new Date().toISOString()
+                      }
+                    })
+                  });
+                  
+                  console.log(`[REMINDER-CRON] Stored reminder email tracking data for booking ${booking.id}`);
+                }
+
+                totalEmailsSent++;
+                results.push({
+                  scheduleId: schedule.id,
+                  bookingId: booking.id,
+                  email: contactEmail,
+                  recipientType: 'student',
+                  success: true
+                });
+
+                // Rate limit: wait 600ms between emails (allows ~1.6 emails/second, safely under 2/sec limit)
+                await sleep(600);
+                
+              } catch (resendErr) {
+                console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, resendErr);
+                results.push({
+                  scheduleId: schedule.id,
+                  bookingId: booking.id,
+                  email: contactEmail,
+                  recipientType: 'student',
+                  success: false,
+                  error: resendErr.message
+                });
+              }
+            } catch (bookingError) {
+              console.error(`[REMINDER-CRON] Error processing booking ${booking.id}:`, bookingError);
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                recipientType: 'student',
+                success: false,
+                error: bookingError.message
+              });
+            }
+          }
+        }
+
+        // ========================================
+        // SEND REMINDERS TO TEACHING ASSISTANTS
+        // ========================================
+        
+        // Filter assignments for this class schedule
+        const classAssignments = allAssignments.filter(assignment => {
+          const linkedScheduleIds = assignment.fields['Class Schedule'] || [];
+          return linkedScheduleIds.includes(schedule.id);
+        });
+
+        console.log(`[REMINDER-CRON] Found ${classAssignments.length} TA assignments for schedule ${schedule.id}`);
+
+        if (classAssignments.length > 0) {
+          // Get Person IDs from assignments
+          const personIds = classAssignments
+            .map(a => a.fields['Person']?.[0])
+            .filter(Boolean);
+
+          // Filter persons to just those assigned to this class
+          const taPersons = allPersons.filter(p => personIds.includes(p.id));
+
+          for (const person of taPersons) {
+            const taEmail = person.fields['Email'];
+            const taName = person.fields['Name'] || 'Teaching Assistant';
+            const taFirstName = taName.split(' ')[0];
+
+            if (!taEmail) {
+              console.log(`[REMINDER-CRON] Skipping TA ${person.id} - no email`);
+              continue;
+            }
+
+            // Check if TA has unsubscribed from emails
+            if (person.fields['Email Unsubscribed']) {
+              console.log(`[REMINDER-CRON] Skipping TA ${taEmail} - unsubscribed`);
+              continue;
+            }
+
             try {
               const { Resend } = await import('resend');
               const resend = new Resend(RESEND_API_KEY);
 
+              // TA-specific email (different from student email)
+              const taEmailHTML = `
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;">
+  </div>
+  
+  <h1 style="color: #553c9a; text-align: center; font-size: 32px; margin-bottom: 10px;">You're Helping Teach Tomorrow!</h1>
+  
+  <p style="font-size: 16px; line-height: 1.6;">Hi ${taFirstName},</p>
+  
+  <p style="font-size: 16px; line-height: 1.6;">This is a friendly reminder that you're scheduled to help teach a class tomorrow. Thank you so much for volunteering your time!</p>
+  
+  <div style="background: #F5F3FF; border: 2px solid #553c9a; border-radius: 8px; padding: 25px; margin: 30px 0;">
+    <h2 style="color: #553c9a; margin-top: 0; margin-bottom: 20px; font-size: 24px;">Class Details</h2>
+    <table style="width: 100%; font-size: 16px;" cellpadding="8" cellspacing="0">
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; font-weight: bold; color: #553c9a; width: 35%;">Class:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; color: #1E293B;">${className}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; font-weight: bold; color: #553c9a;">Date:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; color: #1E293B;">${formattedDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; font-weight: bold; color: #553c9a;">Time:</td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #DDD6FE; color: #1E293B;">${displayStartTime} - ${displayEndTime}</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 8px; font-weight: bold; color: #553c9a;">Location:</td>
+        <td style="padding: 12px 8px; color: #1E293B;">${location}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 30px 0;">
+    <p style="font-size: 15px; line-height: 1.6; color: #92400E; margin: 0;"><strong>⏰ Please arrive 15-20 minutes early</strong> to help with setup and greet students as they arrive.</p>
+  </div>
+  
+  <div style="background: #FFFFFF; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-size: 16px; margin-bottom: 15px; color: #374151;">If something comes up and you can't make it, please let me know ASAP:</p>
+    <p style="font-size: 22px; font-weight: bold; color: #553c9a; margin: 15px 0;">
+      <a href="tel:+19255329953" style="color: #553c9a; text-decoration: none;">(925) 532-9953</a>
+    </p>
+  </div>
+  
+  <div style="background: #F8F9FA; border: 1px solid #D1D5DB; border-radius: 8px; padding: 25px; margin: 30px 0; text-align: center;">
+    <p style="font-weight: bold; font-size: 16px; color: #2C3E50; margin-bottom: 8px;">Thank you!</p>
+    <p style="font-size: 18px; margin: 8px 0; color: #2C3E50;">Jay Beecham</p>
+    <p style="color: #6B7280; font-size: 15px; margin: 8px 0;">Streetwise Self Defense</p>
+  </div>
+</body>
+</html>
+`;
+
               const { data, error } = await resend.emails.send({
                 from: FROM_EMAIL,
-                to: contactEmail,
+                to: taEmail,
                 reply_to: 'jay@streetwiseselfdefense.com',
-                cc: 'reminders@streetwiseselfdefense.com',
-                subject: `Reminder: Your Class is Tomorrow! - ${className}`,
-                html: emailHTML
+                subject: `Reminder: You're Helping Teach Tomorrow! - ${className}`,
+                html: taEmailHTML
               });
 
               if (error) {
-                console.error(`[REMINDER-CRON] Resend error for booking ${booking.id}:`, error);
+                console.error(`[REMINDER-CRON] Resend error for TA ${taEmail}:`, error);
                 throw error;
               }
 
-              console.log(`[REMINDER-CRON] Sent email to ${contactEmail} for booking ${booking.id}`);
-              console.log(`[REMINDER-CRON] Reminder Email ID: ${data.id}`);
-
-              // Store reminder email ID and status in Airtable
-              if (data && data.id) {
-                await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
-                  method: 'PATCH',
-                  headers: {
-                    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    fields: {
-                      'Reminder Email ID': data.id,
-                      'Reminder Email Status': 'Sent',
-                      'Reminder Email Sent At': new Date().toISOString()
-                    }
-                  })
-                });
-                
-                console.log(`[REMINDER-CRON] Stored reminder email tracking data for booking ${booking.id}`);
-              }
-
-              totalEmailsSent++;
+              console.log(`[REMINDER-CRON] ✅ Sent TA reminder to ${taEmail}`);
+              totalTaEmailsSent++;
               results.push({
                 scheduleId: schedule.id,
-                bookingId: booking.id,
-                email: contactEmail,
+                personId: person.id,
+                email: taEmail,
+                recipientType: 'TA',
                 success: true
               });
 
-  // Rate limit: wait 600ms between emails (allows ~1.6 emails/second, safely under 2/sec limit)
-              await sleep(600);
-              
-            } catch (resendErr) {
-              console.error(`[REMINDER-CRON] Failed to send email for booking ${booking.id}:`, resendErr);
+              await sleep(600); // Rate limiting
+
+            } catch (taEmailError) {
+              console.error(`[REMINDER-CRON] Failed to send TA email to ${taEmail}:`, taEmailError);
               results.push({
                 scheduleId: schedule.id,
-                bookingId: booking.id,
-                email: contactEmail,
+                personId: person.id,
+                email: taEmail,
+                recipientType: 'TA',
                 success: false,
-                error: resendErr.message
+                error: taEmailError.message
               });
             }
-          } catch (bookingError) {
-            console.error(`[REMINDER-CRON] Error processing booking ${booking.id}:`, bookingError);
-            results.push({
-              scheduleId: schedule.id,
-              bookingId: booking.id,
-              success: false,
-              error: bookingError.message
-            });
           }
         }
 
-        console.log(`[REMINDER-CRON] Sent ${totalEmailsSent} reminder emails for schedule ${schedule.id}`);
+        console.log(`[REMINDER-CRON] Completed schedule ${schedule.id}: ${totalEmailsSent} student emails, ${totalTaEmailsSent} TA emails`);
 
       } catch (scheduleError) {
         console.error(`[REMINDER-CRON] Error processing schedule ${schedule.id}:`, scheduleError);
@@ -401,12 +575,13 @@ const classPrepUrl = `${BASE_URL}/class-prep/${schedule.id}`;
       }
     }
 
-    console.log(`[REMINDER-CRON] Reminder job complete. Total emails sent: ${totalEmailsSent}`);
+    console.log(`[REMINDER-CRON] Reminder job complete. Student emails: ${totalEmailsSent}, TA emails: ${totalTaEmailsSent}`);
 
     return res.json({
       success: true,
       classesFound: schedules.length,
       emailsSent: totalEmailsSent,
+      taEmailsSent: totalTaEmailsSent,
       results
     });
 

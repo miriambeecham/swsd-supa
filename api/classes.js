@@ -41,10 +41,11 @@ export default async function handler(req, res) {
         'City': record.fields.City,
         'Instructor': record.fields.Instructor,
         'Price': record.fields.Price,
+        'Pricing Unit': record.fields['Pricing Unit'],
         'Partner Organization': record.fields['Partner Organization'],
         'Booking Method': record.fields['Booking Method'],
         'Is Active': record.fields['Is Active'],
-        'Parking Instructions': record.fields['Parking Instructions'],  // ADD THIS
+        'Parking Instructions': record.fields['Parking Instructions'],
         'Parking Map URL': record.fields['Parking Map URL'],     
       }
     }));

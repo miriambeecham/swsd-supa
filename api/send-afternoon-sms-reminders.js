@@ -1,5 +1,6 @@
 // /api/send-afternoon-sms-reminders.js
 // ✅ NEW: Runs at 3 PM Pacific Time
+// ✅ UPDATED: Also sends SMS reminders to Teaching Assistants via Persons + Teaching Assignments tables
 // Sends SMS ONLY to people who haven't clicked the morning email
 // Encourages checking spam and provides prep page link
 
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
 
     if (!twilioConfigured) {
       console.log('[AFTERNOON-SMS] ⚠️ Twilio not configured - job skipped');
-      return res.json({ success: true, message: 'Twilio not configured', smsSent: 0 });
+      return res.json({ success: true, message: 'Twilio not configured', smsSent: 0, taSmsSent: 0 });
     }
 
     console.log('[AFTERNOON-SMS] Starting 3 PM SMS reminder job...');
@@ -91,13 +92,45 @@ export default async function handler(req, res) {
         success: true, 
         message: 'No classes scheduled for tomorrow',
         classesFound: 0,
-        smsSent: 0
+        smsSent: 0,
+        taSmsSent: 0
       });
+    }
+
+    // ========================================
+    // FETCH ALL TEACHING ASSIGNMENTS & PERSONS (once, for efficiency)
+    // ========================================
+    let allAssignments = [];
+    let allPersons = [];
+
+    try {
+      const assignmentsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (assignmentsResponse.ok) {
+        const assignmentsData = await assignmentsResponse.json();
+        allAssignments = assignmentsData.records || [];
+        console.log(`[AFTERNOON-SMS] Fetched ${allAssignments.length} teaching assignments`);
+      }
+
+      const personsResponse = await fetch(
+        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
+        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+      );
+      if (personsResponse.ok) {
+        const personsData = await personsResponse.json();
+        allPersons = personsData.records || [];
+        console.log(`[AFTERNOON-SMS] Fetched ${allPersons.length} persons`);
+      }
+    } catch (taFetchError) {
+      console.warn('[AFTERNOON-SMS] Could not fetch TA data, continuing with student SMS only:', taFetchError.message);
     }
 
     const results = [];
     let totalSmsSent = 0;
     let totalSmsSkipped = 0;
+    let totalTaSmsSent = 0;
 
     // Process each class schedule
     for (const schedule of schedules) {
@@ -119,85 +152,197 @@ export default async function handler(req, res) {
           }
         }
 
+        const className = classData?.fields?.['Class Name'] || 'self-defense class';
+
+        // ========================================
+        // SEND SMS TO STUDENTS (existing code)
+        // ========================================
+
         // Get confirmed bookings for this schedule
         const bookingIds = schedule.fields.Bookings || [];
         if (bookingIds.length === 0) {
           console.log(`[AFTERNOON-SMS] No bookings linked to schedule ${schedule.id}`);
-          continue;
+        } else {
+          const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
+          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+          
+          const bookingsResponse = await fetch(
+            `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
+            { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+          );
+
+          if (!bookingsResponse.ok) {
+            throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
+          }
+
+          const bookingsData = await bookingsResponse.json();
+          const bookings = bookingsData.records || [];
+
+          console.log(`[AFTERNOON-SMS] Found ${bookings.length} confirmed bookings`);
+
+          // Send SMS to each booking (if eligible)
+          for (const booking of bookings) {
+            try {
+              const contactPhone = booking.fields['Contact Phone'];
+              const contactFirstName = booking.fields['Contact First Name'] || 'there';
+              const emailClicked = booking.fields['Reminder Email Clicked At'];
+              const smsConsentDate = booking.fields['SMS Consent Date'];
+              const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
+              
+              // ELIGIBILITY CHECKS
+              
+              // 1. Must have phone number
+              if (!contactPhone) {
+                console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - no phone number`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 2. Must have given SMS consent
+              if (!smsConsentDate) {
+                console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 3. Must NOT have opted out of SMS
+              if (smsOptedOutDate) {
+                console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 4. Must NOT have clicked the email (key logic!)
+              if (emailClicked) {
+                console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - already clicked email at ${emailClicked}`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // 5. Must not have already received afternoon SMS
+              if (booking.fields['Reminder SMS ID']) {
+                console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - SMS already sent`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // Format phone number
+              const formattedPhone = formatPhoneNumber(contactPhone);
+              if (!formattedPhone) {
+                console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - invalid phone format`);
+                totalSmsSkipped++;
+                continue;
+              }
+
+              // Class prep URL
+              const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
+
+              // SMS Message - user's requested wording
+              const smsMessage = `Your Streetwise Self Defense class is tomorrow! View the class prep instructions and mandatory waiver here: ${classPrepUrl}
+
+Or check this morning's email (it may be in spam/junk folder if you don't see it).
+
+I'm looking forward to seeing you!
+
+Jay, Streetwise Self Defense`;
+
+              console.log(`[AFTERNOON-SMS] Sending SMS to ${formattedPhone} for booking ${booking.id}`);
+
+              // Send SMS via Twilio
+              const message = await twilioClient.messages.create({
+                body: smsMessage,
+                from: TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+              });
+
+              console.log(`[AFTERNOON-SMS] ✅ Sent SMS - SID: ${message.sid}`);
+
+              // Store tracking info
+              await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
+                method: 'PATCH',
+                headers: {
+                  Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  fields: {
+                    'Reminder SMS ID': message.sid,
+                    'Reminder SMS Status': 'Sent',
+                    'Reminder SMS Sent At': new Date().toISOString()
+                  }
+                })
+              });
+
+              totalSmsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                phone: formattedPhone,
+                recipientType: 'student',
+                success: true,
+                reason: 'Email not clicked - SMS sent'
+              });
+
+              await sleep(1000); // Twilio rate limiting
+
+            } catch (smsError) {
+              console.error(`[AFTERNOON-SMS] ❌ Error for booking ${booking.id}:`, smsError);
+              results.push({
+                scheduleId: schedule.id,
+                bookingId: booking.id,
+                recipientType: 'student',
+                success: false,
+                error: smsError.message
+              });
+            }
+          }
         }
 
-        const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-        const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+        // ========================================
+        // SEND SMS TO TEACHING ASSISTANTS
+        // ========================================
         
-        const bookingsResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-          { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-        );
+        // Filter assignments for this class schedule
+        const classAssignments = allAssignments.filter(assignment => {
+          const linkedScheduleIds = assignment.fields['Class Schedule'] || [];
+          return linkedScheduleIds.includes(schedule.id);
+        });
 
-        if (!bookingsResponse.ok) {
-          throw new Error(`Failed to fetch bookings for schedule ${schedule.id}`);
-        }
+        console.log(`[AFTERNOON-SMS] Found ${classAssignments.length} TA assignments for schedule ${schedule.id}`);
 
-        const bookingsData = await bookingsResponse.json();
-        const bookings = bookingsData.records || [];
+        if (classAssignments.length > 0) {
+          // Get Person IDs from assignments
+          const personIds = classAssignments
+            .map(a => a.fields['Person']?.[0])
+            .filter(Boolean);
 
-        console.log(`[AFTERNOON-SMS] Found ${bookings.length} confirmed bookings`);
+          // Filter persons to just those assigned to this class
+          const taPersons = allPersons.filter(p => personIds.includes(p.id));
 
-        // Send SMS to each booking (if eligible)
-        for (const booking of bookings) {
-          try {
-            const contactPhone = booking.fields['Contact Phone'];
-            const contactFirstName = booking.fields['Contact First Name'] || 'there';
-            const emailClicked = booking.fields['Reminder Email Clicked At'];
-            const smsConsentDate = booking.fields['SMS Consent Date'];
-            const smsOptedOutDate = booking.fields['SMS Opted Out Date'];
-            
-            // ELIGIBILITY CHECKS
-            
-            // 1. Must have phone number
-            if (!contactPhone) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - no phone number`);
-              totalSmsSkipped++;
-              continue;
-            }
+          for (const person of taPersons) {
+            const taPhone = person.fields['Phone'];
+            const taName = person.fields['Name'] || 'Teaching Assistant';
+            const taFirstName = taName.split(' ')[0];
 
-            // 2. Must have given SMS consent
-            if (!smsConsentDate) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - no SMS consent`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // 3. Must NOT have opted out of SMS
-            if (smsOptedOutDate) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - opted out on ${smsOptedOutDate}`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // 4. Must NOT have clicked the email (key logic!)
-            if (emailClicked) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - already clicked email at ${emailClicked}`);
-              totalSmsSkipped++;
-              continue;
-            }
-
-            // 5. Must not have already received afternoon SMS
-            if (booking.fields['Reminder SMS ID']) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - SMS already sent`);
-              totalSmsSkipped++;
+            if (!taPhone) {
+              console.log(`[AFTERNOON-SMS] Skipping TA ${person.id} - no phone`);
               continue;
             }
 
             // Format phone number
-            const formattedPhone = formatPhoneNumber(contactPhone);
+            const formattedPhone = formatPhoneNumber(taPhone);
             if (!formattedPhone) {
-              console.log(`[AFTERNOON-SMS] ⏭️ Skipping booking ${booking.id} - invalid phone format`);
-              totalSmsSkipped++;
+              console.log(`[AFTERNOON-SMS] Skipping TA ${person.id} - invalid phone format`);
               continue;
             }
 
-            // Get class time
+            // Check if TA has opted out of SMS (respect opt-out, but don't require consent)
+            if (person.fields['SMS Opted Out Date']) {
+              console.log(`[AFTERNOON-SMS] Skipping TA ${taFirstName} - opted out of SMS`);
+              continue;
+            }
+
+            // Get class time for the message
             const formatTimeForDisplay = (timeStr) => {
               if (!timeStr) return 'TBD';
               if (timeStr.includes('T')) {
@@ -213,66 +358,44 @@ export default async function handler(req, res) {
             };
 
             const displayStartTime = formatTimeForDisplay(schedule.fields?.['Start Time New']);
-            const className = classData?.fields?.['Class Name'] || 'self-defense class';
-            
-            // Class prep URL
-            const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${schedule.id}`;
 
-            // SMS Message - user's requested wording
-            const smsMessage = `Your Streetwise Self Defense class is tomorrow! View the class prep instructions and mandatory waiver here: ${classPrepUrl}
-
-Or check this morning's email (it may be in spam/junk folder if you don't see it).
-
-I'm looking forward to seeing you!
+            try {
+              // TA-specific SMS message
+              const taSmsMessage = `Hi ${taFirstName}! Reminder: You're helping teach ${className} tomorrow at ${displayStartTime}. Please arrive 15-20 min early. Let me know if anything changes!
 
 Jay, Streetwise Self Defense`;
 
-            console.log(`[AFTERNOON-SMS] Sending SMS to ${formattedPhone} for booking ${booking.id}`);
+              console.log(`[AFTERNOON-SMS] Sending TA SMS to ${formattedPhone}`);
 
-            // Send SMS via Twilio
-            const message = await twilioClient.messages.create({
-              body: smsMessage,
-              from: TWILIO_PHONE_NUMBER,
-              to: formattedPhone
-            });
+              const message = await twilioClient.messages.create({
+                body: taSmsMessage,
+                from: TWILIO_PHONE_NUMBER,
+                to: formattedPhone
+              });
 
-            console.log(`[AFTERNOON-SMS] ✅ Sent SMS - SID: ${message.sid}`);
+              console.log(`[AFTERNOON-SMS] ✅ Sent TA SMS - SID: ${message.sid}`);
 
-            // Store tracking info
-            await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${booking.id}`, {
-              method: 'PATCH',
-              headers: {
-                Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                fields: {
-                  'Reminder SMS ID': message.sid,
-                  'Reminder SMS Status': 'Sent',
-                  'Reminder SMS Sent At': new Date().toISOString()
-                }
-              })
-            });
+              totalTaSmsSent++;
+              results.push({
+                scheduleId: schedule.id,
+                personId: person.id,
+                phone: formattedPhone,
+                recipientType: 'TA',
+                success: true
+              });
 
-            totalSmsSent++;
-            results.push({
-              scheduleId: schedule.id,
-              bookingId: booking.id,
-              phone: formattedPhone,
-              success: true,
-              reason: 'Email not clicked - SMS sent'
-            });
+              await sleep(1000); // Twilio rate limiting
 
-            await sleep(1000); // Twilio rate limiting
-
-          } catch (smsError) {
-            console.error(`[AFTERNOON-SMS] ❌ Error for booking ${booking.id}:`, smsError);
-            results.push({
-              scheduleId: schedule.id,
-              bookingId: booking.id,
-              success: false,
-              error: smsError.message
-            });
+            } catch (taSmsError) {
+              console.error(`[AFTERNOON-SMS] ❌ Error sending TA SMS to ${taFirstName}:`, taSmsError);
+              results.push({
+                scheduleId: schedule.id,
+                personId: person.id,
+                recipientType: 'TA',
+                success: false,
+                error: taSmsError.message
+              });
+            }
           }
         }
 
@@ -281,13 +404,14 @@ Jay, Streetwise Self Defense`;
       }
     }
 
-    console.log(`[AFTERNOON-SMS] ✅ Complete. SMS sent: ${totalSmsSent}, Skipped: ${totalSmsSkipped}`);
+    console.log(`[AFTERNOON-SMS] ✅ Complete. Student SMS: ${totalSmsSent}, TA SMS: ${totalTaSmsSent}, Skipped: ${totalSmsSkipped}`);
 
     return res.json({
       success: true,
       message: '3 PM SMS reminders sent',
       classesFound: schedules.length,
       smsSent: totalSmsSent,
+      taSmsSent: totalTaSmsSent,
       smsSkipped: totalSmsSkipped,
       results
     });

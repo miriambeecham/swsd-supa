@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import TeachingAssistantsTab from '../components/admin/TeachingAssistantsTab';
 import { 
   Calendar, 
   Clock, 
@@ -25,6 +26,7 @@ import {
   Star,
   ChevronDown,
   ChevronUp,
+  GraduationCap,
   X
 } from 'lucide-react';
 
@@ -279,6 +281,7 @@ interface RosterTabProps {
   onAttendanceChange: (participantId: string, value: string) => void;
   copiedField: string | null;
   onCopy: (text: string, fieldId: string) => void;
+  onParticipantConvertedToTA?: () => void;
 }
 
 const RosterTab: React.FC<RosterTabProps> = ({ 
@@ -286,8 +289,104 @@ const RosterTab: React.FC<RosterTabProps> = ({
   attendanceState, 
   onAttendanceChange,
   copiedField,
-  onCopy
+  onCopy,
+  onParticipantConvertedToTA
 }) => {
+  const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
+  const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; personName?: string }>>({});
+  const [conversionMessage, setConversionMessage] = useState<{ participantId: string; message: string; type: 'success' | 'error' } | null>(null);
+
+  // Check TA status for all participants on mount
+  useEffect(() => {
+    const checkAllParticipantTAStatus = async () => {
+      try {
+        // Fetch all persons with TA role
+        const response = await fetch('/api/admin/persons?role=Teaching%20Assistant');
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const allTAPersons = data.persons || [];
+        
+        // Build status map by matching names
+        const statusMap: Record<string, { isTA: boolean; personName?: string }> = {};
+        
+        for (const participant of roster) {
+          const fullName = `${participant.firstName} ${participant.lastName}`.toLowerCase().trim();
+          const matchingPerson = allTAPersons.find((p: any) => p.name.toLowerCase().trim() === fullName);
+          
+          if (matchingPerson) {
+            statusMap[participant.id] = { isTA: true, personName: matchingPerson.name };
+          } else {
+            statusMap[participant.id] = { isTA: false };
+          }
+        }
+        
+        setParticipantTAStatus(statusMap);
+      } catch (error) {
+        console.error('Error checking TA status:', error);
+      }
+    };
+    
+    if (roster.length > 0) {
+      checkAllParticipantTAStatus();
+    }
+  }, [roster]);
+
+  const handleConvertToTA = async (participantId: string) => {
+    setConvertingParticipant(participantId);
+    setConversionMessage(null);
+    
+    try {
+      // Use the convert endpoint that creates Person (but do NOT assign to this class)
+      // The student shouldn't be assigned to teach the class they're attending!
+      const response = await fetch('/api/admin/persons/convert-from-participant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.existingPerson) {
+          throw new Error(`Already exists: ${data.existingPerson.name}`);
+        }
+        throw new Error(data.error || 'Failed to convert');
+      }
+      
+      // Update local status
+      setParticipantTAStatus(prev => ({
+        ...prev,
+        [participantId]: { isTA: true, personName: data.person.name }
+      }));
+      
+      const contactInfo = data.contactInfoCopied ? ' (contact info copied)' : '';
+      setConversionMessage({
+        participantId,
+        message: `Converted to TA${contactInfo}`,
+        type: 'success'
+      });
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setConversionMessage(null), 3000);
+      
+      // Notify parent to refresh TA data if needed
+      if (onParticipantConvertedToTA) {
+        onParticipantConvertedToTA();
+      }
+      
+    } catch (error) {
+      setConversionMessage({
+        participantId,
+        message: error instanceof Error ? error.message : 'Failed to convert',
+        type: 'error'
+      });
+      setTimeout(() => setConversionMessage(null), 4000);
+    } finally {
+      setConvertingParticipant(null);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
@@ -306,6 +405,9 @@ const RosterTab: React.FC<RosterTabProps> = ({
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                 Attendance
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                TA
+              </th>
             </tr>
           </thead>
           
@@ -319,6 +421,10 @@ const RosterTab: React.FC<RosterTabProps> = ({
 
               const isNewBookingGroup = index === 0 || 
                 roster[index - 1].bookingId !== participant.bookingId;
+
+              const taStatus = participantTAStatus[participant.id];
+              const isConverting = convertingParticipant === participant.id;
+              const messageForThis = conversionMessage?.participantId === participant.id ? conversionMessage : null;
 
               return (
                 <tr 
@@ -435,6 +541,36 @@ const RosterTab: React.FC<RosterTabProps> = ({
                       <option value="Present">Present</option>
                       <option value="Absent">Absent</option>
                     </select>
+                  </td>
+
+                  {/* TA column */}
+                  <td className="px-4 py-3 text-center">
+                    {messageForThis ? (
+                      <span className={`text-xs ${messageForThis.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                        {messageForThis.message}
+                      </span>
+                    ) : taStatus?.isTA ? (
+                      <span className="inline-flex items-center gap-1 text-green-600 text-xs font-medium">
+                        <Check className="w-3 h-3" />
+                        TA INTEREST
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleConvertToTA(participant.id)}
+                        disabled={isConverting}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-accent-light text-accent-primary rounded hover:bg-accent-dark hover:text-white transition-colors disabled:bg-gray-100 disabled:text-gray-400"
+                        title="Convert to Teaching Assistant"
+                      >
+                        {isConverting ? (
+                          <span className="animate-pulse">...</span>
+                        ) : (
+                          <>
+                            <GraduationCap className="w-3 h-3" />
+                           Add as Potential TA
+                          </>
+                        )}
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -1111,7 +1247,7 @@ const AdminAttendancePage = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'roster' | 'communications' | 'surveys'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'communications' | 'surveys' | 'assistants'>('roster');
 
   // Check authentication
   useEffect(() => {
@@ -1500,6 +1636,17 @@ const AdminAttendancePage = () => {
                   <span className="font-bold">Surveys</span>
                 </span>
               </button>
+              <button
+                onClick={() => setActiveTab('assistants')}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  activeTab === 'assistants' ? 'bg-white text-accent-primary border-t-2 border-x border-accent-primary' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+            >
+                <span className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  <span className="font-bold">Teaching Assistants</span>
+                </span>
+            </button>
             </div>
 
             {/* Action Buttons (only on Roster tab) */}
@@ -1543,15 +1690,16 @@ const AdminAttendancePage = () => {
             )}
 
             {/* Tab Content */}
-            {activeTab === 'roster' && (
-              <RosterTab 
-                roster={rosterData.roster}
-                attendanceState={attendanceState}
-                onAttendanceChange={handleAttendanceChange}
-                copiedField={copiedField}
-                onCopy={copyToClipboard}
-              />
-            )}
+          {activeTab === 'roster' && (
+  <RosterTab 
+    roster={rosterData.roster}
+    attendanceState={attendanceState}
+    onAttendanceChange={handleAttendanceChange}
+    copiedField={copiedField}
+    onCopy={copyToClipboard}
+    classScheduleId={currentClassId}
+  />
+)}
             {activeTab === 'communications' && (
               <CommunicationsTab 
                 roster={rosterData.roster}
@@ -1563,6 +1711,12 @@ const AdminAttendancePage = () => {
                 roster={rosterData.roster}
                 surveyResponses={rosterData.surveyResponses || []}
                 classDate={rosterData.classInfo.date}
+              />
+            )}
+            {activeTab === 'assistants' && (
+              <TeachingAssistantsTab 
+                classScheduleId={currentClassId}
+                roster={rosterData.roster}
               />
             )}
           </>

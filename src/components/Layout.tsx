@@ -319,7 +319,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </li>
               </ul>
             </div>
-            <div>
+           <div>
               <h4 className="font-bold mb-4">Company</h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
@@ -343,11 +343,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </Link>
                 </li>
                 <li>
-                <Link to="/privacy-policy" className="text-gray-400 hover:text-white">
-                  Privacy Policy
-                </Link>
+                  <Link to="/privacy-policy" className="text-gray-400 hover:text-white">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/public-class-policies" className="text-gray-400 hover:text-white">
+                  Cancellation Policy
+                  </Link>
                 </li>
               </ul>
+              <div className="mt-6 pt-4 border-t border-slate-800">
+                
+                 <a href="https://maps.google.com/maps?q=2121+Ygnacio+Valley+Rd+Suite+E207+Walnut+Creek+CA+94598"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-2 text-slate-400 hover:text-white transition-colors"
+                >
+                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm leading-snug">
+                    <div>2121 Ygnacio Valley Rd, Suite E207</div>
+                    <div>Walnut Creek, CA 94598</div>
+                    <div className="text-xs text-slate-500 mt-1">By appointment or class schedule only</div>
+                  </div>
+                </a>
+              </div>
             </div>
           </div>
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
