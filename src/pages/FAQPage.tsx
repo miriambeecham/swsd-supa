@@ -426,7 +426,7 @@ const FAQPage = () => {
     ),
   }}
 >
-  {faq.answer.replace(/\u00a0/g, ' ')}
+  {faq.answer.replace(/\u00a0/g, ' ').replace(/\\([\[\]()])/g, '$1')}
 </ReactMarkdown>
                             </div>
                           </div>
