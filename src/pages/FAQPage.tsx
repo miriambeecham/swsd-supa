@@ -418,6 +418,7 @@ const FAQPage = () => {
                               <h3 className="text-xl font-bold text-navy mb-4 leading-tight">
                                 {faq.question}
                               </h3>
+                              {console.log('FAQ answer:', JSON.stringify(faq.answer))}
                          <ReactMarkdown
   components={{
     a: ({node, ...props}) => (
