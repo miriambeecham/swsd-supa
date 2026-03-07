@@ -34,7 +34,7 @@ const ContactPage = () => {
       icon: MapPin,
       title: 'Visit Us',
       details: 'Streetwise Self Defense @ Mount Diablo Yoga Center',
-      description: '2121 Ygnacio Valley Rd, Suite E207, Walnut Creek, CA 94598. By appointment or class schedule only.',
+     description: <span>2121 Ygnacio Valley Rd, Suite E207, Walnut Creek, CA 94598.<br /><strong>By appointment or class schedule only.</strong></span>,
       action: 'https://maps.google.com/maps?q=2121+Ygnacio+Valley+Rd+Suite+E207+Walnut+Creek+CA+94598',
       buttonText: 'Get Directions'
     }
