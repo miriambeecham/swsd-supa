@@ -418,14 +418,14 @@ const FAQPage = () => {
                               <h3 className="text-xl font-bold text-navy mb-4 leading-tight">
                                 {faq.question}
                               </h3>
-                           <ReactMarkdown
+                         <ReactMarkdown
   components={{
     a: ({node, ...props}) => (
       <a className="text-accent-primary hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
     ),
   }}
 >
-  {faq.answer}
+  {faq.answer.replace(/\u00a0/g, ' ')}
 </ReactMarkdown>
                             </div>
                           </div>
