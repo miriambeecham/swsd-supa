@@ -347,6 +347,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     Privacy Policy
                   </Link>
                 </li>
+                <li>
+                  <Link to="/public-class-policies" className="text-gray-400 hover:text-white">
+                  Cancellation Policy
+                  </Link>
+                </li>
               </ul>
               <div className="mt-6 pt-4 border-t border-slate-800">
                 
