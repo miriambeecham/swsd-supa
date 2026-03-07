@@ -418,9 +418,15 @@ const FAQPage = () => {
                               <h3 className="text-xl font-bold text-navy mb-4 leading-tight">
                                 {faq.question}
                               </h3>
-                              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
-                                <ReactMarkdown>{faq.answer}</ReactMarkdown>
-                              </div>
+                           <ReactMarkdown
+  components={{
+    a: ({node, ...props}) => (
+      <a className="text-accent-primary hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+    ),
+  }}
+>
+  {faq.answer}
+</ReactMarkdown>
                             </div>
                           </div>
                         </div>
