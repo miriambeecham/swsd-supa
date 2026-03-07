@@ -418,9 +418,16 @@ const FAQPage = () => {
                               <h3 className="text-xl font-bold text-navy mb-4 leading-tight">
                                 {faq.question}
                               </h3>
-                              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
-                                <ReactMarkdown>{faq.answer}</ReactMarkdown>
-                              </div>
+                              {console.log('FAQ answer:', JSON.stringify(faq.answer))}
+                         <ReactMarkdown
+  components={{
+    a: ({node, ...props}) => (
+      <a className="text-accent-primary hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+    ),
+  }}
+>
+  {faq.answer.replace(/\u00a0/g, ' ').replace(/\\([\[\]()])/g, '$1')}
+</ReactMarkdown>
                             </div>
                           </div>
                         </div>
