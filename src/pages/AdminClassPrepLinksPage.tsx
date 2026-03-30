@@ -117,9 +117,18 @@ const AdminClassPrepLinksPage = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-navy mb-2">Class Preparation Links</h1>
-            <p className="text-gray-600">Internal use only - Share these links with students after booking</p>
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-navy mb-2">Class Preparation Links</h1>
+              <p className="text-gray-600">Internal use only - Share these links with students after booking</p>
+            </div>
+            <a
+              href="/admin/schedules"
+              className="flex items-center gap-2 bg-accent-primary hover:bg-accent-dark text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap text-sm font-medium"
+            >
+              <Calendar className="w-4 h-4" />
+              Manage Schedules
+            </a>
           </div>
 
           <div className="space-y-4">

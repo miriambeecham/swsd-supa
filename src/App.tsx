@@ -23,6 +23,7 @@ import PrivateClassPoliciesPage from './pages/PrivateClassPoliciesPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminAttendancePage from './pages/AdminAttendancePage';
 import AdminClassSchedulesPage from './pages/AdminClassSchedulesPage';
+import AdminClassScheduleEditPage from './pages/AdminClassScheduleEditPage';
 import AdminImportPage from './pages/AdminImportPage';
 import CommunityMotherDaughterBookingPage from './pages/CommunityMotherDaughterBookingPage';
 import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage';
@@ -65,6 +66,8 @@ function App() {
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/attendance" element={<AdminAttendancePage />} />
             <Route path="/admin/schedules" element={<AdminClassSchedulesPage />} />
+            <Route path="/admin/schedules/new" element={<AdminClassScheduleEditPage />} />
+            <Route path="/admin/schedules/:id/edit" element={<AdminClassScheduleEditPage />} />
             <Route path="/admin/import" element={<AdminImportPage />} />
             <Route path="/book-community-md/:scheduleId" element={<CommunityMotherDaughterBookingPage />} />
             <Route path="/satisfaction-survey" element={<SatisfactionSurveyPage />} />
