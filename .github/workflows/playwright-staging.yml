@@ -182,30 +182,24 @@ jobs:
               });
             }
 
-      # ── Email notification on failure ──
+      # ── Email notification on failure via Resend ──
       - name: Send failure email
         if: steps.playwright.outcome == 'failure'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "❌ Playwright E2E tests failed on staging"
-          to: info@streetwiseselfdefense.com
-          from: SWSD CI <${{ secrets.SMTP_USERNAME }}>
-          body: |
-            Playwright E2E tests failed after staging deployment.
-
-            Passed: ${{ steps.results.outputs.passed }}
-            Failed: ${{ steps.results.outputs.failed }}
-            Total: ${{ steps.results.outputs.total }}
-
-            Failed tests:
-            ${{ steps.results.outputs.failed_tests }}
-
-            View full results: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$(cat <<RESEND_EOF
+          {
+            "from": "Streetwise CI <${RESEND_FROM_EMAIL:-onboarding@resend.dev}>",
+            "to": ["info@streetwiseselfdefense.com"],
+            "subject": "❌ Playwright E2E tests failed on staging",
+            "html": "<h2>Playwright E2E tests failed after staging deployment</h2><p><strong>Passed:</strong> ${{ steps.results.outputs.passed }}<br><strong>Failed:</strong> ${{ steps.results.outputs.failed }}<br><strong>Total:</strong> ${{ steps.results.outputs.total }}</p><h3>Failed tests:</h3><pre>${{ steps.results.outputs.failed_tests }}</pre><p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>View full results &amp; download report</a></p>"
+          }
+          RESEND_EOF
+          )"
 
       # ── Fail the workflow if tests failed ──
       - name: Check test outcome
