@@ -10,12 +10,21 @@ import {
   CheckCircle,
   Loader2,
   LogOut,
+  GraduationCap,
 } from 'lucide-react';
 
 interface ClassOption {
   id: string;
   classId: string;
   location: string;
+}
+
+interface TeachingAssignment {
+  id: string;
+  person: {
+    name: string;
+    email: string;
+  };
 }
 
 interface ScheduleFields {
@@ -27,13 +36,10 @@ interface ScheduleFields {
   'Booked Spots': number | '';
   'Booking URL': string;
   'Waiver URL': string;
-  'Pricing Unit': string;
   'Registration Opens': string;
   'Special Notes': string;
   'Is Cancelled': boolean;
 }
-
-const PRICING_UNIT_OPTIONS = ['', 'Per Person', 'Per Mother/Daughter Pair'];
 
 const emptyFields: ScheduleFields = {
   Class: [],
@@ -44,7 +50,6 @@ const emptyFields: ScheduleFields = {
   'Booked Spots': '',
   'Booking URL': '',
   'Waiver URL': '',
-  'Pricing Unit': '',
   'Registration Opens': '',
   'Special Notes': '',
   'Is Cancelled': false,
@@ -57,6 +62,7 @@ const AdminClassScheduleEditPage = () => {
 
   const [fields, setFields] = useState<ScheduleFields>({ ...emptyFields });
   const [classOptions, setClassOptions] = useState<ClassOption[]>([]);
+  const [teachingAssistants, setTeachingAssistants] = useState<TeachingAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -119,11 +125,21 @@ const AdminClassScheduleEditPage = () => {
             'Booked Spots': record.fields['Booked Spots'] ?? '',
             'Booking URL': record.fields['Booking URL'] || '',
             'Waiver URL': record.fields['Waiver URL'] || '',
-            'Pricing Unit': record.fields['Pricing Unit'] || '',
             'Registration Opens': record.fields['Registration Opens'] || '',
             'Special Notes': record.fields['Special Notes'] || '',
             'Is Cancelled': record.fields['Is Cancelled'] || false,
           });
+
+          // Fetch teaching assistants for this schedule
+          try {
+            const taRes = await fetch(`/api/admin/teaching-assignments?classScheduleId=${id}`);
+            if (taRes.ok) {
+              const taData = await taRes.json();
+              setTeachingAssistants(taData.assignments || []);
+            }
+          } catch (taError) {
+            console.error('Error fetching teaching assistants:', taError);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -196,7 +212,6 @@ const AdminClassScheduleEditPage = () => {
       if (fields['Available Spots'] !== '') airtableFields['Available Spots'] = Number(fields['Available Spots']);
       if (fields['Booking URL']) airtableFields['Booking URL'] = fields['Booking URL'];
       if (fields['Waiver URL']) airtableFields['Waiver URL'] = fields['Waiver URL'];
-      if (fields['Pricing Unit']) airtableFields['Pricing Unit'] = fields['Pricing Unit'];
       if (fields['Registration Opens']) airtableFields['Registration Opens'] = fields['Registration Opens'];
       if (fields['Special Notes']) airtableFields['Special Notes'] = fields['Special Notes'];
       airtableFields['Is Cancelled'] = fields['Is Cancelled'];
@@ -402,8 +417,8 @@ const AdminClassScheduleEditPage = () => {
             </div>
           </div>
 
-          {/* Available Spots / Booked Spots */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Available Spots / Booked Spots / Remaining Spots */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Available Spots
@@ -428,24 +443,18 @@ const AdminClassScheduleEditPage = () => {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
               />
             </div>
-          </div>
-
-          {/* Pricing Unit */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pricing Unit
-            </label>
-            <select
-              value={fields['Pricing Unit']}
-              onChange={(e) => updateField('Pricing Unit', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            >
-              {PRICING_UNIT_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option || 'Select...'}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Remaining Spots <span className="text-gray-400 font-normal">(read-only)</span>
+              </label>
+              <input
+                type="number"
+                value={fields['Available Spots'] !== '' && fields['Booked Spots'] !== '' ? Number(fields['Available Spots']) - Number(fields['Booked Spots']) : ''}
+                readOnly
+                disabled
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+              />
+            </div>
           </div>
 
           {/* Registration Opens */}
@@ -459,6 +468,7 @@ const AdminClassScheduleEditPage = () => {
               onChange={(e) => updateField('Registration Opens', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
+            <p className="mt-1 text-xs text-gray-500 italic">Optional — date when the class will be open for registration if it is not already</p>
           </div>
 
           {/* Booking URL */}
@@ -473,6 +483,7 @@ const AdminClassScheduleEditPage = () => {
               placeholder="https://..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
+            <p className="mt-1 text-xs text-gray-500 italic">Optional — URL for third-party registration links</p>
           </div>
 
           {/* Waiver URL */}
@@ -502,6 +513,31 @@ const AdminClassScheduleEditPage = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
           </div>
+
+          {/* Teaching Assistants (read-only, only shown when editing) */}
+          {!isNew && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Teaching Assistants <span className="text-gray-400 font-normal">(read-only)</span>
+              </label>
+              {teachingAssistants.length > 0 ? (
+                <div className="space-y-2">
+                  {teachingAssistants.map((ta) => (
+                    <div key={ta.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">{ta.person?.name || 'Unknown'}</span>
+                      {ta.person?.email && (
+                        <span className="text-sm text-gray-400">({ta.person.email})</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No teaching assistants assigned</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500 italic">Manage teaching assistant assignments from the Attendance page</p>
+            </div>
+          )}
 
           {/* Is Cancelled */}
           <div className="flex items-center gap-3">
