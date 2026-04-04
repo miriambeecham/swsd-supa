@@ -1,7 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync, existsSync } from 'fs';
 
-// Community M-D booking page loads via URL param, no navigation state needed
-const COMMUNITY_SCHEDULE_ID = 'rechvXSnrxhzaCK1q';
+// Community M-D booking page loads via URL param, no navigation state needed.
+// Read schedule ID from e2e-test-data.json (written by data setup script) or fall back to hardcoded.
+function getCommunityScheduleId() {
+  if (existsSync('e2e-test-data.json')) {
+    const data = JSON.parse(readFileSync('e2e-test-data.json', 'utf-8'));
+    if (data.communityScheduleId) return data.communityScheduleId;
+  }
+  return 'rechvXSnrxhzaCK1q'; // fallback
+}
+const COMMUNITY_SCHEDULE_ID = getCommunityScheduleId();
 
 const TEST_DATA = {
   mother: {

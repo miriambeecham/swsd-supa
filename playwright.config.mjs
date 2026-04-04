@@ -1,6 +1,9 @@
 // @ts-check
 import { defineConfig, devices } from '@playwright/test';
 
+const STAGING_URL = process.env.STAGING_URL
+  || 'https://swsd-dev-git-staging-miriambeecham-gmailcoms-projects.vercel.app';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -20,7 +23,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: 'https://swsd-dev-git-staging-miriambeecham-gmailcoms-projects.vercel.app',
+    baseURL: STAGING_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
