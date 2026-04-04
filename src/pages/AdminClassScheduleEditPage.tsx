@@ -174,9 +174,41 @@ const AdminClassScheduleEditPage = () => {
   };
 
   const updateField = (field: keyof ScheduleFields, value: any) => {
-    setFields(prev => ({ ...prev, [field]: value }));
+    setFields(prev => {
+      const updated = { ...prev, [field]: value };
+
+      // When Date changes, pre-populate the date portion of Start/End Time
+      // but only if they don't already have a time set
+      if (field === 'Date' && value) {
+        if (!prev['Start Time New']) {
+          updated['Start Time New'] = `${value}T00:00`;
+        } else {
+          // Update the date portion, keep the time
+          const existingTime = prev['Start Time New'].split('T')[1] || '00:00';
+          updated['Start Time New'] = `${value}T${existingTime}`;
+        }
+        if (!prev['End Time New']) {
+          updated['End Time New'] = `${value}T00:00`;
+        } else {
+          const existingTime = prev['End Time New'].split('T')[1] || '00:00';
+          updated['End Time New'] = `${value}T${existingTime}`;
+        }
+      }
+
+      return updated;
+    });
     setErrorMessage('');
     setSuccessMessage('');
+  };
+
+  const getDateFromDatetimeLocal = (datetimeLocal: string): string => {
+    if (!datetimeLocal) return '';
+    return datetimeLocal.split('T')[0] || '';
+  };
+
+  const getTimeFromDatetimeLocal = (datetimeLocal: string): string => {
+    if (!datetimeLocal) return '';
+    return datetimeLocal.split('T')[1] || '';
   };
 
   const validate = (): string | null => {
@@ -186,6 +218,42 @@ const AdminClassScheduleEditPage = () => {
     if (!fields.Date) {
       return 'Date is required.';
     }
+    if (!fields['Start Time New']) {
+      return 'Start Time is required.';
+    }
+    if (!fields['End Time New']) {
+      return 'End Time is required.';
+    }
+    if (fields['Available Spots'] === '') {
+      return 'Available Spots is required.';
+    }
+
+    // Validate that time portions have been set (not left at 00:00)
+    const startTime = getTimeFromDatetimeLocal(fields['Start Time New']);
+    const endTime = getTimeFromDatetimeLocal(fields['End Time New']);
+    if (startTime === '00:00' && endTime === '00:00') {
+      return 'Please set the time for both Start Time and End Time.';
+    }
+
+    // Validate date portions match the primary Date field
+    const startDate = getDateFromDatetimeLocal(fields['Start Time New']);
+    const endDate = getDateFromDatetimeLocal(fields['End Time New']);
+    if (startDate && startDate !== fields.Date) {
+      return 'The date in Start Time does not match the Date field.';
+    }
+    if (endDate && endDate !== fields.Date) {
+      return 'The date in End Time does not match the Date field.';
+    }
+
+    // Validate end time is after start time
+    if (fields['Start Time New'] && fields['End Time New']) {
+      const startDt = new Date(fields['Start Time New']);
+      const endDt = new Date(fields['End Time New']);
+      if (endDt <= startDt) {
+        return 'End Time must be later than Start Time.';
+      }
+    }
+
     return null;
   };
 
@@ -393,7 +461,7 @@ const AdminClassScheduleEditPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time
+                Start Time <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
@@ -401,11 +469,11 @@ const AdminClassScheduleEditPage = () => {
                 onChange={(e) => updateField('Start Time New', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
-              <p className="mt-1 text-xs text-gray-500">Full date and time</p>
+              <p className="mt-1 text-xs text-gray-500 italic">Date will auto-populate from the Date field — please set the time</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Time
+                End Time <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
@@ -413,7 +481,7 @@ const AdminClassScheduleEditPage = () => {
                 onChange={(e) => updateField('End Time New', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
-              <p className="mt-1 text-xs text-gray-500">Full date and time</p>
+              <p className="mt-1 text-xs text-gray-500 italic">Must be later than Start Time</p>
             </div>
           </div>
 
@@ -421,7 +489,7 @@ const AdminClassScheduleEditPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Available Spots
+                Available Spots <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
