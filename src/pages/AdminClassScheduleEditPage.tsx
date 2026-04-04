@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import {
   ArrowLeft,
   Save,
-  Trash2,
+  Ban,
   AlertTriangle,
   CheckCircle,
   Loader2,
@@ -14,14 +14,13 @@ import {
 
 interface ClassOption {
   id: string;
-  name: string;
+  classId: string;
+  location: string;
 }
 
 interface ScheduleFields {
   Class: string[];
   Date: string;
-  'Start Time': string;
-  'End Time': string;
   'Start Time New': string;
   'End Time New': string;
   'Available Spots': number | '';
@@ -39,8 +38,6 @@ const PRICING_UNIT_OPTIONS = ['', 'Per Person', 'Per Mother/Daughter Pair'];
 const emptyFields: ScheduleFields = {
   Class: [],
   Date: '',
-  'Start Time': '',
-  'End Time': '',
   'Start Time New': '',
   'End Time New': '',
   'Available Spots': '',
@@ -98,9 +95,10 @@ const AdminClassScheduleEditPage = () => {
           .filter((c: any) => c.fields['Is Active'])
           .map((c: any) => ({
             id: c.id,
-            name: c.fields['Class Name'] || 'Unnamed Class',
+            classId: c.fields['ID'] || '',
+            location: c.fields['Location'] || '',
           }))
-          .sort((a: ClassOption, b: ClassOption) => a.name.localeCompare(b.name));
+          .sort((a: ClassOption, b: ClassOption) => a.classId.localeCompare(b.classId));
         setClassOptions(options);
 
         // If editing, fetch the existing record
@@ -115,8 +113,6 @@ const AdminClassScheduleEditPage = () => {
           setFields({
             Class: record.fields.Class || [],
             Date: record.fields.Date || '',
-            'Start Time': record.fields['Start Time'] || '',
-            'End Time': record.fields['End Time'] || '',
             'Start Time New': formatDatetimeForInput(record.fields['Start Time New']),
             'End Time New': formatDatetimeForInput(record.fields['End Time New']),
             'Available Spots': record.fields['Available Spots'] ?? '',
@@ -195,12 +191,9 @@ const AdminClassScheduleEditPage = () => {
         Date: fields.Date,
       };
 
-      if (fields['Start Time']) airtableFields['Start Time'] = fields['Start Time'];
-      if (fields['End Time']) airtableFields['End Time'] = fields['End Time'];
       if (fields['Start Time New']) airtableFields['Start Time New'] = convertLocalToISO(fields['Start Time New']);
       if (fields['End Time New']) airtableFields['End Time New'] = convertLocalToISO(fields['End Time New']);
       if (fields['Available Spots'] !== '') airtableFields['Available Spots'] = Number(fields['Available Spots']);
-      if (fields['Booked Spots'] !== '') airtableFields['Booked Spots'] = Number(fields['Booked Spots']);
       if (fields['Booking URL']) airtableFields['Booking URL'] = fields['Booking URL'];
       if (fields['Waiver URL']) airtableFields['Waiver URL'] = fields['Waiver URL'];
       if (fields['Pricing Unit']) airtableFields['Pricing Unit'] = fields['Pricing Unit'];
@@ -362,7 +355,7 @@ const AdminClassScheduleEditPage = () => {
               <option value="">Select a class...</option>
               {classOptions.map((cls) => (
                 <option key={cls.id} value={cls.id}>
-                  {cls.name}
+                  {cls.classId}{cls.location ? ` — ${cls.location}` : ''}
                 </option>
               ))}
             </select>
@@ -409,36 +402,6 @@ const AdminClassScheduleEditPage = () => {
             </div>
           </div>
 
-          {/* Legacy Start Time / End Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time (Legacy)
-              </label>
-              <input
-                type="text"
-                value={fields['Start Time']}
-                onChange={(e) => updateField('Start Time', e.target.value)}
-                placeholder="e.g. 10:00 AM"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">Text-based time field (legacy)</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Time (Legacy)
-              </label>
-              <input
-                type="text"
-                value={fields['End Time']}
-                onChange={(e) => updateField('End Time', e.target.value)}
-                placeholder="e.g. 12:00 PM"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">Text-based time field (legacy)</p>
-            </div>
-          </div>
-
           {/* Available Spots / Booked Spots */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -455,14 +418,14 @@ const AdminClassScheduleEditPage = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Booked Spots
+                Booked Spots <span className="text-gray-400 font-normal">(read-only)</span>
               </label>
               <input
                 type="number"
-                min="0"
                 value={fields['Booked Spots']}
-                onChange={(e) => updateField('Booked Spots', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                readOnly
+                disabled
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
               />
             </div>
           </div>
@@ -568,8 +531,8 @@ const AdminClassScheduleEditPage = () => {
                 onClick={() => setShowDeleteConfirm(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete (Cancel Class)
+                <Ban className="w-4 h-4" />
+                Inactivate
               </button>
             )}
           </div>
@@ -605,11 +568,11 @@ const AdminClassScheduleEditPage = () => {
               <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Confirm Cancellation</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Inactivation</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to cancel this class schedule? The class will be marked as cancelled
-              and will no longer appear as active. This action can be undone by unchecking "Is Cancelled".
+              Are you sure you want to inactivate this class schedule? The class will be marked as cancelled
+              and will no longer appear as active. This can be undone by unchecking "Is Cancelled".
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -626,9 +589,9 @@ const AdminClassScheduleEditPage = () => {
                 {deleting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Trash2 className="w-4 h-4" />
+                  <Ban className="w-4 h-4" />
                 )}
-                {deleting ? 'Cancelling...' : 'Yes, Cancel Class'}
+                {deleting ? 'Inactivating...' : 'Yes, Inactivate'}
               </button>
             </div>
           </div>

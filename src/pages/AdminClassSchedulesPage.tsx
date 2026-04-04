@@ -15,7 +15,7 @@ import {
   Filter,
   X,
   Plus,
-  Trash2,
+  Ban,
 } from 'lucide-react';
 
 interface ClassSchedule {
@@ -604,8 +604,8 @@ const AdminClassSchedulesPage = () => {
                               onClick={() => setDeleteConfirmId(schedule.id)}
                               className="inline-flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                             >
-                              <Trash2 className="w-4 h-4" />
-                              <span className="hidden lg:inline">Delete</span>
+                              <Ban className="w-4 h-4" />
+                              <span className="hidden lg:inline">Inactivate</span>
                             </button>
                           )}
                         </div>
@@ -709,10 +709,10 @@ const AdminClassSchedulesPage = () => {
               <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-red-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Confirm Cancellation</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Inactivation</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to cancel this class schedule? The class will be marked as cancelled
+              Are you sure you want to inactivate this class schedule? The class will be marked as cancelled
               and will no longer appear as active.
             </p>
             <div className="flex justify-end gap-3">
@@ -726,8 +726,8 @@ const AdminClassSchedulesPage = () => {
                 onClick={() => handleDelete(deleteConfirmId)}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
               >
-                <Trash2 className="w-4 h-4" />
-                Yes, Cancel Class
+                <Ban className="w-4 h-4" />
+                Yes, Inactivate
               </button>
             </div>
           </div>
