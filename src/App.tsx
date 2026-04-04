@@ -27,6 +27,8 @@ import AdminClassScheduleEditPage from './pages/AdminClassScheduleEditPage';
 import AdminImportPage from './pages/AdminImportPage';
 import CommunityMotherDaughterBookingPage from './pages/CommunityMotherDaughterBookingPage';
 import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
 
 
 
@@ -71,6 +73,8 @@ function App() {
             <Route path="/admin/import" element={<AdminImportPage />} />
             <Route path="/book-community-md/:scheduleId" element={<CommunityMotherDaughterBookingPage />} />
             <Route path="/satisfaction-survey" element={<SatisfactionSurveyPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
             
           </Routes>
         </Layout>
