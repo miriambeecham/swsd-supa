@@ -24,7 +24,7 @@ const client = createClient({
 
 export async function getBlogPosts(): Promise<BlogPostEntry[]> {
   const response = await client.getEntries<BlogPostFields>({
-    content_type: 'blogPost',
+    content_type: 'streetwiseSelfDefense',
     order: ['-fields.publishDate'],
     select: [
       'fields.title',
@@ -42,7 +42,7 @@ export async function getBlogPosts(): Promise<BlogPostEntry[]> {
 
 export async function getBlogPost(slug: string): Promise<BlogPostEntry | null> {
   const response = await client.getEntries<BlogPostFields>({
-    content_type: 'blogPost',
+    content_type: 'streetwiseSelfDefense',
     'fields.slug': slug,
     limit: 1,
   });
