@@ -570,6 +570,14 @@ const AdminClassScheduleEditPage = () => {
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Confirm Inactivation</h3>
             </div>
+            {fields['Booked Spots'] !== '' && Number(fields['Booked Spots']) > 0 && (
+              <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span className="text-sm font-medium">
+                  This class currently has {fields['Booked Spots']} registered participant{Number(fields['Booked Spots']) !== 1 ? 's' : ''}. Inactivating it may affect their bookings.
+                </span>
+              </div>
+            )}
             <p className="text-gray-600 mb-6">
               Are you sure you want to inactivate this class schedule? The class will be marked as cancelled
               and will no longer appear as active. This can be undone by unchecking "Is Cancelled".

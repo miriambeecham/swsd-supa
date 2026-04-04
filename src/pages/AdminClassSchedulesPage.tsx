@@ -702,7 +702,10 @@ const AdminClassSchedulesPage = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
+      {deleteConfirmId && (() => {
+        const confirmSchedule = schedules.find(s => s.id === deleteConfirmId);
+        const bookedCount = confirmSchedule?.bookedSpots || 0;
+        return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -711,6 +714,14 @@ const AdminClassSchedulesPage = () => {
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Confirm Inactivation</h3>
             </div>
+            {bookedCount > 0 && (
+              <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span className="text-sm font-medium">
+                  This class currently has {bookedCount} registered participant{bookedCount !== 1 ? 's' : ''}. Inactivating it may affect their bookings.
+                </span>
+              </div>
+            )}
             <p className="text-gray-600 mb-6">
               Are you sure you want to inactivate this class schedule? The class will be marked as cancelled
               and will no longer appear as active.
@@ -732,7 +743,8 @@ const AdminClassSchedulesPage = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
