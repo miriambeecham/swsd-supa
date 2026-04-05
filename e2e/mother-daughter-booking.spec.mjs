@@ -24,44 +24,21 @@ test.describe('Mother-Daughter Class Booking', () => {
     // Step 2: Wait for classes to load
     await page.waitForTimeout(3_000);
 
-    // Step 3: Find a Mother & Daughter class with "Sign Up"
-    // The class name contains "Mothers & Daughters" or "Mother & Daughter"
-    // Look for any Sign Up button near that text
-    const allSignUpButtons = page.locator('button:has-text("Sign Up")');
-    const signUpCount = await allSignUpButtons.count();
-    console.log(`Found ${signUpCount} Sign Up buttons on page`);
+    // Step 3: Find a M&D class card and click its Sign Up button.
+    // Cards are div.flex.items-start containers. Filter to ones containing
+    // "Daughters" in a bold class name AND having a Sign Up button.
+    const mdCard = page.locator('.flex.items-start').filter({
+      has: page.locator('span.font-bold:has-text("Daughters")'),
+    }).filter({
+      has: page.locator('button:has-text("Sign Up")'),
+    }).first();
 
-    // Log all visible class names for debugging
-    const classNames = page.locator('.text-navy.font-bold');
-    const nameCount = await classNames.count();
-    for (let i = 0; i < nameCount; i++) {
-      const text = await classNames.nth(i).textContent();
-      console.log(`  Class ${i}: ${text}`);
-    }
+    const mdSignUp = mdCard.locator('button:has-text("Sign Up")');
 
-    // Find a M&D class name, then click the Sign Up button in the same card.
-    // Each card is a flex row: [icon] [class info] [Sign Up button]
-    // The class name is in a span.text-navy.font-bold
-    let mdSignUpFound = false;
-
-    for (let i = 0; i < nameCount; i++) {
-      const text = await classNames.nth(i).textContent();
-      if (text && /[Dd]aughter/.test(text)) {
-        // Found a M&D class — find the Sign Up button in the same card.
-        // Navigate up to the card container (flex row), then find the button.
-        const card = classNames.nth(i).locator('xpath=ancestor::div[contains(@class, "flex") and contains(@class, "items-start")]');
-        const signUp = card.locator('button:has-text("Sign Up")');
-        if (await signUp.isVisible({ timeout: 2_000 }).catch(() => false)) {
-          await signUp.click();
-          mdSignUpFound = true;
-          console.log(`Clicked Sign Up for M&D class: ${text}`);
-          break;
-        }
-      }
-    }
-
-    if (!mdSignUpFound) {
-      test.skip(true, 'No Mother-Daughter class with Sign Up button found on public classes page');
+    if (await mdSignUp.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await mdSignUp.click();
+    } else {
+      test.skip(true, 'No Mother-Daughter class with Sign Up button found');
       return;
     }
 
