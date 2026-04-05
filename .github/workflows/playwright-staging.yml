@@ -24,6 +24,8 @@ jobs:
           echo "environment: ${{ github.event.deployment_status.environment }}"
           echo "target_url: ${{ github.event.deployment_status.target_url }}"
           echo "ref: ${{ github.event.deployment.ref }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.head_ref: ${{ github.head_ref }}"
 
       - name: Decide whether to run tests
         id: decide
@@ -44,10 +46,15 @@ jobs:
           TARGET_URL="${{ github.event.deployment_status.target_url }}"
           ENVIRONMENT="${{ github.event.deployment_status.environment }}"
           REF="${{ github.event.deployment.ref }}"
+          GIT_REF="${{ github.ref }}"
 
+          # Vercel Preview deploys use a unique hash URL and commit SHA as ref.
+          # Check all available fields for "staging", including github.ref which
+          # contains the branch name (e.g. refs/heads/staging).
           if echo "${TARGET_URL}" | grep -qi "staging" || \
              echo "${ENVIRONMENT}" | grep -qi "staging" || \
-             echo "${REF}" | grep -qi "staging"; then
+             echo "${REF}" | grep -qi "staging" || \
+             echo "${GIT_REF}" | grep -qi "staging"; then
             echo "Staging deployment detected — will run tests"
             echo "should_test=true" >> $GITHUB_OUTPUT
           else
