@@ -28,8 +28,8 @@ export async function fillStripeCheckout(page, { email }) {
   const expiry = page.getByLabel('Expiration');
   await expiry.fill(STRIPE_CARD.expiry);
 
-  // CVC
-  const cvc = page.getByLabel('CVC');
+  // CVC (use ID to avoid matching the CVC icon SVG)
+  const cvc = page.locator('#cardCvc');
   await cvc.fill(STRIPE_CARD.cvc);
 
   // Cardholder name
