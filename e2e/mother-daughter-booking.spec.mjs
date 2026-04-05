@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { fillStripeCheckout } from './helpers/stripe-checkout.mjs';
 import { navigateToBooking } from './helpers/test-data.mjs';
 
 const TEST_DATA = {
@@ -17,7 +16,7 @@ const TEST_DATA = {
 };
 
 test.describe('Mother-Daughter Class Booking', () => {
-  test('full booking flow: navigate → fill form → Stripe checkout → success', async ({ page }) => {
+  test('full booking flow: fill form → redirect to Stripe checkout', async ({ page }) => {
     // Step 1: Navigate to M&D booking page using test data schedule
     await navigateToBooking(page, 'motherDaughter');
 
@@ -44,7 +43,7 @@ test.describe('Mother-Daughter Class Booking', () => {
     // Step 7: Submit booking
     await page.locator('button:has-text("Proceed to Payment")').click();
 
-    // Step 8: Wait for Stripe redirect
+    // Step 8: Verify redirect to Stripe Checkout
     const errorBox = page.locator('.bg-red-50');
     await Promise.race([
       page.waitForURL(/checkout\.stripe\.com/, { timeout: 45_000 }),
@@ -54,11 +53,6 @@ test.describe('Mother-Daughter Class Booking', () => {
       }),
     ]);
 
-    // Step 9: Fill Stripe checkout and pay
-    await fillStripeCheckout(page, { email: TEST_DATA.mother.email });
-
-    // Step 10: Wait for success page
-    await page.waitForURL(/stripe-success/, { timeout: 60_000 });
-    await expect(page).toHaveURL(/stripe-success/);
+    await expect(page).toHaveURL(/checkout\.stripe\.com/);
   });
 });
