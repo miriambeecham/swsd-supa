@@ -44,12 +44,11 @@ export async function fillStripeCheckout(page, { email }) {
     await addressInput.click();
     await addressInput.pressSequentially('2121 Ygnacio Valley Rd', { delay: 30 });
 
-    // Wait for autocomplete suggestions to appear
-    const firstSuggestion = page.getByRole('option').first();
-    await firstSuggestion.waitFor({ state: 'visible', timeout: 10_000 });
-
-    // Click the first suggestion to auto-fill address, city, state, ZIP
-    await firstSuggestion.click();
+    // Wait for Google Places autocomplete suggestion to appear and click it.
+    // The suggestion is inside a listbox within the address combobox.
+    const suggestion = page.getByRole('option', { name: /Walnut Creek/ });
+    await suggestion.waitFor({ state: 'visible', timeout: 10_000 });
+    await suggestion.first().click();
 
     // Wait for Stripe to populate the other fields from the suggestion
     await page.waitForTimeout(1_000);
