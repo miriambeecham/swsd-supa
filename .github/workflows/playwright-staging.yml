@@ -234,8 +234,11 @@ jobs:
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           # Build JSON payload using jq to handle escaping
+          FROM_EMAIL="${{ secrets.RESEND_FROM_EMAIL }}"
+          FROM_EMAIL="${FROM_EMAIL:-onboarding@resend.dev}"
+
           PAYLOAD=$(jq -n \
-            --arg from "Streetwise CI <onboarding@resend.dev>" \
+            --arg from "Streetwise CI <${FROM_EMAIL}>" \
             --arg subject "Playwright E2E tests failed on staging" \
             --arg html "<h2>Playwright E2E tests failed</h2><p>Passed: ${PASSED} | Failed: ${FAILED} | Total: ${TOTAL}</p><p><a href='${RUN_URL}'>View full results</a></p>" \
             '{from: $from, to: ["info@streetwiseselfdefense.com"], subject: $subject, html: $html}')
