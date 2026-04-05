@@ -17,14 +17,10 @@ jobs:
     outputs:
       should_test: ${{ steps.decide.outputs.should_test }}
     steps:
-      - name: Checkout repository
-        if: github.event_name == 'deployment_status'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-
       - name: Decide whether to run tests
         id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual trigger — will run tests"
@@ -39,28 +35,23 @@ jobs:
             exit 0
           fi
 
-          # Vercel deployment_status events only give us a commit SHA in
-          # deployment.ref and a unique hash URL in target_url. Neither
-          # contains "staging". Use git to check if the commit is on the
-          # staging branch.
+          # Vercel deployment_status events give us only a commit SHA and a
+          # unique hash URL — neither contains "staging". Use the GitHub API
+          # to check if the deployed commit is the tip of the staging branch.
           COMMIT_SHA="${{ github.event.deployment.ref }}"
-          echo "Commit SHA: ${COMMIT_SHA}"
+          echo "Deployed commit: ${COMMIT_SHA}"
 
-          STAGING_TIP=$(git rev-parse origin/staging 2>/dev/null || echo "")
-          echo "staging branch tip: ${STAGING_TIP}"
+          STAGING_SHA=$(gh api repos/${{ github.repository }}/git/ref/heads/staging --jq '.object.sha' 2>/dev/null || echo "")
+          echo "staging branch tip: ${STAGING_SHA}"
 
-          if [ -z "$STAGING_TIP" ]; then
-            echo "Could not find origin/staging — skipping"
+          if [ -z "${STAGING_SHA}" ]; then
+            echo "Could not find staging branch — skipping"
             echo "should_test=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Check if the deployed commit is an ancestor of (or equal to) staging tip
-          if git merge-base --is-ancestor "${COMMIT_SHA}" "origin/staging" 2>/dev/null; then
-            echo "Commit ${COMMIT_SHA} is on the staging branch — will run tests"
+          elif [ "${COMMIT_SHA}" = "${STAGING_SHA}" ]; then
+            echo "Commit matches staging branch tip — will run tests"
             echo "should_test=true" >> $GITHUB_OUTPUT
           else
-            echo "Commit ${COMMIT_SHA} is NOT on the staging branch — skipping"
+            echo "Commit does not match staging tip — skipping"
             echo "should_test=false" >> $GITHUB_OUTPUT
           fi
 
