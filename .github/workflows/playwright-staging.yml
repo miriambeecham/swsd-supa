@@ -4,20 +4,61 @@
 name: Playwright E2E Tests (Staging)
 
 on:
-  # Trigger when a deployment to staging completes
+  # Trigger when a deployment completes
   deployment_status:
 
   # Allow manual trigger from GitHub Actions tab
   workflow_dispatch:
 
 jobs:
+  # ── Job 1: Determine if this is a staging deployment ──
+  check-deployment:
+    runs-on: ubuntu-latest
+    outputs:
+      should_test: ${{ steps.decide.outputs.should_test }}
+    steps:
+      - name: Inspect deployment event
+        if: github.event_name == 'deployment_status'
+        run: |
+          echo "state: ${{ github.event.deployment_status.state }}"
+          echo "environment: ${{ github.event.deployment_status.environment }}"
+          echo "target_url: ${{ github.event.deployment_status.target_url }}"
+          echo "ref: ${{ github.event.deployment.ref }}"
+
+      - name: Decide whether to run tests
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger — will run tests"
+            echo "should_test=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          STATE="${{ github.event.deployment_status.state }}"
+          if [ "$STATE" != "success" ]; then
+            echo "Deployment state is '${STATE}', not 'success' — skipping"
+            echo "should_test=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          TARGET_URL="${{ github.event.deployment_status.target_url }}"
+          ENVIRONMENT="${{ github.event.deployment_status.environment }}"
+          REF="${{ github.event.deployment.ref }}"
+
+          if echo "${TARGET_URL}" | grep -qi "staging" || \
+             echo "${ENVIRONMENT}" | grep -qi "staging" || \
+             echo "${REF}" | grep -qi "staging"; then
+            echo "Staging deployment detected — will run tests"
+            echo "should_test=true" >> $GITHUB_OUTPUT
+          else
+            echo "Not a staging deployment — skipping"
+            echo "should_test=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ── Job 2: Run E2E tests (only if staging) ──
   e2e-tests:
-    # Only run on successful staging deployments, or manual trigger
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.deployment_status.state == 'success' &&
-       github.event.deployment_status.environment == 'Preview' &&
-       contains(github.event.deployment.ref, 'staging'))
+    needs: check-deployment
+    if: needs.check-deployment.outputs.should_test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -37,17 +78,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium
 
-      # ── Step 1 & 2: Cleanup old test data + ensure class sessions exist ──
+      # ── Cleanup + data setup ──
       - name: Setup test data
         env:
           STAGING_AIRTABLE_API_KEY: ${{ secrets.STAGING_AIRTABLE_API_KEY }}
           STAGING_AIRTABLE_BASE_ID: ${{ secrets.STAGING_AIRTABLE_BASE_ID }}
         run: node scripts/e2e-data-setup.mjs
 
-      # ── Step 3: Wait for staging to be live ──
+      # ── Wait for staging to be live ──
       - name: Wait for staging deployment
         run: |
-          STAGING_URL="${{ env.STAGING_URL }}"
           echo "Checking ${STAGING_URL} is live..."
           for i in $(seq 1 12); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}" || echo "000")
@@ -63,7 +103,7 @@ jobs:
         env:
           STAGING_URL: https://swsd-dev-git-staging-miriambeecham-gmailcoms-projects.vercel.app
 
-      # ── Step 4: Run Playwright tests ──
+      # ── Run Playwright tests ──
       - name: Run Playwright tests
         id: playwright
         continue-on-error: true
@@ -88,7 +128,7 @@ jobs:
           path: test-results/
           retention-days: 14
 
-      # ── Post results as PR/commit comment ──
+      # ── Parse results ──
       - name: Parse test results
         if: always()
         id: results
@@ -99,7 +139,6 @@ jobs:
             FAILED=$(python3 -c "import json; d=json.load(open('test-results/results.json')); print(d.get('stats',{}).get('unexpected',0))")
             SKIPPED=$(python3 -c "import json; d=json.load(open('test-results/results.json')); print(d.get('stats',{}).get('skipped',0))")
 
-            # Get failed test names
             FAILED_TESTS=$(python3 -c "
           import json
           d = json.load(open('test-results/results.json'))
@@ -132,6 +171,7 @@ jobs:
             echo "failed_tests=Results file not found" >> $GITHUB_OUTPUT
           fi
 
+      # ── Post results as commit comment ──
       - name: Post results comment
         if: always()
         uses: actions/github-script@v7
@@ -163,7 +203,6 @@ jobs:
 
             body += `[View full report & artifacts](${runUrl})\n`;
 
-            // Post as commit comment
             const sha = context.sha;
             await github.rest.repos.createCommitComment({
               owner: context.repo.owner,
@@ -172,7 +211,6 @@ jobs:
               body,
             });
 
-            // Also post on PR if this is a PR-related event
             if (context.payload.deployment?.payload?.pr_number) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
