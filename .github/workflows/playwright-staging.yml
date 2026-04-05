@@ -225,6 +225,7 @@ jobs:
       # ── Email notification on failure via Resend ──
       - name: Send failure email
         if: steps.playwright.outcome == 'failure'
+        continue-on-error: true
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |

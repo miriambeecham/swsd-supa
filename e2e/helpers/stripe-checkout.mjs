@@ -16,8 +16,8 @@ export const STRIPE_CARD = {
  * (not in iframes), accessible by their labels.
  */
 export async function fillStripeCheckout(page, { email }) {
-  // Wait for the Pay button to confirm the page has loaded
-  const payButton = page.getByRole('button', { name: 'Pay' });
+  // Wait for the submit button (use test ID to avoid matching "Pay with card"/"Pay with Bank")
+  const payButton = page.getByTestId('hosted-payment-submit-button');
   await payButton.waitFor({ state: 'visible', timeout: 30_000 });
 
   // Card number
