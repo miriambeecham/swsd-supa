@@ -72,6 +72,14 @@ async function airtableDeleteBatch(table, ids) {
   return deleted;
 }
 
+async function airtableUpdate(table, id, fields) {
+  const data = await airtableFetch(`${encodeURIComponent(table)}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fields }),
+  });
+  return data;
+}
+
 async function airtableCreate(table, fields) {
   const data = await airtableFetch(encodeURIComponent(table), {
     method: 'POST',
@@ -148,9 +156,19 @@ async function ensureTestSchedules() {
     );
 
     if (existing.length > 0) {
-      console.log(`  ${type}: Found existing future schedule ${existing[0].id} (date: ${existing[0].fields.Date})`);
+      const schedule = existing[0];
+      const spots = schedule.fields['Available Spots'] || 0;
+      const booked = schedule.fields['Booked Spots'] || 0;
+      console.log(`  ${type}: Found existing future schedule ${schedule.id} (date: ${schedule.fields.Date}, spots: ${spots}, booked: ${booked})`);
+
+      // Reset Available Spots to ensure there's room for test bookings
+      if (spots - booked < 5) {
+        await airtableUpdate('Class Schedules', schedule.id, { 'Available Spots': booked + 20 });
+        console.log(`  ${type}: Reset Available Spots to ${booked + 20} (was ${spots})`);
+      }
+
       if (type === 'communityMD') {
-        results.communityScheduleId = existing[0].id;
+        results.communityScheduleId = schedule.id;
       }
     } else {
       console.log(`  ${type}: No future schedule found — creating one for ${dateStr}`);

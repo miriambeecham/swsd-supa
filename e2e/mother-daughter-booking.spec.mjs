@@ -39,26 +39,28 @@ test.describe('Mother-Daughter Class Booking', () => {
       console.log(`  Class ${i}: ${text}`);
     }
 
-    // Find M&D class by looking for text containing "Daughter" anywhere on the page,
-    // then finding the nearest Sign Up button
+    // Find a M&D class name, then click the Sign Up button in the same card.
+    // Each card is a flex row: [icon] [class info] [Sign Up button]
+    // The class name is in a span.text-navy.font-bold
     let mdSignUpFound = false;
 
-    // Try to find a card that contains "Daughter" text and has a Sign Up button
-    // Cards use flex layout, so we look for parent containers
-    const cards = page.locator('div').filter({ hasText: /[Dd]aughter/ }).filter({ has: page.locator('button:has-text("Sign Up")') });
-    const cardCount = await cards.count();
-    console.log(`Found ${cardCount} M&D cards with Sign Up buttons`);
-
-    if (cardCount > 0) {
-      // Click the Sign Up button inside the first matching card
-      await cards.first().locator('button:has-text("Sign Up")').click();
-      mdSignUpFound = true;
+    for (let i = 0; i < nameCount; i++) {
+      const text = await classNames.nth(i).textContent();
+      if (text && /[Dd]aughter/.test(text)) {
+        // Found a M&D class — find the Sign Up button in the same card.
+        // Navigate up to the card container (flex row), then find the button.
+        const card = classNames.nth(i).locator('xpath=ancestor::div[contains(@class, "flex") and contains(@class, "items-start")]');
+        const signUp = card.locator('button:has-text("Sign Up")');
+        if (await signUp.isVisible({ timeout: 2_000 }).catch(() => false)) {
+          await signUp.click();
+          mdSignUpFound = true;
+          console.log(`Clicked Sign Up for M&D class: ${text}`);
+          break;
+        }
+      }
     }
 
     if (!mdSignUpFound) {
-      // Dump page content for debugging
-      const bodyText = await page.locator('body').textContent();
-      console.log('Page text (first 500 chars):', bodyText?.substring(0, 500));
       test.skip(true, 'No Mother-Daughter class with Sign Up button found on public classes page');
       return;
     }
