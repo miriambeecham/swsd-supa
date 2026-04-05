@@ -12,7 +12,6 @@ const BILLING_ADDRESS = {
   line1: '2121 Ygnacio Valley Rd',
   city: 'Walnut Creek',
   zip: '94598',
-  state: 'CA',
 };
 
 /**
@@ -42,57 +41,40 @@ export async function fillStripeCheckout(page, { email }) {
     await cardholderName.fill(STRIPE_CARD.name);
   }
 
-  // Billing address — required by checkout session config
-  // Click "Enter address manually" if it exists (avoids autocomplete dropdown)
-  const manualAddressBtn = page.getByRole('button', { name: 'Enter address manually' });
-  if (await manualAddressBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await manualAddressBtn.click();
+  // Billing address — required by checkout session config.
+  // The Address field is a combobox with autocomplete. Using fill() opens
+  // the dropdown but doesn't commit the value. Use pressSequentially() to
+  // type character by character, then Escape to dismiss autocomplete.
+  const addressInput = page.getByRole('combobox', { name: 'Address' });
+  if (await addressInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await addressInput.click();
+    await addressInput.pressSequentially(BILLING_ADDRESS.line1, { delay: 30 });
     await page.waitForTimeout(500);
-  }
-
-  // Address line 1
-  const addressLine1 = page.getByLabel('Address line 1');
-  if (await addressLine1.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await addressLine1.fill(BILLING_ADDRESS.line1);
-  } else {
-    // Try the combobox/autocomplete version
-    const addressCombo = page.getByLabel('Address');
-    if (await addressCombo.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await addressCombo.fill(BILLING_ADDRESS.line1);
-      await page.waitForTimeout(1_000);
-      // Press Escape to dismiss autocomplete dropdown, then tab out
-      await addressCombo.press('Escape');
-      await page.waitForTimeout(500);
-    }
+    await addressInput.press('Escape');
+    await page.waitForTimeout(300);
   }
 
   // City
-  const cityInput = page.getByPlaceholder('City');
+  const cityInput = page.getByRole('textbox', { name: 'City' });
   if (await cityInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await cityInput.fill(BILLING_ADDRESS.city);
   }
 
   // ZIP
-  const zipInput = page.getByPlaceholder('ZIP');
+  const zipInput = page.getByRole('textbox', { name: 'ZIP' });
   if (await zipInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await zipInput.fill(BILLING_ADDRESS.zip);
   }
 
-  // State dropdown
-  const stateSelect = page.locator('select').last();
-  if (await stateSelect.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await stateSelect.selectOption({ label: 'California' }).catch(() =>
-      stateSelect.selectOption('CA').catch(() => {})
-    );
+  // State — select California
+  const stateCombo = page.getByRole('combobox', { name: 'State' });
+  if (await stateCombo.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await stateCombo.selectOption({ label: 'California' });
   }
 
-  // Small wait for form validation to settle
+  // Wait for Stripe's form validation
   await page.waitForTimeout(1_000);
 
   // Submit payment
   await payButton.click();
-
-  // Wait for payment processing (Stripe shows a spinner)
-  // The button changes to "Processing" state
-  await page.waitForTimeout(3_000);
 }
