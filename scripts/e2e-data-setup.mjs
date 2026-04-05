@@ -11,7 +11,7 @@
 //   STAGING_AIRTABLE_BASE_ID
 //
 // Outputs (written to e2e-test-data.json for tests to consume):
-//   { communityScheduleId: string }
+//   { adult: { scheduleId, classSchedule }, motherDaughter: {...}, communityMD: {...} }
 
 import { writeFileSync } from 'fs';
 
@@ -146,7 +146,14 @@ async function ensureTestSchedules() {
   // End time = test date at 1pm Pacific (20:00 UTC)
   const endTime = `${dateStr}T20:00:00.000Z`;
 
-  const results = { communityScheduleId: null };
+  // Fetch class details for metadata needed by tests
+  const classDetails = {};
+  for (const [type, classId] of Object.entries(CLASS_IDS)) {
+    const classRecord = await airtableFetch(`${encodeURIComponent('Classes')}/${classId}`);
+    classDetails[type] = classRecord.fields;
+  }
+
+  const results = {};
 
   for (const [type, classId] of Object.entries(CLASS_IDS)) {
     // Check for existing future non-cancelled schedule for this class
@@ -154,6 +161,8 @@ async function ensureTestSchedules() {
       'Class Schedules',
       `AND({Class}='${classId}', IS_AFTER({Date}, '${now.toISOString().split('T')[0]}'), NOT({Is Cancelled}))`
     );
+
+    let scheduleId, scheduleDate, scheduleStart, scheduleEnd;
 
     if (existing.length > 0) {
       const schedule = existing[0];
@@ -167,9 +176,10 @@ async function ensureTestSchedules() {
         console.log(`  ${type}: Reset Available Spots to ${booked + 20} (was ${spots})`);
       }
 
-      if (type === 'communityMD') {
-        results.communityScheduleId = schedule.id;
-      }
+      scheduleId = schedule.id;
+      scheduleDate = schedule.fields.Date;
+      scheduleStart = schedule.fields['Start Time New'];
+      scheduleEnd = schedule.fields['End Time New'];
     } else {
       console.log(`  ${type}: No future schedule found — creating one for ${dateStr}`);
       const created = await airtableCreate('Class Schedules', {
@@ -181,10 +191,26 @@ async function ensureTestSchedules() {
         'Special Notes': 'E2E_TEST_SCHEDULE — auto-created for Playwright tests',
       });
       console.log(`  ${type}: Created schedule ${created.id}`);
-      if (type === 'communityMD') {
-        results.communityScheduleId = created.id;
-      }
+      scheduleId = created.id;
+      scheduleDate = dateStr;
+      scheduleStart = startTime;
+      scheduleEnd = endTime;
     }
+
+    const cls = classDetails[type];
+    results[type] = {
+      scheduleId,
+      classSchedule: {
+        id: scheduleId,
+        class_name: cls['Class Name'] || '',
+        type: cls['Type']?.toLowerCase() || '',
+        date: scheduleDate,
+        start_time: scheduleStart,
+        end_time: scheduleEnd,
+        price: cls['Price'] || 1,
+        location: cls['Location'] || '',
+      },
+    };
   }
 
   return results;

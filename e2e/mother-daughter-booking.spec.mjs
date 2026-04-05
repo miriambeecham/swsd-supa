@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { fillStripeCheckout } from './helpers/stripe-checkout.mjs';
+import { navigateToBooking } from './helpers/test-data.mjs';
 
 const TEST_DATA = {
   mother: {
@@ -16,56 +17,34 @@ const TEST_DATA = {
 };
 
 test.describe('Mother-Daughter Class Booking', () => {
-  test('full booking flow: browse → select M&D class → fill form → Stripe checkout', async ({ page }) => {
-    // Step 1: Navigate to public classes page
-    await page.goto('/public-classes');
-    await expect(page.locator('h1')).toContainText('Public Classes', { timeout: 30_000 });
+  test('full booking flow: navigate → fill form → Stripe checkout → success', async ({ page }) => {
+    // Step 1: Navigate to M&D booking page using test data schedule
+    await navigateToBooking(page, 'motherDaughter');
 
-    // Step 2: Wait for classes to load
-    await page.waitForTimeout(3_000);
+    // Step 2: Verify the booking page loaded
+    await expect(page.locator('h1')).toContainText('Book:', { timeout: 10_000 });
 
-    // Step 3: Find a M&D class card and click its Sign Up button.
-    // Cards are div.flex.items-start containers. Filter to ones containing
-    // "Daughters" in a bold class name AND having a Sign Up button.
-    const mdCard = page.locator('.flex.items-start').filter({
-      has: page.locator('span.font-bold:has-text("Daughters")'),
-    }).filter({
-      has: page.locator('button:has-text("Sign Up")'),
-    }).first();
-
-    const mdSignUp = mdCard.locator('button:has-text("Sign Up")');
-
-    if (await mdSignUp.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await mdSignUp.click();
-    } else {
-      test.skip(true, 'No Mother-Daughter class with Sign Up button found');
-      return;
-    }
-
-    // Step 4: Verify booking page
-    await expect(page).toHaveURL(/book-mother-daughter-class/, { timeout: 10_000 });
-
-    // Step 5: Fill mother contact info
+    // Step 3: Fill mother contact info
     const textInputs = page.locator('input[type="text"]');
     await textInputs.nth(0).fill(TEST_DATA.mother.firstName);
     await textInputs.nth(1).fill(TEST_DATA.mother.lastName);
     await page.locator('input[type="email"]').fill(TEST_DATA.mother.email);
     await page.locator('input[type="tel"]').fill(TEST_DATA.mother.phone);
 
-    // Step 6: Fill daughter info
+    // Step 4: Fill daughter info
     await textInputs.nth(2).fill(TEST_DATA.daughter.firstName);
     await textInputs.nth(3).fill(TEST_DATA.daughter.lastName);
     await page.locator('select').first().selectOption(TEST_DATA.daughter.ageGroup);
 
-    // Step 7: Check SMS consent
+    // Step 5: Check SMS consent
     await page.locator('input[type="checkbox"]').first().check();
 
-    // Step 8: reCAPTCHA bypassed via VITE_TEST_MODE=true
+    // Step 6: reCAPTCHA bypassed via VITE_TEST_MODE=true
 
-    // Step 9: Submit booking
+    // Step 7: Submit booking
     await page.locator('button:has-text("Proceed to Payment")').click();
 
-    // Step 10: Wait for Stripe redirect
+    // Step 8: Wait for Stripe redirect
     const errorBox = page.locator('.bg-red-50');
     await Promise.race([
       page.waitForURL(/checkout\.stripe\.com/, { timeout: 45_000 }),
@@ -75,10 +54,10 @@ test.describe('Mother-Daughter Class Booking', () => {
       }),
     ]);
 
-    // Step 11: Fill Stripe checkout and pay
+    // Step 9: Fill Stripe checkout and pay
     await fillStripeCheckout(page, { email: TEST_DATA.mother.email });
 
-    // Step 12: Wait for success page
+    // Step 10: Wait for success page
     await page.waitForURL(/stripe-success/, { timeout: 60_000 });
     await expect(page).toHaveURL(/stripe-success/);
   });
