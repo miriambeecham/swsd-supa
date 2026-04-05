@@ -228,18 +228,22 @@ jobs:
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
+          PASSED="${{ steps.results.outputs.passed }}"
+          FAILED="${{ steps.results.outputs.failed }}"
+          TOTAL="${{ steps.results.outputs.total }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Build JSON payload using jq to handle escaping
+          PAYLOAD=$(jq -n \
+            --arg from "Streetwise CI <onboarding@resend.dev>" \
+            --arg subject "Playwright E2E tests failed on staging" \
+            --arg html "<h2>Playwright E2E tests failed</h2><p>Passed: ${PASSED} | Failed: ${FAILED} | Total: ${TOTAL}</p><p><a href='${RUN_URL}'>View full results</a></p>" \
+            '{from: $from, to: ["info@streetwiseselfdefense.com"], subject: $subject, html: $html}')
+
           curl -s -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer ${RESEND_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$(cat <<RESEND_EOF
-          {
-            "from": "Streetwise CI <${RESEND_FROM_EMAIL:-onboarding@resend.dev}>",
-            "to": ["info@streetwiseselfdefense.com"],
-            "subject": "❌ Playwright E2E tests failed on staging",
-            "html": "<h2>Playwright E2E tests failed after staging deployment</h2><p><strong>Passed:</strong> ${{ steps.results.outputs.passed }}<br><strong>Failed:</strong> ${{ steps.results.outputs.failed }}<br><strong>Total:</strong> ${{ steps.results.outputs.total }}</p><h3>Failed tests:</h3><pre>${{ steps.results.outputs.failed_tests }}</pre><p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>View full results &amp; download report</a></p>"
-          }
-          RESEND_EOF
-          )"
+            -d "${PAYLOAD}"
 
       # ── Fail the workflow if tests failed ──
       - name: Check test outcome
