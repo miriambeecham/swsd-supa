@@ -17,15 +17,11 @@ jobs:
     outputs:
       should_test: ${{ steps.decide.outputs.should_test }}
     steps:
-      - name: Inspect deployment event
+      - name: Checkout repository
         if: github.event_name == 'deployment_status'
-        run: |
-          echo "state: ${{ github.event.deployment_status.state }}"
-          echo "environment: ${{ github.event.deployment_status.environment }}"
-          echo "target_url: ${{ github.event.deployment_status.target_url }}"
-          echo "ref: ${{ github.event.deployment.ref }}"
-          echo "github.ref: ${{ github.ref }}"
-          echo "github.head_ref: ${{ github.head_ref }}"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
 
       - name: Decide whether to run tests
         id: decide
@@ -43,22 +39,28 @@ jobs:
             exit 0
           fi
 
-          TARGET_URL="${{ github.event.deployment_status.target_url }}"
-          ENVIRONMENT="${{ github.event.deployment_status.environment }}"
-          REF="${{ github.event.deployment.ref }}"
-          GIT_REF="${{ github.ref }}"
+          # Vercel deployment_status events only give us a commit SHA in
+          # deployment.ref and a unique hash URL in target_url. Neither
+          # contains "staging". Use git to check if the commit is on the
+          # staging branch.
+          COMMIT_SHA="${{ github.event.deployment.ref }}"
+          echo "Commit SHA: ${COMMIT_SHA}"
 
-          # Vercel Preview deploys use a unique hash URL and commit SHA as ref.
-          # Check all available fields for "staging", including github.ref which
-          # contains the branch name (e.g. refs/heads/staging).
-          if echo "${TARGET_URL}" | grep -qi "staging" || \
-             echo "${ENVIRONMENT}" | grep -qi "staging" || \
-             echo "${REF}" | grep -qi "staging" || \
-             echo "${GIT_REF}" | grep -qi "staging"; then
-            echo "Staging deployment detected — will run tests"
+          STAGING_TIP=$(git rev-parse origin/staging 2>/dev/null || echo "")
+          echo "staging branch tip: ${STAGING_TIP}"
+
+          if [ -z "$STAGING_TIP" ]; then
+            echo "Could not find origin/staging — skipping"
+            echo "should_test=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if the deployed commit is an ancestor of (or equal to) staging tip
+          if git merge-base --is-ancestor "${COMMIT_SHA}" "origin/staging" 2>/dev/null; then
+            echo "Commit ${COMMIT_SHA} is on the staging branch — will run tests"
             echo "should_test=true" >> $GITHUB_OUTPUT
           else
-            echo "Not a staging deployment — skipping"
+            echo "Commit ${COMMIT_SHA} is NOT on the staging branch — skipping"
             echo "should_test=false" >> $GITHUB_OUTPUT
           fi
 
