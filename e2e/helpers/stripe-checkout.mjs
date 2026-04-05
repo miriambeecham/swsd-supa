@@ -8,12 +8,6 @@ export const STRIPE_CARD = {
   name: 'Test User',
 };
 
-const BILLING_ADDRESS = {
-  line1: '2121 Ygnacio Valley Rd',
-  city: 'Walnut Creek',
-  zip: '94598',
-};
-
 /**
  * Fill and submit Stripe's hosted checkout page.
  * Assumes the page has already navigated to checkout.stripe.com.
@@ -42,33 +36,26 @@ export async function fillStripeCheckout(page, { email }) {
   }
 
   // Billing address — required by checkout session config.
-  // The Address field is an autocomplete combobox. Type the address,
-  // then click directly on the City field to dismiss the dropdown
-  // and continue filling the rest of the form.
+  // Type the address into the autocomplete combobox, wait for Google
+  // Places suggestions to appear, then select the first one.
+  // Selecting an autocomplete suggestion auto-fills City, State, and ZIP.
   const addressInput = page.getByRole('combobox', { name: 'Address' });
   if (await addressInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await addressInput.click();
-    await addressInput.pressSequentially(BILLING_ADDRESS.line1, { delay: 30 });
-    await page.waitForTimeout(500);
+    await addressInput.pressSequentially('2121 Ygnacio Valley Rd', { delay: 30 });
+
+    // Wait for autocomplete suggestions to appear
+    const firstSuggestion = page.getByRole('option').first();
+    await firstSuggestion.waitFor({ state: 'visible', timeout: 10_000 });
+
+    // Click the first suggestion to auto-fill address, city, state, ZIP
+    await firstSuggestion.click();
+
+    // Wait for Stripe to populate the other fields from the suggestion
+    await page.waitForTimeout(1_000);
   }
 
-  // Click directly on the City field to dismiss the address autocomplete dropdown
-  const cityInput = page.getByRole('textbox', { name: 'City' });
-  await cityInput.click();
-  await page.waitForTimeout(300);
-  await cityInput.fill(BILLING_ADDRESS.city);
-
-  // ZIP
-  const zipInput = page.getByRole('textbox', { name: 'ZIP' });
-  await zipInput.fill(BILLING_ADDRESS.zip);
-
-  // State — select California
-  const stateCombo = page.getByRole('combobox', { name: 'State' });
-  if (await stateCombo.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await stateCombo.selectOption({ label: 'California' });
-  }
-
-  // Wait for Stripe's form validation
+  // Wait for form validation to settle
   await page.waitForTimeout(1_000);
 
   // Submit payment
