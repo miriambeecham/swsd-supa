@@ -58,20 +58,8 @@ test.describe('Adult Class Booking', () => {
     const smsCheckbox = page.locator('input[type="checkbox"]').first();
     await smsCheckbox.check();
 
-    // Step 6: Handle reCAPTCHA
-    // In test mode (VITE_TEST_MODE=true on staging), reCAPTCHA is bypassed server-side.
-    // The fallback test site key (6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI) auto-passes.
-    // We click the reCAPTCHA checkbox in the iframe to get a client-side token.
-    const recaptchaFrame = page.frameLocator('iframe[src*="recaptcha"]').first();
-    try {
-      const recaptchaCheckbox = recaptchaFrame.locator('#recaptcha-anchor');
-      await recaptchaCheckbox.waitFor({ timeout: 10_000 });
-      await recaptchaCheckbox.click();
-      // Wait for the checkmark to appear
-      await recaptchaFrame.locator('.recaptcha-checkbox-checked').waitFor({ timeout: 10_000 });
-    } catch (e) {
-      console.log('reCAPTCHA interaction failed, continuing anyway:', e.message);
-    }
+    // Step 6: reCAPTCHA is bypassed client-side and server-side via VITE_TEST_MODE=true.
+    // No interaction needed — the booking page auto-sets a fake token in test mode.
 
     // Step 7: Click "Proceed to Payment"
     const submitButton = page.locator('button:has-text("Proceed to Payment")');

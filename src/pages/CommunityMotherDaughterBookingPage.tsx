@@ -47,6 +47,11 @@ const CommunityMotherDaughterBookingPage = () => {
   const [hardErrors, setHardErrors] = useState<string[]>([]);
   const [smsConsent, setSmsConsent] = useState(false);
 
+  // Bypass reCAPTCHA in test mode (server also skips verification)
+  useEffect(() => {
+    if (import.meta.env.VITE_TEST_MODE === 'true') setRecaptchaValue('TEST_MODE_BYPASS');
+  }, []);
+
   useEffect(() => {
     if (scheduleId) {
       fetchClassSchedule();

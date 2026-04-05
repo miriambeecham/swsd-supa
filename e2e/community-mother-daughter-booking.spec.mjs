@@ -66,16 +66,7 @@ test.describe('Community Mother-Daughter Class Booking', () => {
     const smsCheckbox = page.locator('input[type="checkbox"]').first();
     await smsCheckbox.check();
 
-    // Step 7: Handle reCAPTCHA
-    const recaptchaFrame = page.frameLocator('iframe[src*="recaptcha"]').first();
-    try {
-      const recaptchaCheckbox = recaptchaFrame.locator('#recaptcha-anchor');
-      await recaptchaCheckbox.waitFor({ timeout: 10_000 });
-      await recaptchaCheckbox.click();
-      await recaptchaFrame.locator('.recaptcha-checkbox-checked').waitFor({ timeout: 10_000 });
-    } catch (e) {
-      console.log('reCAPTCHA interaction failed, continuing anyway:', e.message);
-    }
+    // Step 7: reCAPTCHA is bypassed client-side and server-side via VITE_TEST_MODE=true.
 
     // Step 8: Submit booking
     const submitButton = page.locator('button:has-text("Proceed to Payment")');
