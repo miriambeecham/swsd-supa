@@ -46,9 +46,9 @@ export async function fillStripeCheckout(page, { email }) {
 
     // Wait for Google Places autocomplete suggestion to appear and click it.
     // The suggestion is inside a listbox within the address combobox.
-    const suggestion = page.getByRole('option', { name: /Walnut Creek/ });
+    const suggestion = page.getByRole('option', { name: /Ygnacio Valley Rd,/ }).first();
     await suggestion.waitFor({ state: 'visible', timeout: 10_000 });
-    await suggestion.first().click();
+    await suggestion.click();
 
     // Wait for Stripe to populate the other fields from the suggestion
     await page.waitForTimeout(1_000);
