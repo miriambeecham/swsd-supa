@@ -60,14 +60,17 @@ test.describe('Adult Class Booking', () => {
 
     // Step 6: Handle reCAPTCHA
     // In test mode (VITE_TEST_MODE=true on staging), reCAPTCHA is bypassed server-side.
-    // We still need to interact with the reCAPTCHA widget on the client to get a token.
-    // The fallback test site key auto-passes, so we click the iframe checkbox.
-    const recaptchaFrame = page.frameLocator('iframe[src*="recaptcha"]');
-    const recaptchaCheckbox = recaptchaFrame.locator('.recaptcha-checkbox-border, #recaptcha-anchor');
-    if (await recaptchaCheckbox.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    // The fallback test site key (6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI) auto-passes.
+    // We click the reCAPTCHA checkbox in the iframe to get a client-side token.
+    const recaptchaFrame = page.frameLocator('iframe[src*="recaptcha"]').first();
+    try {
+      const recaptchaCheckbox = recaptchaFrame.locator('#recaptcha-anchor');
+      await recaptchaCheckbox.waitFor({ timeout: 10_000 });
       await recaptchaCheckbox.click();
-      // Wait for reCAPTCHA to validate
-      await page.waitForTimeout(2_000);
+      // Wait for the checkmark to appear
+      await recaptchaFrame.locator('.recaptcha-checkbox-checked').waitFor({ timeout: 10_000 });
+    } catch (e) {
+      console.log('reCAPTCHA interaction failed, continuing anyway:', e.message);
     }
 
     // Step 7: Click "Proceed to Payment"
@@ -76,8 +79,20 @@ test.describe('Adult Class Booking', () => {
     await submitButton.click();
 
     // Step 8: Wait for redirect to Stripe Checkout
-    await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 });
-    await expect(page).toHaveURL(/checkout\.stripe\.com/);
+    // If there are validation errors, they'll show in a red box — capture them for debugging
+    const errorBox = page.locator('.bg-red-50');
+    const stripeRedirect = page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 }).catch(() => null);
+    const errorAppeared = errorBox.waitFor({ timeout: 5_000 }).catch(() => null);
+
+    await Promise.race([stripeRedirect, errorAppeared]);
+
+    // Check if we got an error instead of redirect
+    if (await errorBox.isVisible().catch(() => false)) {
+      const errorText = await errorBox.textContent();
+      throw new Error(`Booking submission failed with error: ${errorText}`);
+    }
+
+    await expect(page).toHaveURL(/checkout\.stripe\.com/, { timeout: 30_000 });
 
     // Step 9: Fill Stripe checkout form
     // Wait for the Stripe page to load

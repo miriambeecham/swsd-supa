@@ -61,6 +61,8 @@ jobs:
     if: needs.check-deployment.outputs.should_test == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository

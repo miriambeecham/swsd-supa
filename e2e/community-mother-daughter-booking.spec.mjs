@@ -41,11 +41,10 @@ test.describe('Community Mother-Daughter Class Booking', () => {
 
     // Step 2: Wait for class data to load
     // The page fetches schedule + class data, then renders the form
-    await expect(page.locator('text=Mother/Guardian Information, text=Guardian').first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Mother/Guardian Information')).toBeVisible({ timeout: 30_000 });
 
     // Step 3: Verify community notice banner is visible
-    const communityBanner = page.locator('text=private class, text=community group').first();
-    await expect(communityBanner).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Private Community Class')).toBeVisible({ timeout: 5_000 });
 
     // Step 4: Fill mother/guardian contact information
     const textInputs = page.locator('input[type="text"]');
@@ -68,11 +67,14 @@ test.describe('Community Mother-Daughter Class Booking', () => {
     await smsCheckbox.check();
 
     // Step 7: Handle reCAPTCHA
-    const recaptchaFrame = page.frameLocator('iframe[src*="recaptcha"]');
-    const recaptchaCheckbox = recaptchaFrame.locator('.recaptcha-checkbox-border, #recaptcha-anchor');
-    if (await recaptchaCheckbox.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    const recaptchaFrame = page.frameLocator('iframe[src*="recaptcha"]').first();
+    try {
+      const recaptchaCheckbox = recaptchaFrame.locator('#recaptcha-anchor');
+      await recaptchaCheckbox.waitFor({ timeout: 10_000 });
       await recaptchaCheckbox.click();
-      await page.waitForTimeout(2_000);
+      await recaptchaFrame.locator('.recaptcha-checkbox-checked').waitFor({ timeout: 10_000 });
+    } catch (e) {
+      console.log('reCAPTCHA interaction failed, continuing anyway:', e.message);
     }
 
     // Step 8: Submit booking
@@ -81,7 +83,17 @@ test.describe('Community Mother-Daughter Class Booking', () => {
     await submitButton.click();
 
     // Step 9: Wait for Stripe redirect
-    await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 });
+    const errorBox = page.locator('.bg-red-50');
+    const stripeRedirect = page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 }).catch(() => null);
+    const errorAppeared = errorBox.waitFor({ timeout: 5_000 }).catch(() => null);
+    await Promise.race([stripeRedirect, errorAppeared]);
+
+    if (await errorBox.isVisible().catch(() => false)) {
+      const errorText = await errorBox.textContent();
+      throw new Error(`Booking submission failed with error: ${errorText}`);
+    }
+
+    await expect(page).toHaveURL(/checkout\.stripe\.com/, { timeout: 30_000 });
 
     // Step 10: Fill Stripe checkout
     await page.waitForLoadState('networkidle', { timeout: 30_000 });
