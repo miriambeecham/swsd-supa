@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { 
+import {
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -13,7 +13,9 @@ import {
   CheckCircle,
   XCircle,
   Filter,
-  X
+  X,
+  Plus,
+  Ban,
 } from 'lucide-react';
 
 interface ClassSchedule {
@@ -42,6 +44,7 @@ const AdminClassSchedulesPage = () => {
   const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState<ClassSchedule[]>([]);
   const [filteredSchedules, setFilteredSchedules] = useState<ClassSchedule[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // Filters
   const [filterClassId, setFilterClassId] = useState('');
@@ -218,6 +221,22 @@ const AdminClassSchedulesPage = () => {
     setFilterDateRange('future');
   };
 
+  const handleDelete = async (scheduleId: string) => {
+    try {
+      const response = await fetch('/api/admin/class-schedule-manage', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: scheduleId, fields: { 'Is Cancelled': true } }),
+      });
+      if (response.ok) {
+        setDeleteConfirmId(null);
+        fetchSchedules();
+      }
+    } catch (error) {
+      console.error('Error cancelling schedule:', error);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/admin/logout', { method: 'POST' });
@@ -280,13 +299,22 @@ const AdminClassSchedulesPage = () => {
         <div className="max-w-full px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Class Schedules</h1>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/admin/schedules/new')}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Add Schedule</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -571,6 +599,15 @@ const AdminClassSchedulesPage = () => {
                             <Users className="w-4 h-4" />
                             <span className="hidden lg:inline">Attendance</span>
                           </button>
+                          {!schedule.isCancelled && (
+                            <button
+                              onClick={() => setDeleteConfirmId(schedule.id)}
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              <Ban className="w-4 h-4" />
+                              <span className="hidden lg:inline">Inactivate</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -663,6 +700,51 @@ const AdminClassSchedulesPage = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const confirmSchedule = schedules.find(s => s.id === deleteConfirmId);
+        const bookedCount = confirmSchedule?.bookedSpots || 0;
+        return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Confirm Inactivation</h3>
+            </div>
+            {bookedCount > 0 && (
+              <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span className="text-sm font-medium">
+                  This class currently has {bookedCount} registered participant{bookedCount !== 1 ? 's' : ''}. Inactivating it may affect their bookings.
+                </span>
+              </div>
+            )}
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to inactivate this class schedule? The class will be marked as cancelled
+              and will no longer appear as active.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              >
+                No, Keep It
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirmId)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                <Ban className="w-4 h-4" />
+                Yes, Inactivate
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 };

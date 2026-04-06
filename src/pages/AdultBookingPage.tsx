@@ -6,7 +6,7 @@
 // 2. Added booking policies link to privacy statement
 // 3. Added required SMS consent checkbox
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, MapPin } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
@@ -34,6 +34,11 @@ const AdultBookingPage: React.FC = () => {
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [smsConsent, setSmsConsent] = useState(false);
+
+  // Bypass reCAPTCHA in test mode (server also skips verification)
+  useEffect(() => {
+    if (import.meta.env.VITE_TEST_MODE === 'true') setRecaptchaValue('TEST_MODE_BYPASS');
+  }, []);
 
   // If user navigates here without state, bounce back to classes
   if (!classSchedule) {

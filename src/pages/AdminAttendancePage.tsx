@@ -1513,10 +1513,19 @@ const AdminAttendancePage = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-navy">Attendance Management</h1>
-            <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
-              <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/admin/schedules')}
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">Manage Schedules</span>
+              </button>
+              <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
+                <LogOut className="w-5 h-5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
 
           {/* Class Navigation */}

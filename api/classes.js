@@ -34,6 +34,7 @@ export default async function handler(req, res) {
     const classes = (data.records || []).map((record) => ({
       id: record.id,
       fields: {
+        'ID': record.fields.ID,
         'Class Name': record.fields['Class Name'] || record.fields.Title,
         'Type': record.fields.Type,
         'Max Participants': record.fields['Max Participants'],

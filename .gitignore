@@ -5,3 +5,7 @@ node_modules/
 dist/
 build/
 .DS_Store
+test-results/
+playwright-report/
+playwright/.cache/
+e2e-test-data.json

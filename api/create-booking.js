@@ -44,12 +44,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'participants must be a non-empty array' });
     }
 
-    // Verify reCAPTCHA if token provided
-    if (recaptchaToken && RECAPTCHA_API_KEY) {
+    // Verify reCAPTCHA if token provided (bypass in test mode)
+    const isTestMode = process.env.VITE_TEST_MODE === 'true';
+    if (recaptchaToken && RECAPTCHA_API_KEY && !isTestMode) {
       const params = new URLSearchParams({ secret: RECAPTCHA_API_KEY, response: recaptchaToken });
       const verify = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params
       });
       if (!verify.ok || !(await verify.json())?.success) {

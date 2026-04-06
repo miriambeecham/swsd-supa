@@ -113,22 +113,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 Testimonials
               </Link>
 
-              <Link 
-                to="/faq" 
+              <Link
+                to="/faq"
                 className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
-                  isActive('/faq') 
-                    ? 'text-accent-primary' 
+                  isActive('/faq')
+                    ? 'text-accent-primary'
                     : 'text-navy hover:text-accent-primary'
                 }`}
               >
                 FAQ
               </Link>
 
-              <Link 
-                to="/contact" 
+              <Link
+                to="/blog"
                 className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
-                  isActive('/contact') 
-                    ? 'text-accent-primary' 
+                  isActive('/blog')
+                    ? 'text-accent-primary'
+                    : 'text-navy hover:text-accent-primary'
+                }`}
+              >
+                Blog
+              </Link>
+
+              <Link
+                to="/contact"
+                className={`px-4 py-2 rounded-md font-semibold text-lg transition-colors ${
+                  isActive('/contact')
+                    ? 'text-accent-primary'
                     : 'text-navy hover:text-accent-primary'
                 }`}
               >
@@ -230,6 +241,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   }`}
                 >
                   FAQ
+                </Link>
+
+                <Link
+                  to="/blog"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    isActive('/blog')
+                      ? 'text-accent-primary bg-accent-light'
+                      : 'text-gray-600 hover:text-navy hover:bg-gray-100'
+                  }`}
+                >
+                  Blog
                 </Link>
 
                 <Link

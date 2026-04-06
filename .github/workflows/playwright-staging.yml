@@ -1,0 +1,255 @@
+# .github/workflows/playwright-staging.yml
+# Runs Playwright E2E tests against staging after every deployment.
+
+name: Playwright E2E Tests (Staging)
+
+on:
+  # Trigger when a deployment completes
+  deployment_status:
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  # ── Job 1: Determine if this is a staging deployment ──
+  check-deployment:
+    runs-on: ubuntu-latest
+    outputs:
+      should_test: ${{ steps.decide.outputs.should_test }}
+    steps:
+      - name: Decide whether to run tests
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger — will run tests"
+            echo "should_test=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          STATE="${{ github.event.deployment_status.state }}"
+          if [ "$STATE" != "success" ]; then
+            echo "Deployment state is '${STATE}', not 'success' — skipping"
+            echo "should_test=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Vercel deployment_status events give us only a commit SHA and a
+          # unique hash URL — neither contains "staging". Use the GitHub API
+          # to check if the deployed commit is the tip of the staging branch.
+          COMMIT_SHA="${{ github.event.deployment.ref }}"
+          echo "Deployed commit: ${COMMIT_SHA}"
+
+          STAGING_SHA=$(gh api repos/${{ github.repository }}/git/ref/heads/staging --jq '.object.sha' 2>/dev/null || echo "")
+          echo "staging branch tip: ${STAGING_SHA}"
+
+          if [ -z "${STAGING_SHA}" ]; then
+            echo "Could not find staging branch — skipping"
+            echo "should_test=false" >> $GITHUB_OUTPUT
+          elif [ "${COMMIT_SHA}" = "${STAGING_SHA}" ]; then
+            echo "Commit matches staging branch tip — will run tests"
+            echo "should_test=true" >> $GITHUB_OUTPUT
+          else
+            echo "Commit does not match staging tip — skipping"
+            echo "should_test=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ── Job 2: Run E2E tests (only if staging) ──
+  e2e-tests:
+    needs: check-deployment
+    if: needs.check-deployment.outputs.should_test == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      # ── Cleanup + data setup ──
+      - name: Setup test data
+        env:
+          STAGING_AIRTABLE_API_KEY: ${{ secrets.STAGING_AIRTABLE_API_KEY }}
+          STAGING_AIRTABLE_BASE_ID: ${{ secrets.STAGING_AIRTABLE_BASE_ID }}
+        run: node scripts/e2e-data-setup.mjs
+
+      # ── Wait for staging to be live ──
+      - name: Wait for staging deployment
+        run: |
+          echo "Checking ${STAGING_URL} is live..."
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Staging is live (HTTP ${STATUS})"
+              exit 0
+            fi
+            echo "Attempt ${i}/12: HTTP ${STATUS}, waiting 10s..."
+            sleep 10
+          done
+          echo "Staging not responding after 2 minutes"
+          exit 1
+        env:
+          STAGING_URL: https://swsd-dev-git-staging-miriambeecham-gmailcoms-projects.vercel.app
+
+      # ── Run Playwright tests ──
+      - name: Run Playwright tests
+        id: playwright
+        continue-on-error: true
+        env:
+          STAGING_URL: https://swsd-dev-git-staging-miriambeecham-gmailcoms-projects.vercel.app
+        run: npx playwright test
+
+      # ── Upload artifacts ──
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results (screenshots, videos, traces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 14
+
+      # ── Parse results ──
+      - name: Parse test results
+        if: always()
+        id: results
+        run: |
+          if [ -f test-results/results.json ]; then
+            TOTAL=$(python3 -c "import json; d=json.load(open('test-results/results.json')); s=d.get('stats',{}); print(s.get('expected',0)+s.get('unexpected',0)+s.get('skipped',0))")
+            PASSED=$(python3 -c "import json; d=json.load(open('test-results/results.json')); print(d.get('stats',{}).get('expected',0))")
+            FAILED=$(python3 -c "import json; d=json.load(open('test-results/results.json')); print(d.get('stats',{}).get('unexpected',0))")
+            SKIPPED=$(python3 -c "import json; d=json.load(open('test-results/results.json')); print(d.get('stats',{}).get('skipped',0))")
+
+            FAILED_TESTS=$(python3 -c "
+          import json
+          d = json.load(open('test-results/results.json'))
+          failed = []
+          for suite in d.get('suites', []):
+              for spec in suite.get('specs', []):
+                  for test in spec.get('tests', []):
+                      if test.get('status') == 'unexpected':
+                          failed.append(spec.get('title', 'unknown'))
+              for child in suite.get('suites', []):
+                  for spec in child.get('specs', []):
+                      for test in spec.get('tests', []):
+                          if test.get('status') == 'unexpected':
+                              failed.append(spec.get('title', 'unknown'))
+          print('\n'.join(failed) if failed else 'none')
+          ")
+
+            echo "total=${TOTAL}" >> $GITHUB_OUTPUT
+            echo "passed=${PASSED}" >> $GITHUB_OUTPUT
+            echo "failed=${FAILED}" >> $GITHUB_OUTPUT
+            echo "skipped=${SKIPPED}" >> $GITHUB_OUTPUT
+            echo "failed_tests<<EOF" >> $GITHUB_OUTPUT
+            echo "${FAILED_TESTS}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=0" >> $GITHUB_OUTPUT
+            echo "skipped=0" >> $GITHUB_OUTPUT
+            echo "failed_tests=Results file not found" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Post results as commit comment ──
+      - name: Post results comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const passed = '${{ steps.results.outputs.passed }}';
+            const failed = '${{ steps.results.outputs.failed }}';
+            const total = '${{ steps.results.outputs.total }}';
+            const skipped = '${{ steps.results.outputs.skipped }}';
+            const failedTests = `${{ steps.results.outputs.failed_tests }}`;
+            const outcome = '${{ steps.playwright.outcome }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const icon = outcome === 'success' ? '✅' : '❌';
+            let body = `## ${icon} Playwright E2E Test Results\n\n`;
+            body += `| Metric | Count |\n|---|---|\n`;
+            body += `| Total | ${total} |\n`;
+            body += `| Passed | ${passed} |\n`;
+            body += `| Failed | ${failed} |\n`;
+            body += `| Skipped | ${skipped} |\n\n`;
+
+            if (failed !== '0' && failedTests !== 'none') {
+              body += `### Failed Tests\n\n`;
+              for (const t of failedTests.split('\n').filter(Boolean)) {
+                body += `- ❌ ${t}\n`;
+              }
+              body += '\n';
+            }
+
+            body += `[View full report & artifacts](${runUrl})\n`;
+
+            const sha = context.sha;
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+              body,
+            });
+
+            if (context.payload.deployment?.payload?.pr_number) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.deployment.payload.pr_number,
+                body,
+              });
+            }
+
+      # ── Email notification on failure via Resend ──
+      - name: Send failure email
+        if: steps.playwright.outcome == 'failure'
+        continue-on-error: true
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          PASSED="${{ steps.results.outputs.passed }}"
+          FAILED="${{ steps.results.outputs.failed }}"
+          TOTAL="${{ steps.results.outputs.total }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Build JSON payload using jq to handle escaping
+          FROM_EMAIL="${{ secrets.RESEND_FROM_EMAIL }}"
+          FROM_EMAIL="${FROM_EMAIL:-onboarding@resend.dev}"
+
+          PAYLOAD=$(jq -n \
+            --arg from "Streetwise CI <${FROM_EMAIL}>" \
+            --arg subject "Playwright E2E tests failed on staging" \
+            --arg html "<h2>Playwright E2E tests failed</h2><p>Passed: ${PASSED} | Failed: ${FAILED} | Total: ${TOTAL}</p><p><a href='${RUN_URL}'>View full results</a></p>" \
+            '{from: $from, to: ["info@streetwiseselfdefense.com"], subject: $subject, html: $html}')
+
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "${PAYLOAD}"
+
+      # ── Fail the workflow if tests failed ──
+      - name: Check test outcome
+        if: steps.playwright.outcome == 'failure'
+        run: exit 1
