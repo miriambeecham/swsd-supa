@@ -1852,6 +1852,13 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         setContactFirst(bookerParticipant.firstName);
         setContactLast(bookerParticipant.lastName);
         setContactEmail(bookerParticipant.contactEmail || '');
+      } else {
+        // Split move — pre-fill name from the first selected participant
+        const firstSelected = bookingParticipants.find(p => selectedIds.has(p.id));
+        if (firstSelected) {
+          setContactFirst(firstSelected.firstName);
+          setContactLast(firstSelected.lastName);
+        }
       }
     }
   }, [step]);
@@ -1985,9 +1992,23 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
           {/* ── STEP 1: Who's moving? ── */}
           {step === 1 && (
             <div>
-              <p className="text-sm text-gray-600 mb-4">
-                Select the participants you want to reschedule from this booking:
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600">
+                  Select the participants you want to reschedule from this booking:
+                </p>
+                <button
+                  onClick={() => {
+                    if (selectedIds.size === bookingParticipants.length) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(bookingParticipants.map(p => p.id)));
+                    }
+                  }}
+                  className="text-xs text-accent-primary hover:text-accent-dark font-medium whitespace-nowrap ml-4"
+                >
+                  {selectedIds.size === bookingParticipants.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
               <div className="space-y-2">
                 {bookingParticipants.map(p => (
                   <label
