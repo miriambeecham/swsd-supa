@@ -73,8 +73,8 @@ export default async function handler(req, res) {
 
     if (bookingIds.length > 0) {
       const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-      // Filter for only Confirmed bookings
-      const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+      // Filter for only Confirmed bookings that are not pending reschedule
+      const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed", {Reschedule Status}!="Pending Reschedule")`;
       
       const bookingsResponse = await fetch(
         `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,

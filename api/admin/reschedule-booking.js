@@ -90,9 +90,15 @@ export default async function handler(req, res) {
         patchFields['Class Schedule'] = [newClassScheduleId];
       } else {
         patchFields['Reschedule Status'] = 'Pending Reschedule';
+        // Clear Class Schedule so the booking is no longer counted in the old class's rollup.
+        // Prepend the original schedule ID to notes so the pending page can show it.
+        const origScheduleId = currentClassSchedule[0] || '';
+        const notePrefix = origScheduleId ? `[Original Schedule: ${origScheduleId}] ` : '';
+        patchFields['Reschedule Notes'] = notePrefix + (rescheduleNotes || '');
+        patchFields['Class Schedule'] = [];
       }
 
-      if (rescheduleNotes) {
+      if (rescheduleNotes && !patchFields['Reschedule Notes']) {
         patchFields['Reschedule Notes'] = rescheduleNotes;
       }
 
@@ -147,6 +153,7 @@ export default async function handler(req, res) {
     const childFields = {
       'Booking Date': new Date().toISOString().split('T')[0],
       'Status': 'Confirmed',
+      'Payment Status': 'Prepaid',
       'Contact First Name': primaryContactFirstName,
       'Contact Last Name': primaryContactLastName,
       'Contact Email': primaryContactEmail,

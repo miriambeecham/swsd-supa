@@ -84,10 +84,41 @@ export default async function handler(req, res) {
         }
       }));
 
-      // Fetch original booking info (if this is a child booking)
+      // Fetch original class info.
+      // For split moves: Original Booking ID points to the parent booking.
+      // For whole-group moves: notes contain [Original Schedule: recXXX].
       let originalBooking = null;
       const originalBookingId = bf['Original Booking ID'];
+
+      // Helper to build originalBooking from a schedule ID
+      const buildOriginalFromSchedule = async (scheduleId) => {
+        try {
+          const schedRes = await fetch(`${BASE_URL}/Class%20Schedules/${scheduleId}`, { headers });
+          if (!schedRes.ok) return null;
+          const schedData = await schedRes.json();
+          const sf = schedData.fields;
+          let className = '';
+          const classLinkId = (sf['Class'] || [])[0];
+          if (classLinkId) {
+            const classRes = await fetch(`${BASE_URL}/Classes/${classLinkId}`, { headers });
+            if (classRes.ok) {
+              const classData = await classRes.json();
+              className = classData.fields['Class Name'] || '';
+            }
+          }
+          return {
+            bookingId: null,
+            bookingNumber: null,
+            scheduleId,
+            className,
+            classDate: sf['Date'] || '',
+            classStartTime: sf['Start Time New'] || '',
+          };
+        } catch { return null; }
+      };
+
       if (originalBookingId) {
+        // Split move — fetch the parent booking's class schedule
         try {
           const obRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, { headers });
           if (obRes.ok) {
@@ -95,41 +126,24 @@ export default async function handler(req, res) {
             const obFields = obData.fields;
             const obScheduleId = (obFields['Class Schedule'] || [])[0];
 
-            let className = '';
-            let classDate = '';
-            let classStartTime = '';
-
             if (obScheduleId) {
-              const schedRes = await fetch(`${BASE_URL}/Class%20Schedules/${obScheduleId}`, { headers });
-              if (schedRes.ok) {
-                const schedData = await schedRes.json();
-                const sf = schedData.fields;
-                classDate = sf['Date'] || '';
-                classStartTime = sf['Start Time New'] || '';
-
-                // Fetch class name from the linked Class record
-                const classLinkId = (sf['Class'] || [])[0];
-                if (classLinkId) {
-                  const classRes = await fetch(`${BASE_URL}/Classes/${classLinkId}`, { headers });
-                  if (classRes.ok) {
-                    const classData = await classRes.json();
-                    className = classData.fields['Class Name'] || '';
-                  }
-                }
+              const info = await buildOriginalFromSchedule(obScheduleId);
+              if (info) {
+                info.bookingId = originalBookingId;
+                info.bookingNumber = obFields['Booking ID'] || null;
+                originalBooking = info;
               }
             }
-
-            originalBooking = {
-              bookingId: originalBookingId,
-              bookingNumber: obFields['Booking ID'] || null,
-              scheduleId: obScheduleId || null,
-              className,
-              classDate,
-              classStartTime,
-            };
           }
         } catch (err) {
           console.error(`Failed to fetch original booking ${originalBookingId}:`, err);
+        }
+      } else {
+        // Whole-group move — check notes for [Original Schedule: recXXX]
+        const notes = bf['Reschedule Notes'] || '';
+        const schedMatch = notes.match(/\[Original Schedule: (rec[^\]]+)\]/);
+        if (schedMatch) {
+          originalBooking = await buildOriginalFromSchedule(schedMatch[1]);
         }
       }
 

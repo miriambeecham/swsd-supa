@@ -97,7 +97,7 @@ Bookings,Contact Is Participant,Checkbox,,,,true
 Bookings,Number of Participants,Number (integer),,,,false
 Bookings,Total Amount,Number (currency),,,,false
 Bookings,Stripe Payment Intent ID,Single line text,,,,false
-Bookings,Payment Status,Single select,"Pending, Completed, Refunded, Failed, Expired",,,false
+Bookings,Payment Status,Single select,"Pending, Completed, Prepaid, Refunded, Failed, Expired",,,false
 Bookings,Payment Date,Date,,,,false
 Bookings,Age Validation Status,Single select,"Valid, Needs Review",,,true
 Bookings,Validation Notes,Long text,,,,true
