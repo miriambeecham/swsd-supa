@@ -50,6 +50,8 @@ export default async function handler(req, res) {
     primaryContactEmail,
     primaryContactFirstName,
     primaryContactLastName,
+    primaryContactPhone,
+    smsConsent,
     newClassScheduleId,
     rescheduleNotes,
   } = req.body || {};
@@ -106,6 +108,8 @@ export default async function handler(req, res) {
       patchFields['Contact First Name'] = primaryContactFirstName;
       patchFields['Contact Last Name'] = primaryContactLastName;
       patchFields['Contact Email'] = primaryContactEmail;
+      if (primaryContactPhone) patchFields['Contact Phone'] = primaryContactPhone;
+      if (smsConsent) patchFields['SMS Consent Date'] = new Date().toISOString();
 
       const patchRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, {
         method: 'PATCH',
@@ -157,6 +161,8 @@ export default async function handler(req, res) {
       'Contact First Name': primaryContactFirstName,
       'Contact Last Name': primaryContactLastName,
       'Contact Email': primaryContactEmail,
+      'Contact Phone': primaryContactPhone || '',
+      ...(smsConsent ? { 'SMS Consent Date': new Date().toISOString() } : {}),
       'Number of Participants': movingParticipantIds.length,
       'Participants': movingParticipantIds,
       'Original Booking ID': originalBookingId,

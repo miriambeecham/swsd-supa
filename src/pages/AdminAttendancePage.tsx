@@ -1822,6 +1822,9 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   const [contactFirst, setContactFirst] = useState('');
   const [contactLast, setContactLast] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [prefilledPhone, setPrefilledPhone] = useState('');
+  const [smsConsent, setSmsConsent] = useState(false);
   const [contactError, setContactError] = useState('');
 
   // Step 3: class selection
@@ -1852,6 +1855,9 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         setContactFirst(bookerParticipant.firstName);
         setContactLast(bookerParticipant.lastName);
         setContactEmail(bookerParticipant.contactEmail || '');
+        const phone = bookerParticipant.contactPhone || '';
+        setContactPhone(phone);
+        setPrefilledPhone(phone);
       } else {
         // Split move — pre-fill name from the first selected participant
         const firstSelected = bookingParticipants.find(p => selectedIds.has(p.id));
@@ -1949,6 +1955,8 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
           primaryContactEmail: contactEmail.trim(),
           primaryContactFirstName: contactFirst.trim(),
           primaryContactLastName: contactLast.trim(),
+          primaryContactPhone: contactPhone.trim(),
+          smsConsent: smsConsent,
           newClassScheduleId: isPending ? null : selectedScheduleId,
           rescheduleNotes: rescheduleNotes.trim(),
         }),
@@ -2096,6 +2104,33 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={e => { setContactPhone(e.target.value); if (e.target.value === prefilledPhone) setSmsConsent(false); }}
+                    placeholder="(925) 555-0123"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                {contactPhone && contactPhone !== prefilledPhone && (
+                  <div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={smsConsent}
+                        onChange={e => setSmsConsent(e.target.checked)}
+                        className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Contact has consented to receive text message reminders
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               {contactError && (

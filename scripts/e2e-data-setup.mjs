@@ -155,12 +155,20 @@ async function ensureTestSchedules() {
 
   const results = {};
 
+  // Fetch ALL future non-cancelled schedules once (avoid per-class queries)
+  const todayStr = now.toISOString().split('T')[0];
+  const allFutureSchedules = await airtableList(
+    'Class Schedules',
+    `AND(IS_AFTER({Date}, '${todayStr}'), NOT({Is Cancelled}))`
+  );
+  console.log(`  Found ${allFutureSchedules.length} total future schedules in database`);
+
   for (const [type, classId] of Object.entries(CLASS_IDS)) {
-    // Check for existing future non-cancelled schedule for this class
-    const existing = await airtableList(
-      'Class Schedules',
-      `AND({Class}='${classId}', IS_AFTER({Date}, '${now.toISOString().split('T')[0]}'), NOT({Is Cancelled}))`
-    );
+    // Find any future schedule linked to this specific class
+    const existing = allFutureSchedules.filter(s => {
+      const linkedClass = (s.fields.Class || [])[0];
+      return linkedClass === classId;
+    });
 
     let scheduleId, scheduleDate, scheduleStart, scheduleEnd;
 
@@ -180,8 +188,18 @@ async function ensureTestSchedules() {
       scheduleDate = schedule.fields.Date;
       scheduleStart = schedule.fields['Start Time New'];
       scheduleEnd = schedule.fields['End Time New'];
+    } else if (allFutureSchedules.length > 0) {
+      // No schedule for this specific class, but other future schedules exist.
+      // Reuse the first available future schedule rather than creating a new one.
+      const fallback = allFutureSchedules[0];
+      console.log(`  ${type}: No schedule for class ${classId}, reusing ${fallback.id} (date: ${fallback.fields.Date})`);
+      scheduleId = fallback.id;
+      scheduleDate = fallback.fields.Date;
+      scheduleStart = fallback.fields['Start Time New'];
+      scheduleEnd = fallback.fields['End Time New'];
     } else {
-      console.log(`  ${type}: No future schedule found — creating one for ${dateStr}`);
+      // No future schedules at all — create one
+      console.log(`  ${type}: No future schedules exist — creating one for ${dateStr}`);
       const created = await airtableCreate('Class Schedules', {
         Class: [classId],
         Date: dateStr,
@@ -191,6 +209,7 @@ async function ensureTestSchedules() {
         'Special Notes': 'E2E_TEST_SCHEDULE — auto-created for Playwright tests',
       });
       console.log(`  ${type}: Created schedule ${created.id}`);
+      allFutureSchedules.push(created); // Add to pool so next type can reuse
       scheduleId = created.id;
       scheduleDate = dateStr;
       scheduleStart = startTime;
