@@ -127,7 +127,7 @@ export default async function handler(req, res) {
 
     // Patch the original booking: preserve count, update participants
     const originalPatchFields = {
-      'Original Participant Count': currentParticipantCount,
+      'Original Participant Count': allParticipantIds.length,
       'Participants': stayingParticipantIds,
       'Number of Participants': stayingParticipantIds.length,
     };
