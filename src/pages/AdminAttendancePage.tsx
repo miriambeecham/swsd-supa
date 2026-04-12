@@ -5,13 +5,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import TeachingAssistantsTab from '../components/admin/TeachingAssistantsTab';
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  ChevronLeft,
+  ChevronRight,
   Download,
   LogOut,
   Save,
@@ -27,7 +27,9 @@ import {
   ChevronDown,
   ChevronUp,
   GraduationCap,
-  X
+  X,
+  ArrowRightLeft,
+  Loader2,
 } from 'lucide-react';
 
 // ============================================
@@ -282,15 +284,17 @@ interface RosterTabProps {
   copiedField: string | null;
   onCopy: (text: string, fieldId: string) => void;
   onParticipantConvertedToTA?: () => void;
+  onReschedule?: (participantId: string, bookingId: string) => void;
 }
 
-const RosterTab: React.FC<RosterTabProps> = ({ 
-  roster, 
-  attendanceState, 
+const RosterTab: React.FC<RosterTabProps> = ({
+  roster,
+  attendanceState,
   onAttendanceChange,
   copiedField,
   onCopy,
-  onParticipantConvertedToTA
+  onParticipantConvertedToTA,
+  onReschedule,
 }) => {
   const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
   const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; personName?: string }>>({});
@@ -407,6 +411,9 @@ const RosterTab: React.FC<RosterTabProps> = ({
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                 TA
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                Actions
               </th>
             </tr>
           </thead>
@@ -571,6 +578,18 @@ const RosterTab: React.FC<RosterTabProps> = ({
                         )}
                       </button>
                     )}
+                  </td>
+
+                  {/* Actions column */}
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => onReschedule?.(participant.id, participant.bookingId)}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-accent-primary text-accent-primary rounded hover:bg-accent-primary hover:text-white transition-colors"
+                      title="Reschedule participant"
+                    >
+                      <ArrowRightLeft className="w-3 h-3" />
+                      Reschedule
+                    </button>
                   </td>
                 </tr>
               );
@@ -1248,6 +1267,9 @@ const AdminAttendancePage = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<'roster' | 'communications' | 'surveys' | 'assistants'>('roster');
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [rescheduleTriggerId, setRescheduleTriggerId] = useState('');
+  const [rescheduleTriggerBookingId, setRescheduleTriggerBookingId] = useState('');
 
   // Check authentication
   useEffect(() => {
@@ -1352,28 +1374,29 @@ const AdminAttendancePage = () => {
     fetchClasses();
   }, [searchParams]);
  
+  const refreshRoster = async () => {
+    if (!currentClassId) return;
+    try {
+      const response = await fetch(`/api/admin/class-roster?classScheduleId=${currentClassId}`);
+      if (!response.ok) throw new Error('Failed to fetch roster');
+
+      const data = await response.json();
+      setRosterData(data);
+
+      const initialState: Record<string, string> = {};
+      data.roster.forEach((participant: Participant) => {
+        initialState[participant.id] = participant.attendance;
+      });
+      setAttendanceState(initialState);
+      setInitialAttendanceState(initialState);
+    } catch (error) {
+      console.error('Error fetching roster:', error);
+    }
+  };
+
   // Fetch roster when class changes
   useEffect(() => {
-    if (!currentClassId) return;
-    const fetchRoster = async () => {
-      try {
-        const response = await fetch(`/api/admin/class-roster?classScheduleId=${currentClassId}`);
-        if (!response.ok) throw new Error('Failed to fetch roster');
-        
-        const data = await response.json();
-        setRosterData(data);
-        
-        const initialState: Record<string, string> = {};
-        data.roster.forEach((participant: Participant) => {
-          initialState[participant.id] = participant.attendance;
-        });
-        setAttendanceState(initialState);
-        setInitialAttendanceState(initialState);
-      } catch (error) {
-        console.error('Error fetching roster:', error);
-      }
-    };
-    fetchRoster();
+    refreshRoster();
   }, [currentClassId]);
 
   const handleLogout = async () => {
@@ -1520,6 +1543,13 @@ const AdminAttendancePage = () => {
               >
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Manage Schedules</span>
+              </button>
+              <button
+                onClick={() => navigate('/admin/pending-reschedules')}
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Pending Reschedules</span>
               </button>
               <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
                 <LogOut className="w-5 h-5" />
@@ -1700,13 +1730,17 @@ const AdminAttendancePage = () => {
 
             {/* Tab Content */}
           {activeTab === 'roster' && (
-  <RosterTab 
+  <RosterTab
     roster={rosterData.roster}
     attendanceState={attendanceState}
     onAttendanceChange={handleAttendanceChange}
     copiedField={copiedField}
     onCopy={copyToClipboard}
-    classScheduleId={currentClassId}
+    onReschedule={(participantId, bookingId) => {
+      setRescheduleTriggerId(participantId);
+      setRescheduleTriggerBookingId(bookingId);
+      setIsRescheduleModalOpen(true);
+    }}
   />
 )}
             {activeTab === 'communications' && (
@@ -1729,6 +1763,468 @@ const AdminAttendancePage = () => {
               />
             )}
           </>
+        )}
+      </div>
+
+      {/* Reschedule Modal */}
+      {isRescheduleModalOpen && rosterData && (
+        <RescheduleModal
+          triggerParticipantId={rescheduleTriggerId}
+          triggerBookingId={rescheduleTriggerBookingId}
+          allRosterParticipants={rosterData.roster}
+          onClose={() => setIsRescheduleModalOpen(false)}
+          onSuccess={() => {
+            setIsRescheduleModalOpen(false);
+            refreshRoster();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// RESCHEDULE MODAL COMPONENT
+// ============================================
+
+interface UpcomingSchedule {
+  id: string;
+  className: string;
+  date: string;
+  startTime: string;
+  availableSpots: number;
+}
+
+interface RescheduleModalProps {
+  triggerParticipantId: string;
+  triggerBookingId: string;
+  allRosterParticipants: Participant[];
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const RescheduleModal: React.FC<RescheduleModalProps> = ({
+  triggerParticipantId,
+  triggerBookingId,
+  allRosterParticipants,
+  onClose,
+  onSuccess,
+}) => {
+  // Step state
+  const [step, setStep] = useState(1);
+
+  // Step 1: participant selection
+  const bookingParticipants = allRosterParticipants.filter(p => p.bookingId === triggerBookingId);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set([triggerParticipantId]));
+
+  // Step 2: contact info
+  const bookerParticipant = bookingParticipants.find(p => p.isPrimaryContact);
+  const [contactFirst, setContactFirst] = useState('');
+  const [contactLast, setContactLast] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactError, setContactError] = useState('');
+
+  // Step 3: class selection
+  const [upcomingSchedules, setUpcomingSchedules] = useState<UpcomingSchedule[]>([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [rescheduleNotes, setRescheduleNotes] = useState('');
+
+  // Submission
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Skip step 1 if only one participant in the booking
+  useEffect(() => {
+    if (bookingParticipants.length === 1) {
+      setSelectedIds(new Set([bookingParticipants[0].id]));
+      setStep(2);
+    }
+  }, []);
+
+  // Pre-fill contact info when entering step 2
+  useEffect(() => {
+    if (step === 2) {
+      const isWholeGroup = selectedIds.size === bookingParticipants.length;
+      if (isWholeGroup && bookerParticipant) {
+        setContactFirst(bookerParticipant.firstName);
+        setContactLast(bookerParticipant.lastName);
+        setContactEmail(bookerParticipant.contactEmail || '');
+      }
+    }
+  }, [step]);
+
+  // Fetch upcoming schedules when entering step 3
+  useEffect(() => {
+    if (step === 3) {
+      fetchUpcomingSchedules();
+    }
+  }, [step]);
+
+  const fetchUpcomingSchedules = async () => {
+    setLoadingSchedules(true);
+    try {
+      const [schedulesRes, classesRes] = await Promise.all([
+        fetch('/api/schedules'),
+        fetch('/api/classes'),
+      ]);
+      if (!schedulesRes.ok || !classesRes.ok) throw new Error('Failed to fetch');
+
+      const schedulesData = await schedulesRes.json();
+      const classesData = await classesRes.json();
+
+      const today = new Date().toISOString().split('T')[0];
+
+      const upcoming = schedulesData.records
+        .filter((s: any) => {
+          if (s.fields['Is Cancelled']) return false;
+          if (!s.fields.Date || s.fields.Date < today) return false;
+          const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
+          return remaining > 0;
+        })
+        .map((s: any) => {
+          const classId = s.fields.Class?.[0];
+          const classRecord = classesData.records.find((c: any) => c.id === classId);
+          const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
+          return {
+            id: s.id,
+            className: classRecord?.fields['Class Name'] || 'Unknown Class',
+            date: s.fields.Date,
+            startTime: s.fields['Start Time New'] || s.fields['Start Time'] || '',
+            availableSpots: remaining,
+          };
+        })
+        .sort((a: UpcomingSchedule, b: UpcomingSchedule) => a.date.localeCompare(b.date));
+
+      setUpcomingSchedules(upcoming);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+    } finally {
+      setLoadingSchedules(false);
+    }
+  };
+
+  const toggleParticipant = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleStep2Next = () => {
+    setContactError('');
+    if (!contactFirst.trim() || !contactLast.trim() || !contactEmail.trim()) {
+      setContactError('All contact fields are required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      setContactError('Please enter a valid email address.');
+      return;
+    }
+    setStep(3);
+  };
+
+  const handleConfirm = async () => {
+    setSubmitError('');
+    setSubmitting(true);
+
+    try {
+      const response = await fetch('/api/admin/reschedule-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalBookingId: triggerBookingId,
+          movingParticipantIds: Array.from(selectedIds),
+          primaryContactEmail: contactEmail.trim(),
+          primaryContactFirstName: contactFirst.trim(),
+          primaryContactLastName: contactLast.trim(),
+          newClassScheduleId: isPending ? null : selectedScheduleId,
+          rescheduleNotes: rescheduleNotes.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Reschedule failed');
+      }
+
+      setSubmitSuccess(true);
+      setTimeout(() => onSuccess(), 1500);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Reschedule failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isWholeGroup = selectedIds.size === bookingParticipants.length;
+  const bookerName = bookerParticipant
+    ? `${bookerParticipant.firstName} ${bookerParticipant.lastName}`
+    : 'the original booker';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-bold text-navy">
+            {step === 1 && 'Reschedule Participants'}
+            {step === 2 && 'Primary Contact'}
+            {step === 3 && 'Assign to Class'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4">
+          {/* ── STEP 1: Who's moving? ── */}
+          {step === 1 && (
+            <div>
+              <p className="text-sm text-gray-600 mb-4">
+                Select the participants you want to reschedule from this booking:
+              </p>
+              <div className="space-y-2">
+                {bookingParticipants.map(p => (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleParticipant(p.id)}
+                      className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-900">
+                        {p.firstName} {p.lastName}
+                      </span>
+                      {p.ageGroup && (
+                        <span className="ml-2 text-xs text-gray-500">({p.ageGroup})</span>
+                      )}
+                      {p.isPrimaryContact && (
+                        <span className="ml-2 px-2 py-0.5 bg-accent-light text-accent-primary text-xs font-medium rounded">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 2: Primary contact ── */}
+          {step === 2 && (
+            <div>
+              <p className="text-sm text-gray-600 mb-2">
+                Selected participants ({selectedIds.size}):
+              </p>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {bookingParticipants
+                  .filter(p => selectedIds.has(p.id))
+                  .map(p => (
+                    <span key={p.id} className="px-2 py-1 bg-gray-100 text-sm text-gray-700 rounded">
+                      {p.firstName} {p.lastName}
+                    </span>
+                  ))}
+              </div>
+
+              {!isWholeGroup && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                  Since {bookerName} is staying in the original class, we need a contact for the participants being moved.
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={contactFirst}
+                    onChange={e => setContactFirst(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={contactLast}
+                    onChange={e => setContactLast(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={e => setContactEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+              </div>
+
+              {contactError && (
+                <div className="mt-3 text-sm text-red-600">{contactError}</div>
+              )}
+            </div>
+          )}
+
+          {/* ── STEP 3: Where are they going? ── */}
+          {step === 3 && (
+            <div>
+              {submitSuccess ? (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 px-4 py-3 rounded-lg">
+                  <CheckCircle className="w-5 h-5" />
+                  Reschedule completed successfully!
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <label className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                      <input
+                        type="radio"
+                        name="reschedule-destination"
+                        checked={isPending}
+                        onChange={() => { setIsPending(true); setSelectedScheduleId(null); }}
+                        className="w-4 h-4 text-accent-primary border-gray-300 focus:ring-accent-primary"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">
+                          Mark as Pending Reschedule (decide later)
+                        </span>
+                        <p className="text-xs text-gray-500">
+                          Communications will be paused until a class is assigned
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="reschedule-destination"
+                        checked={!isPending}
+                        onChange={() => setIsPending(false)}
+                        className="w-4 h-4 text-accent-primary border-gray-300 focus:ring-accent-primary"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        Assign to a specific class
+                      </span>
+                    </label>
+                  </div>
+
+                  {!isPending && (
+                    <div className="mb-4">
+                      {loadingSchedules ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                        </div>
+                      ) : upcomingSchedules.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-4 text-center">
+                          No upcoming classes with available spots found.
+                        </p>
+                      ) : (
+                        <select
+                          value={selectedScheduleId || ''}
+                          onChange={e => setSelectedScheduleId(e.target.value || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                        >
+                          <option value="">Select a class...</option>
+                          {upcomingSchedules.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reschedule Notes (optional)
+                    </label>
+                    <textarea
+                      value={rescheduleNotes}
+                      onChange={e => setRescheduleNotes(e.target.value)}
+                      rows={2}
+                      placeholder="Reason for reschedule..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                    />
+                  </div>
+
+                  {submitError && (
+                    <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
+                      {submitError}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {!submitSuccess && (
+          <div className="flex justify-between px-6 py-4 border-t border-gray-200">
+            <div>
+              {step === 1 && (
+                <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
+                  Cancel
+                </button>
+              )}
+              {step > 1 && (
+                <button
+                  onClick={() => setStep(step - 1)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Back
+                </button>
+              )}
+            </div>
+            <div>
+              {step === 1 && (
+                <button
+                  onClick={() => setStep(2)}
+                  disabled={selectedIds.size === 0}
+                  className="px-4 py-2 text-sm bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              )}
+              {step === 2 && (
+                <button
+                  onClick={handleStep2Next}
+                  className="px-4 py-2 text-sm bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors"
+                >
+                  Next
+                </button>
+              )}
+              {step === 3 && (
+                <button
+                  onClick={handleConfirm}
+                  disabled={submitting || (!isPending && !selectedScheduleId)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {submitting ? 'Processing...' : 'Confirm Reschedule'}
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -114,6 +114,11 @@ Bookings,Participants JSON,Long text,,,,true
 Bookings,Hold Expires At,Date,,,,true
 Bookings,Class (from Class Schedule),Linked record (lookup),,Lookup to Classes (ID) via Class Schedules,,false
 Bookings,Zoho Synced,Checkbox,,,,true
+Bookings,Original Participant Count,Number (integer),,,,true
+Bookings,Offshoot Booking IDs,Long text,,,,true
+Bookings,Original Booking ID,Single line text,,,,true
+Bookings,Reschedule Status,Single select,"Pending Reschedule",,,true
+Bookings,Reschedule Notes,Long text,,,,true
 Participants,Participant ID,Autonumber,,,,false
 Participants,Booking,Linked record,,Links to Bookings (Booking ID),,false
 Participants,First Name,Single line text,,,,false

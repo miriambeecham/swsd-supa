@@ -169,7 +169,7 @@ export default async function handler(req, res) {
           console.log(`[REMINDER-CRON] No bookings for schedule ${schedule.id}`);
         } else {
           const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed")`;
+          const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed", {Reschedule Status}!="Pending Reschedule")`;
           
           const bookingsResponse = await fetch(
             `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
