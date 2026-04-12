@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         fields: {
           'Class Schedule': [newClassScheduleId],
-          'Reschedule Status': '',
+          'Reschedule Status': null,
         },
       }),
     });
