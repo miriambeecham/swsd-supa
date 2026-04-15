@@ -52,6 +52,10 @@ export default async function handler(req, res) {
     primaryContactLastName,
     primaryContactPhone,
     smsConsent,
+    stayerContactFirstName,
+    stayerContactLastName,
+    stayerContactEmail,
+    stayerContactPhone,
     newClassScheduleId,
     rescheduleNotes,
   } = req.body || {};
@@ -199,15 +203,24 @@ export default async function handler(req, res) {
       ? `${existingOffshoots},${childBookingId}`
       : childBookingId;
 
+    // Update original booking: offshoot IDs + stayer contact info if booker is moving
+    const offshootPatchFields = { 'Offshoot Booking IDs': updatedOffshoots };
+    if (stayerContactEmail) {
+      offshootPatchFields['Contact First Name'] = stayerContactFirstName || '';
+      offshootPatchFields['Contact Last Name'] = stayerContactLastName || '';
+      offshootPatchFields['Contact Email'] = stayerContactEmail;
+      if (stayerContactPhone) offshootPatchFields['Contact Phone'] = stayerContactPhone;
+    }
+
     const offshootPatchRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ fields: { 'Offshoot Booking IDs': updatedOffshoots } }),
+      body: JSON.stringify({ fields: offshootPatchFields }),
     });
 
     if (!offshootPatchRes.ok) {
       const err = await offshootPatchRes.text();
-      console.error(`Warning: Failed to update Offshoot Booking IDs on original: ${err}`);
+      console.error(`Warning: Failed to update original booking: ${err}`);
       // Non-fatal — continue
     }
 

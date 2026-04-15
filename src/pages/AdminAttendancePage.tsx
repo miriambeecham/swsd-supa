@@ -1827,13 +1827,19 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   const bookingParticipants = allRosterParticipants.filter(p => p.bookingId === triggerBookingId);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set([triggerParticipantId]));
 
-  // Step 2: contact info
+  // Step 2: contact info for the movers (child booking)
   const bookerParticipant = bookingParticipants.find(p => p.isPrimaryContact);
   const [contactFirst, setContactFirst] = useState('');
   const [contactLast, setContactLast] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [prefilledPhone, setPrefilledPhone] = useState('');
+
+  // Step 2: contact info for the stayers (original booking) — only needed when booker is moving in a split
+  const [stayerFirst, setStayerFirst] = useState('');
+  const [stayerLast, setStayerLast] = useState('');
+  const [stayerEmail, setStayerEmail] = useState('');
+  const [stayerPhone, setStayerPhone] = useState('');
   const [smsConsent, setSmsConsent] = useState(false);
   const [contactError, setContactError] = useState('');
 
@@ -1860,6 +1866,8 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   // Pre-fill contact info when entering step 2
   const bookerIsMoving = bookerParticipant ? selectedIds.has(bookerParticipant.id) : false;
 
+  const needsStayerContact = !isWholeGroup && bookerIsMoving;
+
   useEffect(() => {
     if (step === 2) {
       if (bookerIsMoving && bookerParticipant) {
@@ -1870,6 +1878,13 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         const phone = bookerParticipant.contactPhone || '';
         setContactPhone(phone);
         setPrefilledPhone(phone);
+
+        // Pre-fill stayer contact from the first staying participant
+        const firstStayer = bookingParticipants.find(p => !selectedIds.has(p.id));
+        if (firstStayer) {
+          setStayerFirst(firstStayer.firstName);
+          setStayerLast(firstStayer.lastName);
+        }
       } else {
         // Booker is staying — pre-fill name from the first selected participant
         const firstSelected = bookingParticipants.find(p => selectedIds.has(p.id));
@@ -1957,6 +1972,16 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
       setContactError('Please enter a valid email address.');
       return;
     }
+    if (needsStayerContact) {
+      if (!stayerFirst.trim() || !stayerLast.trim() || !stayerEmail.trim()) {
+        setContactError('Contact info for the participants staying in the original class is also required.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stayerEmail)) {
+        setContactError('Please enter a valid email for the staying participant contact.');
+        return;
+      }
+    }
     setStep(3);
   };
 
@@ -1976,6 +2001,12 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
           primaryContactLastName: contactLast.trim(),
           primaryContactPhone: contactPhone.trim(),
           smsConsent: smsConsent,
+          ...(needsStayerContact ? {
+            stayerContactFirstName: stayerFirst.trim(),
+            stayerContactLastName: stayerLast.trim(),
+            stayerContactEmail: stayerEmail.trim(),
+            stayerContactPhone: stayerPhone.trim(),
+          } : {}),
           newClassScheduleId: isPending ? null : selectedScheduleId,
           rescheduleNotes: rescheduleNotes.trim(),
         }),
@@ -2089,6 +2120,16 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                 </div>
               )}
 
+              {needsStayerContact && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                  Since {bookerName} is moving to a new class, we need a new contact for the participants staying in the original class.
+                </div>
+              )}
+
+              {needsStayerContact && (
+                <p className="text-sm font-semibold text-navy mb-2">Contact for movers</p>
+              )}
+
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2151,6 +2192,59 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {needsStayerContact && (
+                <>
+                  <p className="text-sm font-semibold text-navy mt-6 mb-2">Contact for participants staying in original class</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        First Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={stayerFirst}
+                        onChange={e => setStayerFirst(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={stayerLast}
+                        onChange={e => setStayerLast(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={stayerEmail}
+                        onChange={e => setStayerEmail(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={stayerPhone}
+                        onChange={e => setStayerPhone(e.target.value)}
+                        placeholder="(925) 555-0123"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {contactError && (
                 <div className="mt-3 text-sm text-red-600">{contactError}</div>
