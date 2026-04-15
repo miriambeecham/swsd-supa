@@ -301,6 +301,20 @@ const RosterTab: React.FC<RosterTabProps> = ({
   const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
   const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; personName?: string }>>({});
   const [conversionMessage, setConversionMessage] = useState<{ participantId: string; message: string; type: 'success' | 'error' } | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 10);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [roster]);
 
   // Check TA status for all participants on mount
   useEffect(() => {
@@ -394,8 +408,12 @@ const RosterTab: React.FC<RosterTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="overflow-x-auto max-h-[600px] overflow-y-auto"
+      >
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
@@ -599,6 +617,18 @@ const RosterTab: React.FC<RosterTabProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Scroll indicator */}
+      {canScrollDown && roster.length > 0 && (
+        <>
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none z-[5]" />
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center z-[6] pointer-events-none">
+            <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
+              ↓ Scroll for more
+            </span>
+          </div>
+        </>
+      )}
 
       {roster.length === 0 && (
         <div className="text-center py-12 text-gray-500">
