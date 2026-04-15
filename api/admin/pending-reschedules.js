@@ -110,6 +110,7 @@ export default async function handler(req, res) {
             bookingId: null,
             bookingNumber: null,
             scheduleId,
+            classId: classLinkId || null,
             className,
             classDate: sf['Date'] || '',
             classStartTime: sf['Start Time New'] || '',

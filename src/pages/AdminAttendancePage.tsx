@@ -38,6 +38,7 @@ import {
 
 interface ClassSchedule {
   id: string;
+  classId: string;
   className: string;
   date: string;
   startTime: string;
@@ -1342,6 +1343,7 @@ const AdminAttendancePage = () => {
             const classRecord = classesData.records.find((c: any) => c.id === classId);
             return {
               id: schedule.id,
+              classId: classId || '',
               className: classRecord?.fields['Class Name'] || 'Unknown Class',
               date: schedule.fields.Date,
               startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
@@ -1542,15 +1544,17 @@ const AdminAttendancePage = () => {
                 className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
               >
                 <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Manage Schedules</span>
+                <span className="hidden sm:inline">Add/Edit Classes</span>
               </button>
-              <button
-                onClick={() => navigate('/admin/pending-reschedules')}
+              <a
+                href="/admin/pending-reschedules"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
               >
                 <ArrowRightLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Pending Reschedules</span>
-              </button>
+              </a>
               <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
                 <LogOut className="w-5 h-5" />
                 <span className="hidden sm:inline">Logout</span>
@@ -1772,6 +1776,7 @@ const AdminAttendancePage = () => {
           triggerParticipantId={rescheduleTriggerId}
           triggerBookingId={rescheduleTriggerBookingId}
           allRosterParticipants={rosterData.roster}
+          originalClassId={allClasses.find(c => c.id === currentClassId)?.classId || ''}
           onClose={() => setIsRescheduleModalOpen(false)}
           onSuccess={() => {
             setIsRescheduleModalOpen(false);
@@ -1789,6 +1794,7 @@ const AdminAttendancePage = () => {
 
 interface UpcomingSchedule {
   id: string;
+  classId: string;
   className: string;
   date: string;
   startTime: string;
@@ -1799,6 +1805,7 @@ interface RescheduleModalProps {
   triggerParticipantId: string;
   triggerBookingId: string;
   allRosterParticipants: Participant[];
+  originalClassId: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -1807,6 +1814,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   triggerParticipantId,
   triggerBookingId,
   allRosterParticipants,
+  originalClassId,
   onClose,
   onSuccess,
 }) => {
@@ -1903,13 +1911,20 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
           const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
           return {
             id: s.id,
+            classId: classId || '',
             className: classRecord?.fields['Class Name'] || 'Unknown Class',
             date: s.fields.Date,
             startTime: s.fields['Start Time New'] || s.fields['Start Time'] || '',
             availableSpots: remaining,
           };
         })
-        .sort((a: UpcomingSchedule, b: UpcomingSchedule) => a.date.localeCompare(b.date));
+        .sort((a: UpcomingSchedule, b: UpcomingSchedule) => {
+          // Same class type first, then by date
+          const aMatch = a.classId === originalClassId ? 0 : 1;
+          const bMatch = b.classId === originalClassId ? 0 : 1;
+          if (aMatch !== bMatch) return aMatch - bMatch;
+          return a.date.localeCompare(b.date);
+        });
 
       setUpcomingSchedules(upcoming);
     } catch (error) {
@@ -2195,15 +2210,47 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                       ) : (
                         <select
                           value={selectedScheduleId || ''}
-                          onChange={e => setSelectedScheduleId(e.target.value || null)}
+                          onChange={e => {
+                            const val = e.target.value || null;
+                            if (val) {
+                              const selected = upcomingSchedules.find(s => s.id === val);
+                              if (selected && selected.classId !== originalClassId) {
+                                if (!window.confirm(`"${selected.className}" is a different class type than the original. Are you sure you want to reschedule to this class?`)) {
+                                  return;
+                                }
+                              }
+                            }
+                            setSelectedScheduleId(val);
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                         >
                           <option value="">Select a class...</option>
-                          {upcomingSchedules.map(s => (
-                            <option key={s.id} value={s.id}>
-                              {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
-                            </option>
-                          ))}
+                          {(() => {
+                            const matching = upcomingSchedules.filter(s => s.classId === originalClassId);
+                            const other = upcomingSchedules.filter(s => s.classId !== originalClassId);
+                            return (
+                              <>
+                                {matching.length > 0 && (
+                                  <optgroup label="Same class type">
+                                    {matching.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {other.length > 0 && (
+                                  <optgroup label="Other classes">
+                                    {other.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                              </>
+                            );
+                          })()}
                         </select>
                       )}
                     </div>

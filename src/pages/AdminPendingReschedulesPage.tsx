@@ -26,6 +26,7 @@ interface OriginalBookingInfo {
   bookingId: string;
   bookingNumber: number | null;
   scheduleId: string | null;
+  classId: string | null;
   className: string;
   classDate: string;
   classStartTime: string;
@@ -46,6 +47,7 @@ interface PendingReschedule {
 
 interface UpcomingSchedule {
   id: string;
+  classId: string;
   className: string;
   date: string;
   startTime: string;
@@ -148,6 +150,7 @@ const AdminPendingReschedulesPage = () => {
           const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
           return {
             id: s.id,
+            classId: classId || '',
             className: classRecord?.fields['Class Name'] || 'Unknown Class',
             date: s.fields.Date,
             startTime: s.fields['Start Time New'] || '',
@@ -164,12 +167,15 @@ const AdminPendingReschedulesPage = () => {
     }
   };
 
-  const handleExpandAssign = (bookingId: string) => {
+  const [expandedOriginalClassId, setExpandedOriginalClassId] = useState<string>('');
+
+  const handleExpandAssign = (bookingId: string, originalClassId: string) => {
     if (expandedBookingId === bookingId) {
       setExpandedBookingId(null);
       return;
     }
     setExpandedBookingId(bookingId);
+    setExpandedOriginalClassId(originalClassId);
     setSelectedScheduleId(null);
     setAssignError('');
     fetchUpcomingSchedules();
@@ -356,7 +362,7 @@ const AdminPendingReschedulesPage = () => {
                   {/* Actions */}
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => handleExpandAssign(item.bookingId)}
+                      onClick={() => handleExpandAssign(item.bookingId, item.originalBooking?.classId || '')}
                       className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
                     >
                       <Calendar className="w-4 h-4" />
@@ -389,15 +395,47 @@ const AdminPendingReschedulesPage = () => {
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <select
                           value={selectedScheduleId || ''}
-                          onChange={e => setSelectedScheduleId(e.target.value || null)}
+                          onChange={e => {
+                            const val = e.target.value || null;
+                            if (val && expandedOriginalClassId) {
+                              const selected = upcomingSchedules.find(s => s.id === val);
+                              if (selected && selected.classId !== expandedOriginalClassId) {
+                                if (!window.confirm(`"${selected.className}" is a different class type than the original. Are you sure you want to assign to this class?`)) {
+                                  return;
+                                }
+                              }
+                            }
+                            setSelectedScheduleId(val);
+                          }}
                           className="flex-1 w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm"
                         >
                           <option value="">Select a class...</option>
-                          {upcomingSchedules.map(s => (
-                            <option key={s.id} value={s.id}>
-                              {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
-                            </option>
-                          ))}
+                          {(() => {
+                            const matching = upcomingSchedules.filter(s => s.classId === expandedOriginalClassId);
+                            const other = upcomingSchedules.filter(s => s.classId !== expandedOriginalClassId);
+                            return (
+                              <>
+                                {matching.length > 0 && (
+                                  <optgroup label="Same class type">
+                                    {matching.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {other.length > 0 && (
+                                  <optgroup label="Other classes">
+                                    {other.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                              </>
+                            );
+                          })()}
                         </select>
 
                         <button
