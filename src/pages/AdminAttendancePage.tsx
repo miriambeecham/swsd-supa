@@ -1445,13 +1445,6 @@ const AdminAttendancePage = () => {
         attendance: attendance === 'Not Recorded' ? 'Present' : attendance
       }));
 
-      const updatedState = { ...attendanceState };
-      Object.keys(updatedState).forEach(id => {
-        if (updatedState[id] === 'Not Recorded') updatedState[id] = 'Present';
-      });
-      setAttendanceState(updatedState);
-      setInitialAttendanceState(updatedState);
-
       const response = await fetch('/api/admin/mark-attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1459,6 +1452,15 @@ const AdminAttendancePage = () => {
       });
 
       if (!response.ok) throw new Error('Failed to save attendance');
+
+      // Update local state only after successful save
+      const updatedState = { ...attendanceState };
+      Object.keys(updatedState).forEach(id => {
+        if (updatedState[id] === 'Not Recorded') updatedState[id] = 'Present';
+      });
+      setAttendanceState(updatedState);
+      setInitialAttendanceState(updatedState);
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
