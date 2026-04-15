@@ -1856,10 +1856,12 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   }, []);
 
   // Pre-fill contact info when entering step 2
+  const bookerIsMoving = bookerParticipant ? selectedIds.has(bookerParticipant.id) : false;
+
   useEffect(() => {
     if (step === 2) {
-      const isWholeGroup = selectedIds.size === bookingParticipants.length;
-      if (isWholeGroup && bookerParticipant) {
+      if (bookerIsMoving && bookerParticipant) {
+        // Booker is among the movers — use their existing contact info
         setContactFirst(bookerParticipant.firstName);
         setContactLast(bookerParticipant.lastName);
         setContactEmail(bookerParticipant.contactEmail || '');
@@ -1867,7 +1869,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         setContactPhone(phone);
         setPrefilledPhone(phone);
       } else {
-        // Split move — pre-fill name from the first selected participant
+        // Booker is staying — pre-fill name from the first selected participant
         const firstSelected = bookingParticipants.find(p => selectedIds.has(p.id));
         if (firstSelected) {
           setContactFirst(firstSelected.firstName);
@@ -2079,7 +2081,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                   ))}
               </div>
 
-              {!isWholeGroup && (
+              {!isWholeGroup && !bookerIsMoving && (
                 <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
                   Since {bookerName} is staying in the original class, we need a contact for the participants being moved.
                 </div>
