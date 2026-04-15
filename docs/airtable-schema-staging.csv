@@ -29,6 +29,11 @@ Bookings,Refund Notes,Yes
 Bookings,Age Validation Status,Yes
 Bookings,Validation Notes,Yes
 Bookings,Participants JSON,Yes
+Bookings,Original Participant Count,Yes
+Bookings,Offshoot Booking IDs,Yes
+Bookings,Original Booking ID,Yes
+Bookings,Reschedule Status,Yes
+Bookings,Reschedule Notes,Yes
 Participants,Special Needs,Yes
 Participants,Guardian Name,Yes
 Participants,Dietary Requirements,Yes

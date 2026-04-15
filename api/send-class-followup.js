@@ -120,8 +120,9 @@ export default async function handler(req, res) {
         // Filter bookings for this specific schedule
         const bookings = allBookings.filter(booking => {
           const bookingScheduleIds = booking.fields['Class Schedule'] || [];
-          return bookingScheduleIds.includes(schedule.id) && 
-                 booking.fields.Status === 'Confirmed';
+          return bookingScheduleIds.includes(schedule.id) &&
+                 booking.fields.Status === 'Confirmed' &&
+                 booking.fields['Reschedule Status'] !== 'Pending Reschedule';
         });
 
         console.log(`[FOLLOWUP-CRON] Found ${bookings.length} confirmed bookings for schedule ${schedule.id}`);

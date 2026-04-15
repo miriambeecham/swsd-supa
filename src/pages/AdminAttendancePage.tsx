@@ -5,13 +5,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import TeachingAssistantsTab from '../components/admin/TeachingAssistantsTab';
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  ChevronLeft,
+  ChevronRight,
   Download,
   LogOut,
   Save,
@@ -27,7 +27,10 @@ import {
   ChevronDown,
   ChevronUp,
   GraduationCap,
-  X
+  X,
+  ArrowRightLeft,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 
 // ============================================
@@ -36,6 +39,7 @@ import {
 
 interface ClassSchedule {
   id: string;
+  classId: string;
   className: string;
   date: string;
   startTime: string;
@@ -282,19 +286,35 @@ interface RosterTabProps {
   copiedField: string | null;
   onCopy: (text: string, fieldId: string) => void;
   onParticipantConvertedToTA?: () => void;
+  onReschedule?: (participantId: string, bookingId: string) => void;
 }
 
-const RosterTab: React.FC<RosterTabProps> = ({ 
-  roster, 
-  attendanceState, 
+const RosterTab: React.FC<RosterTabProps> = ({
+  roster,
+  attendanceState,
   onAttendanceChange,
   copiedField,
   onCopy,
-  onParticipantConvertedToTA
+  onParticipantConvertedToTA,
+  onReschedule,
 }) => {
   const [convertingParticipant, setConvertingParticipant] = useState<string | null>(null);
   const [participantTAStatus, setParticipantTAStatus] = useState<Record<string, { isTA: boolean; personName?: string }>>({});
   const [conversionMessage, setConversionMessage] = useState<{ participantId: string; message: string; type: 'success' | 'error' } | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 10);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [roster]);
 
   // Check TA status for all participants on mount
   useEffect(() => {
@@ -388,8 +408,12 @@ const RosterTab: React.FC<RosterTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="overflow-x-auto max-h-[600px] overflow-y-auto"
+      >
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
@@ -407,6 +431,9 @@ const RosterTab: React.FC<RosterTabProps> = ({
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                 TA
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                Actions
               </th>
             </tr>
           </thead>
@@ -572,12 +599,36 @@ const RosterTab: React.FC<RosterTabProps> = ({
                       </button>
                     )}
                   </td>
+
+                  {/* Actions column */}
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => onReschedule?.(participant.id, participant.bookingId)}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-accent-primary text-accent-primary rounded hover:bg-accent-primary hover:text-white transition-colors"
+                      title="Reschedule participant"
+                    >
+                      <ArrowRightLeft className="w-3 h-3" />
+                      Reschedule
+                    </button>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {/* Scroll indicator */}
+      {canScrollDown && roster.length > 0 && (
+        <>
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none z-[5]" />
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center z-[6] pointer-events-none">
+            <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
+              ↓ Scroll for more
+            </span>
+          </div>
+        </>
+      )}
 
       {roster.length === 0 && (
         <div className="text-center py-12 text-gray-500">
@@ -1248,6 +1299,9 @@ const AdminAttendancePage = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<'roster' | 'communications' | 'surveys' | 'assistants'>('roster');
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [rescheduleTriggerId, setRescheduleTriggerId] = useState('');
+  const [rescheduleTriggerBookingId, setRescheduleTriggerBookingId] = useState('');
 
   // Check authentication
   useEffect(() => {
@@ -1320,6 +1374,7 @@ const AdminAttendancePage = () => {
             const classRecord = classesData.records.find((c: any) => c.id === classId);
             return {
               id: schedule.id,
+              classId: classId || '',
               className: classRecord?.fields['Class Name'] || 'Unknown Class',
               date: schedule.fields.Date,
               startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time']
@@ -1352,28 +1407,29 @@ const AdminAttendancePage = () => {
     fetchClasses();
   }, [searchParams]);
  
+  const refreshRoster = async () => {
+    if (!currentClassId) return;
+    try {
+      const response = await fetch(`/api/admin/class-roster?classScheduleId=${currentClassId}`);
+      if (!response.ok) throw new Error('Failed to fetch roster');
+
+      const data = await response.json();
+      setRosterData(data);
+
+      const initialState: Record<string, string> = {};
+      data.roster.forEach((participant: Participant) => {
+        initialState[participant.id] = participant.attendance;
+      });
+      setAttendanceState(initialState);
+      setInitialAttendanceState(initialState);
+    } catch (error) {
+      console.error('Error fetching roster:', error);
+    }
+  };
+
   // Fetch roster when class changes
   useEffect(() => {
-    if (!currentClassId) return;
-    const fetchRoster = async () => {
-      try {
-        const response = await fetch(`/api/admin/class-roster?classScheduleId=${currentClassId}`);
-        if (!response.ok) throw new Error('Failed to fetch roster');
-        
-        const data = await response.json();
-        setRosterData(data);
-        
-        const initialState: Record<string, string> = {};
-        data.roster.forEach((participant: Participant) => {
-          initialState[participant.id] = participant.attendance;
-        });
-        setAttendanceState(initialState);
-        setInitialAttendanceState(initialState);
-      } catch (error) {
-        console.error('Error fetching roster:', error);
-      }
-    };
-    fetchRoster();
+    refreshRoster();
   }, [currentClassId]);
 
   const handleLogout = async () => {
@@ -1420,13 +1476,6 @@ const AdminAttendancePage = () => {
         attendance: attendance === 'Not Recorded' ? 'Present' : attendance
       }));
 
-      const updatedState = { ...attendanceState };
-      Object.keys(updatedState).forEach(id => {
-        if (updatedState[id] === 'Not Recorded') updatedState[id] = 'Present';
-      });
-      setAttendanceState(updatedState);
-      setInitialAttendanceState(updatedState);
-
       const response = await fetch('/api/admin/mark-attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1434,6 +1483,15 @@ const AdminAttendancePage = () => {
       });
 
       if (!response.ok) throw new Error('Failed to save attendance');
+
+      // Update local state only after successful save
+      const updatedState = { ...attendanceState };
+      Object.keys(updatedState).forEach(id => {
+        if (updatedState[id] === 'Not Recorded') updatedState[id] = 'Present';
+      });
+      setAttendanceState(updatedState);
+      setInitialAttendanceState(updatedState);
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
@@ -1519,8 +1577,17 @@ const AdminAttendancePage = () => {
                 className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
               >
                 <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Manage Schedules</span>
+                <span className="hidden sm:inline">Add/Edit Classes</span>
               </button>
+              <a
+                href="/admin/pending-reschedules"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Pending Reschedules</span>
+              </a>
               <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600 hover:text-navy transition-colors">
                 <LogOut className="w-5 h-5" />
                 <span className="hidden sm:inline">Logout</span>
@@ -1700,13 +1767,17 @@ const AdminAttendancePage = () => {
 
             {/* Tab Content */}
           {activeTab === 'roster' && (
-  <RosterTab 
+  <RosterTab
     roster={rosterData.roster}
     attendanceState={attendanceState}
     onAttendanceChange={handleAttendanceChange}
     copiedField={copiedField}
     onCopy={copyToClipboard}
-    classScheduleId={currentClassId}
+    onReschedule={(participantId, bookingId) => {
+      setRescheduleTriggerId(participantId);
+      setRescheduleTriggerBookingId(bookingId);
+      setIsRescheduleModalOpen(true);
+    }}
   />
 )}
             {activeTab === 'communications' && (
@@ -1729,6 +1800,710 @@ const AdminAttendancePage = () => {
               />
             )}
           </>
+        )}
+      </div>
+
+      {/* Reschedule Modal */}
+      {isRescheduleModalOpen && rosterData && (
+        <RescheduleModal
+          triggerParticipantId={rescheduleTriggerId}
+          triggerBookingId={rescheduleTriggerBookingId}
+          allRosterParticipants={rosterData.roster}
+          originalClassId={allClasses.find(c => c.id === currentClassId)?.classId || ''}
+          onClose={() => setIsRescheduleModalOpen(false)}
+          onSuccess={() => {
+            setIsRescheduleModalOpen(false);
+            refreshRoster();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// RESCHEDULE MODAL COMPONENT
+// ============================================
+
+interface UpcomingSchedule {
+  id: string;
+  classId: string;
+  className: string;
+  date: string;
+  startTime: string;
+  availableSpots: number;
+}
+
+interface RescheduleModalProps {
+  triggerParticipantId: string;
+  triggerBookingId: string;
+  allRosterParticipants: Participant[];
+  originalClassId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const RescheduleModal: React.FC<RescheduleModalProps> = ({
+  triggerParticipantId,
+  triggerBookingId,
+  allRosterParticipants,
+  originalClassId,
+  onClose,
+  onSuccess,
+}) => {
+  // Step state
+  const [step, setStep] = useState(1);
+
+  // Step 1: participant selection
+  const bookingParticipants = allRosterParticipants.filter(p => p.bookingId === triggerBookingId);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set([triggerParticipantId]));
+
+  // Step 2: contact info for the movers (child booking)
+  const bookerParticipant = bookingParticipants.find(p => p.isPrimaryContact);
+  const [contactFirst, setContactFirst] = useState('');
+  const [contactLast, setContactLast] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [prefilledPhone, setPrefilledPhone] = useState('');
+
+  // Step 2: contact info for the stayers (original booking) — only needed when booker is moving in a split
+  const [stayerFirst, setStayerFirst] = useState('');
+  const [stayerLast, setStayerLast] = useState('');
+  const [stayerEmail, setStayerEmail] = useState('');
+  const [stayerPhone, setStayerPhone] = useState('');
+  const [smsConsent, setSmsConsent] = useState(false);
+  const [contactError, setContactError] = useState('');
+
+  // Step 3: class selection
+  const [upcomingSchedules, setUpcomingSchedules] = useState<UpcomingSchedule[]>([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [rescheduleNotes, setRescheduleNotes] = useState('');
+
+  // Submission
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [capacityWarning, setCapacityWarning] = useState('');
+
+  // Skip step 1 if only one participant in the booking
+  useEffect(() => {
+    if (bookingParticipants.length === 1) {
+      setSelectedIds(new Set([bookingParticipants[0].id]));
+      setStep(2);
+    }
+  }, []);
+
+  // Pre-fill contact info when entering step 2
+  const isWholeGroup = selectedIds.size === bookingParticipants.length;
+  const bookerIsMoving = bookerParticipant ? selectedIds.has(bookerParticipant.id) : false;
+  const needsStayerContact = !isWholeGroup && bookerIsMoving;
+
+  useEffect(() => {
+    if (step === 2) {
+      if (bookerIsMoving && bookerParticipant) {
+        // Booker is among the movers — use their existing contact info
+        setContactFirst(bookerParticipant.firstName);
+        setContactLast(bookerParticipant.lastName);
+        setContactEmail(bookerParticipant.contactEmail || '');
+        const phone = bookerParticipant.contactPhone || '';
+        setContactPhone(phone);
+        setPrefilledPhone(phone);
+
+        // Pre-fill stayer contact from the first staying participant
+        const firstStayer = bookingParticipants.find(p => !selectedIds.has(p.id));
+        if (firstStayer) {
+          setStayerFirst(firstStayer.firstName);
+          setStayerLast(firstStayer.lastName);
+        }
+      } else {
+        // Booker is staying — pre-fill name from the first selected participant
+        const firstSelected = bookingParticipants.find(p => selectedIds.has(p.id));
+        if (firstSelected) {
+          setContactFirst(firstSelected.firstName);
+          setContactLast(firstSelected.lastName);
+        }
+      }
+    }
+  }, [step]);
+
+  // Fetch upcoming schedules when entering step 3
+  useEffect(() => {
+    if (step === 3) {
+      fetchUpcomingSchedules();
+    }
+  }, [step]);
+
+  const fetchUpcomingSchedules = async () => {
+    setLoadingSchedules(true);
+    try {
+      const [schedulesRes, classesRes] = await Promise.all([
+        fetch('/api/schedules'),
+        fetch('/api/classes'),
+      ]);
+      if (!schedulesRes.ok || !classesRes.ok) throw new Error('Failed to fetch');
+
+      const schedulesData = await schedulesRes.json();
+      const classesData = await classesRes.json();
+
+      const today = new Date().toISOString().split('T')[0];
+
+      const upcoming = schedulesData.records
+        .filter((s: any) => {
+          if (s.fields['Is Cancelled']) return false;
+          if (!s.fields.Date || s.fields.Date < today) return false;
+          return true; // Show all future classes, even full ones
+        })
+        .map((s: any) => {
+          const classId = s.fields.Class?.[0];
+          const classRecord = classesData.records.find((c: any) => c.id === classId);
+          const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
+          return {
+            id: s.id,
+            classId: classId || '',
+            className: classRecord?.fields['Class Name'] || 'Unknown Class',
+            date: s.fields.Date,
+            startTime: s.fields['Start Time New'] || s.fields['Start Time'] || '',
+            availableSpots: remaining,
+          };
+        })
+        .sort((a: UpcomingSchedule, b: UpcomingSchedule) => {
+          // Same class type first, then by date
+          const aMatch = a.classId === originalClassId ? 0 : 1;
+          const bMatch = b.classId === originalClassId ? 0 : 1;
+          if (aMatch !== bMatch) return aMatch - bMatch;
+          return a.date.localeCompare(b.date);
+        });
+
+      setUpcomingSchedules(upcoming);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+    } finally {
+      setLoadingSchedules(false);
+    }
+  };
+
+  const toggleParticipant = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleStep2Next = () => {
+    setContactError('');
+    if (!contactFirst.trim() || !contactLast.trim() || !contactEmail.trim()) {
+      setContactError('All contact fields are required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      setContactError('Please enter a valid email address.');
+      return;
+    }
+    if (needsStayerContact) {
+      if (!stayerFirst.trim() || !stayerLast.trim() || !stayerEmail.trim()) {
+        setContactError('Contact info for the participants staying in the original class is also required.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stayerEmail)) {
+        setContactError('Please enter a valid email for the staying participant contact.');
+        return;
+      }
+    }
+    setStep(3);
+  };
+
+  const handleConfirm = async () => {
+    setSubmitError('');
+
+    // Capacity check with confirmation
+    if (capacityWarning && !isPending && selectedScheduleId) {
+      if (!window.confirm('This will exceed the current class capacity. The available spots will be increased automatically. Continue?')) {
+        return;
+      }
+    }
+
+    setSubmitting(true);
+
+    try {
+      // Increase capacity if needed
+      if (!isPending && selectedScheduleId && capacityWarning) {
+        const selected = upcomingSchedules.find(s => s.id === selectedScheduleId);
+        if (selected) {
+          const movingCount = selectedIds.size;
+          const schedRes = await fetch(`/api/admin/class-schedule-manage?id=${selectedScheduleId}`);
+          if (schedRes.ok) {
+            const schedData = await schedRes.json();
+            const currentAvailable = schedData.record?.fields?.['Available Spots'] || 0;
+            const needed = movingCount - selected.availableSpots;
+            if (needed > 0) {
+              await fetch('/api/admin/class-schedule-manage', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: selectedScheduleId,
+                  fields: { 'Available Spots': currentAvailable + needed },
+                }),
+              });
+            }
+          }
+        }
+      }
+
+      const response = await fetch('/api/admin/reschedule-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalBookingId: triggerBookingId,
+          movingParticipantIds: Array.from(selectedIds),
+          primaryContactEmail: contactEmail.trim(),
+          primaryContactFirstName: contactFirst.trim(),
+          primaryContactLastName: contactLast.trim(),
+          primaryContactPhone: contactPhone.trim(),
+          smsConsent: smsConsent,
+          ...(needsStayerContact ? {
+            stayerContactFirstName: stayerFirst.trim(),
+            stayerContactLastName: stayerLast.trim(),
+            stayerContactEmail: stayerEmail.trim(),
+            stayerContactPhone: stayerPhone.trim(),
+          } : {}),
+          newClassScheduleId: isPending ? null : selectedScheduleId,
+          rescheduleNotes: rescheduleNotes.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Reschedule failed');
+      }
+
+      setSubmitSuccess(true);
+      setTimeout(() => onSuccess(), 1500);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Reschedule failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const bookerName = bookerParticipant
+    ? `${bookerParticipant.firstName} ${bookerParticipant.lastName}`
+    : 'the original booker';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-bold text-navy">
+            {step === 1 && 'Reschedule Participants'}
+            {step === 2 && 'Primary Contact'}
+            {step === 3 && 'Assign to Class'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4">
+          {/* ── STEP 1: Who's moving? ── */}
+          {step === 1 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600">
+                  Select the participants you want to reschedule from this booking:
+                </p>
+                <button
+                  onClick={() => {
+                    if (selectedIds.size === bookingParticipants.length) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(bookingParticipants.map(p => p.id)));
+                    }
+                  }}
+                  className="text-xs text-accent-primary hover:text-accent-dark font-medium whitespace-nowrap ml-4"
+                >
+                  {selectedIds.size === bookingParticipants.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              <div className="space-y-2">
+                {bookingParticipants.map(p => (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleParticipant(p.id)}
+                      className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                    />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-900">
+                        {p.firstName} {p.lastName}
+                      </span>
+                      {p.ageGroup && (
+                        <span className="ml-2 text-xs text-gray-500">({p.ageGroup})</span>
+                      )}
+                      {p.isPrimaryContact && (
+                        <span className="ml-2 px-2 py-0.5 bg-accent-light text-accent-primary text-xs font-medium rounded">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 2: Primary contact ── */}
+          {step === 2 && (
+            <div>
+              <p className="text-sm text-gray-600 mb-2">
+                Selected participants ({selectedIds.size}):
+              </p>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {bookingParticipants
+                  .filter(p => selectedIds.has(p.id))
+                  .map(p => (
+                    <span key={p.id} className="px-2 py-1 bg-gray-100 text-sm text-gray-700 rounded">
+                      {p.firstName} {p.lastName}
+                    </span>
+                  ))}
+              </div>
+
+              {!isWholeGroup && !bookerIsMoving && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                  Since {bookerName} is staying in the original class, we need a contact for the participants being moved.
+                </div>
+              )}
+
+              {needsStayerContact && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                  Since {bookerName} is moving to a new class, we need a new contact for the participants staying in the original class.
+                </div>
+              )}
+
+              {needsStayerContact && (
+                <p className="text-sm font-semibold text-navy mb-2">Contact for movers</p>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={contactFirst}
+                    onChange={e => setContactFirst(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={contactLast}
+                    onChange={e => setContactLast(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={e => setContactEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={e => { setContactPhone(e.target.value); if (e.target.value === prefilledPhone) setSmsConsent(false); }}
+                    placeholder="(925) 555-0123"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                  />
+                </div>
+                {contactPhone && contactPhone !== prefilledPhone && (
+                  <div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={smsConsent}
+                        onChange={e => setSmsConsent(e.target.checked)}
+                        className="w-4 h-4 text-accent-primary border-gray-300 rounded focus:ring-accent-primary"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Contact has consented to receive text message reminders
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {needsStayerContact && (
+                <>
+                  <p className="text-sm font-semibold text-navy mt-6 mb-2">Contact for participants staying in original class</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        First Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={stayerFirst}
+                        onChange={e => setStayerFirst(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={stayerLast}
+                        onChange={e => setStayerLast(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={stayerEmail}
+                        onChange={e => setStayerEmail(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={stayerPhone}
+                        onChange={e => setStayerPhone(e.target.value)}
+                        placeholder="(925) 555-0123"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {contactError && (
+                <div className="mt-3 text-sm text-red-600">{contactError}</div>
+              )}
+            </div>
+          )}
+
+          {/* ── STEP 3: Where are they going? ── */}
+          {step === 3 && (
+            <div>
+              {submitSuccess ? (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 px-4 py-3 rounded-lg">
+                  <CheckCircle className="w-5 h-5" />
+                  Reschedule completed successfully!
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <label className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer mb-3">
+                      <input
+                        type="radio"
+                        name="reschedule-destination"
+                        checked={isPending}
+                        onChange={() => { setIsPending(true); setSelectedScheduleId(null); }}
+                        className="w-4 h-4 text-accent-primary border-gray-300 focus:ring-accent-primary"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">
+                          Mark as Pending Reschedule (decide later)
+                        </span>
+                        <p className="text-xs text-gray-500">
+                          Communications will be paused until a class is assigned
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="reschedule-destination"
+                        checked={!isPending}
+                        onChange={() => setIsPending(false)}
+                        className="w-4 h-4 text-accent-primary border-gray-300 focus:ring-accent-primary"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        Assign to a specific class
+                      </span>
+                    </label>
+                  </div>
+
+                  {!isPending && (
+                    <div className="mb-4">
+                      {loadingSchedules ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-accent-primary" />
+                        </div>
+                      ) : upcomingSchedules.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-4 text-center">
+                          No upcoming classes with available spots found.
+                        </p>
+                      ) : (
+                        <select
+                          value={selectedScheduleId || ''}
+                          onChange={e => {
+                            const val = e.target.value || null;
+                            setCapacityWarning('');
+                            if (val) {
+                              const selected = upcomingSchedules.find(s => s.id === val);
+                              if (selected && selected.classId !== originalClassId) {
+                                if (!window.confirm(`"${selected.className}" is a different class type than the original. Are you sure you want to reschedule to this class?`)) {
+                                  return;
+                                }
+                              }
+                              const movingCount = selectedIds.size;
+                              if (selected && selected.availableSpots < movingCount) {
+                                if (selected.availableSpots <= 0) {
+                                  setCapacityWarning(`This class is full. Proceeding will increase the class capacity to accommodate ${movingCount} participant(s).`);
+                                } else {
+                                  setCapacityWarning(`This class only has ${selected.availableSpots} spot(s) available but you're moving ${movingCount} participant(s). Proceeding will increase the class capacity.`);
+                                }
+                              }
+                            }
+                            setSelectedScheduleId(val);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                        >
+                          <option value="">Select a class...</option>
+                          {(() => {
+                            const matching = upcomingSchedules.filter(s => s.classId === originalClassId);
+                            const other = upcomingSchedules.filter(s => s.classId !== originalClassId);
+                            return (
+                              <>
+                                {matching.length > 0 && (
+                                  <optgroup label="Same class type">
+                                    {matching.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {other.length > 0 && (
+                                  <optgroup label="Other classes">
+                                    {other.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </select>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reschedule Notes (optional)
+                    </label>
+                    <textarea
+                      value={rescheduleNotes}
+                      onChange={e => setRescheduleNotes(e.target.value)}
+                      rows={2}
+                      placeholder="Reason for reschedule..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
+                    />
+                  </div>
+
+                  {capacityWarning && (
+                    <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{capacityWarning}</span>
+                    </div>
+                  )}
+
+                  {submitError && (
+                    <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
+                      {submitError}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        {!submitSuccess && (
+          <div className="flex justify-between px-6 py-4 border-t border-gray-200">
+            <div>
+              {step === 1 && (
+                <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
+                  Cancel
+                </button>
+              )}
+              {step > 1 && (
+                <button
+                  onClick={() => setStep(step - 1)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Back
+                </button>
+              )}
+            </div>
+            <div>
+              {step === 1 && (
+                <button
+                  onClick={() => setStep(2)}
+                  disabled={selectedIds.size === 0}
+                  className="px-4 py-2 text-sm bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              )}
+              {step === 2 && (
+                <button
+                  onClick={handleStep2Next}
+                  className="px-4 py-2 text-sm bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors"
+                >
+                  Next
+                </button>
+              )}
+              {step === 3 && (
+                <button
+                  onClick={handleConfirm}
+                  disabled={submitting || (!isPending && !selectedScheduleId)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {submitting ? 'Processing...' : 'Confirm Reschedule'}
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

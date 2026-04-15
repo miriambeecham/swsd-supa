@@ -29,6 +29,7 @@ import CommunityMotherDaughterBookingPage from './pages/CommunityMotherDaughterB
 import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import AdminPendingReschedulesPage from './pages/AdminPendingReschedulesPage';
 
 
 
@@ -67,6 +68,7 @@ function App() {
             <Route path="/private-class-policies" element={<PrivateClassPoliciesPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/attendance" element={<AdminAttendancePage />} />
+            <Route path="/admin/pending-reschedules" element={<AdminPendingReschedulesPage />} />
             <Route path="/admin/schedules" element={<AdminClassSchedulesPage />} />
             <Route path="/admin/schedules/new" element={<AdminClassScheduleEditPage />} />
             <Route path="/admin/schedules/:id/edit" element={<AdminClassScheduleEditPage />} />
