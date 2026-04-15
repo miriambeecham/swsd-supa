@@ -3,14 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
-  ArrowLeft,
   Calendar,
   LogOut,
   CheckCircle,
   Loader2,
   Users,
   Mail,
-  X,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ── Types ──
@@ -82,9 +81,12 @@ const AdminPendingReschedulesPage = () => {
   const [loading, setLoading] = useState(true);
   const [pendingList, setPendingList] = useState<PendingReschedule[]>([]);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
+  const [expandedOriginalClassId, setExpandedOriginalClassId] = useState<string>('');
+  const [expandedParticipantCount, setExpandedParticipantCount] = useState(0);
   const [upcomingSchedules, setUpcomingSchedules] = useState<UpcomingSchedule[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [capacityWarning, setCapacityWarning] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState('');
   const [toast, setToast] = useState('');
@@ -105,10 +107,7 @@ const AdminPendingReschedulesPage = () => {
     checkAuth();
   }, [navigate]);
 
-  // Fetch pending reschedules
-  useEffect(() => {
-    fetchPending();
-  }, []);
+  useEffect(() => { fetchPending(); }, []);
 
   const fetchPending = async () => {
     try {
@@ -141,8 +140,7 @@ const AdminPendingReschedulesPage = () => {
         .filter((s: any) => {
           if (s.fields['Is Cancelled']) return false;
           if (!s.fields.Date || s.fields.Date < today) return false;
-          const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
-          return remaining > 0;
+          return true; // Show all future classes, even full ones
         })
         .map((s: any) => {
           const classId = s.fields.Class?.[0];
@@ -167,26 +165,77 @@ const AdminPendingReschedulesPage = () => {
     }
   };
 
-  const [expandedOriginalClassId, setExpandedOriginalClassId] = useState<string>('');
-
-  const handleExpandAssign = (bookingId: string, originalClassId: string) => {
+  const handleExpandAssign = (bookingId: string, originalClassId: string, participantCount: number) => {
     if (expandedBookingId === bookingId) {
       setExpandedBookingId(null);
       return;
     }
     setExpandedBookingId(bookingId);
     setExpandedOriginalClassId(originalClassId);
+    setExpandedParticipantCount(participantCount);
     setSelectedScheduleId(null);
+    setCapacityWarning('');
     setAssignError('');
     fetchUpcomingSchedules();
   };
 
+  const handleScheduleSelect = (val: string | null) => {
+    setCapacityWarning('');
+    if (val) {
+      const selected = upcomingSchedules.find(s => s.id === val);
+      // Class type mismatch warning
+      if (selected && expandedOriginalClassId && selected.classId !== expandedOriginalClassId) {
+        if (!window.confirm(`"${selected.className}" is a different class type than the original. Are you sure you want to assign to this class?`)) {
+          return;
+        }
+      }
+      // Capacity warning
+      if (selected && selected.availableSpots < expandedParticipantCount) {
+        if (selected.availableSpots <= 0) {
+          setCapacityWarning(`This class is full. Proceeding will increase the class capacity to accommodate ${expandedParticipantCount} participant(s).`);
+        } else {
+          setCapacityWarning(`This class only has ${selected.availableSpots} spot(s) available but you're assigning ${expandedParticipantCount} participant(s). Proceeding will increase the class capacity.`);
+        }
+      }
+    }
+    setSelectedScheduleId(val);
+  };
+
   const handleConfirmAssign = async (bookingId: string) => {
     if (!selectedScheduleId) return;
+
+    // If capacity warning is showing, confirm before proceeding
+    if (capacityWarning) {
+      if (!window.confirm('This will exceed the current class capacity. The available spots will be increased automatically. Continue?')) {
+        return;
+      }
+    }
+
     setAssigning(true);
     setAssignError('');
 
     try {
+      // If we need to increase capacity, do it first
+      const selected = upcomingSchedules.find(s => s.id === selectedScheduleId);
+      if (selected && selected.availableSpots < expandedParticipantCount) {
+        const newCapacity = (selected.availableSpots < 0 ? 0 : selected.availableSpots) + expandedParticipantCount;
+        // Fetch current Available Spots to calculate the increase
+        const schedRes = await fetch(`/api/admin/class-schedule-manage?id=${selectedScheduleId}`);
+        if (schedRes.ok) {
+          const schedData = await schedRes.json();
+          const currentAvailable = schedData.record?.fields?.['Available Spots'] || 0;
+          const needed = expandedParticipantCount - selected.availableSpots;
+          await fetch('/api/admin/class-schedule-manage', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: selectedScheduleId,
+              fields: { 'Available Spots': currentAvailable + needed },
+            }),
+          });
+        }
+      }
+
       const response = await fetch('/api/admin/assign-reschedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,9 +247,9 @@ const AdminPendingReschedulesPage = () => {
         throw new Error(data.error || 'Assignment failed');
       }
 
-      // Fade out the card then remove it
       setFadingBookingId(bookingId);
       setExpandedBookingId(null);
+      setCapacityWarning('');
       setToast('Booking assigned and confirmation email sent');
       setTimeout(() => setToast(''), 4000);
 
@@ -224,7 +273,6 @@ const AdminPendingReschedulesPage = () => {
     }
   };
 
-  // ── Loading ──
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -250,23 +298,14 @@ const AdminPendingReschedulesPage = () => {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/admin/attendance')}
-                className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="hidden sm:inline">Back</span>
-              </button>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-gray-900">Pending Reschedules</h1>
-                  <span className="px-2.5 py-0.5 bg-accent-primary text-white text-sm font-medium rounded-full">
-                    {pendingList.length}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500">Participants awaiting assignment to a new class</p>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-gray-900">Pending Reschedules</h1>
+                <span className="px-2.5 py-0.5 bg-accent-primary text-white text-sm font-medium rounded-full">
+                  {pendingList.length}
+                </span>
               </div>
+              <p className="text-sm text-gray-500">Participants awaiting assignment to a new class</p>
             </div>
             <button
               onClick={handleLogout}
@@ -288,7 +327,6 @@ const AdminPendingReschedulesPage = () => {
       )}
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Empty state */}
         {pendingList.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
@@ -304,14 +342,12 @@ const AdminPendingReschedulesPage = () => {
                   fadingBookingId === item.bookingId ? 'opacity-0' : 'opacity-100'
                 }`}
               >
-                {/* Card header */}
                 <div className="px-6 py-4">
+                  {/* Header row */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-3 flex-wrap">
                       {item.bookingNumber && (
-                        <span className="text-sm font-medium text-gray-500">
-                          #{item.bookingNumber}
-                        </span>
+                        <span className="text-sm font-medium text-gray-500">#{item.bookingNumber}</span>
                       )}
                       <span className="text-sm font-semibold text-navy">
                         {item.contactFirstName} {item.contactLastName}
@@ -338,18 +374,20 @@ const AdminPendingReschedulesPage = () => {
                     </div>
                   )}
 
-                  {/* Participants */}
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    {item.participants.map(p => (
-                      <span
-                        key={p.id}
-                        className="px-2 py-1 bg-gray-100 text-sm text-gray-700 rounded"
-                      >
-                        {p.firstName} {p.lastName}
-                        {p.ageGroup && <span className="text-gray-400 ml-1">({p.ageGroup})</span>}
-                      </span>
-                    ))}
+                  {/* Participants — listed vertically */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-1.5">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium">{item.participants.length} participant{item.participants.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="ml-6 space-y-1">
+                      {item.participants.map(p => (
+                        <div key={p.id} className="text-sm text-gray-700">
+                          {p.firstName} {p.lastName}
+                          {p.ageGroup && <span className="text-gray-400 ml-1">({p.ageGroup})</span>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Reschedule notes */}
@@ -360,18 +398,18 @@ const AdminPendingReschedulesPage = () => {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 pt-2">
                     <button
-                      onClick={() => handleExpandAssign(item.bookingId, item.originalBooking?.classId || '')}
+                      onClick={() => handleExpandAssign(item.bookingId, item.originalBooking?.classId || '', item.participants.length)}
                       className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
                     >
                       <Calendar className="w-4 h-4" />
                       {expandedBookingId === item.bookingId ? 'Cancel' : 'Assign to Class'}
                     </button>
 
-                    {item.originalBooking && (
+                    {item.originalBooking?.scheduleId && (
                       <button
-                        onClick={() => navigate(`/admin/attendance?classScheduleId=${item.originalBooking!.scheduleId || ''}`)}
+                        onClick={() => navigate(`/admin/attendance?classScheduleId=${item.originalBooking!.scheduleId}`)}
                         className="text-sm text-navy underline hover:text-accent-primary transition-colors"
                       >
                         View Original Booking
@@ -388,26 +426,13 @@ const AdminPendingReschedulesPage = () => {
                         <Loader2 className="w-5 h-5 animate-spin text-accent-primary" />
                       </div>
                     ) : upcomingSchedules.length === 0 ? (
-                      <p className="text-sm text-gray-500 py-2">
-                        No upcoming classes with available spots.
-                      </p>
+                      <p className="text-sm text-gray-500 py-2">No upcoming classes found.</p>
                     ) : (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <div className="space-y-3">
                         <select
                           value={selectedScheduleId || ''}
-                          onChange={e => {
-                            const val = e.target.value || null;
-                            if (val && expandedOriginalClassId) {
-                              const selected = upcomingSchedules.find(s => s.id === val);
-                              if (selected && selected.classId !== expandedOriginalClassId) {
-                                if (!window.confirm(`"${selected.className}" is a different class type than the original. Are you sure you want to assign to this class?`)) {
-                                  return;
-                                }
-                              }
-                            }
-                            setSelectedScheduleId(val);
-                          }}
-                          className="flex-1 w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm"
+                          onChange={e => handleScheduleSelect(e.target.value || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary text-sm"
                         >
                           <option value="">Select a class...</option>
                           {(() => {
@@ -419,7 +444,7 @@ const AdminPendingReschedulesPage = () => {
                                   <optgroup label="Same class type">
                                     {matching.map(s => (
                                       <option key={s.id} value={s.id}>
-                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
                                       </option>
                                     ))}
                                   </optgroup>
@@ -428,7 +453,7 @@ const AdminPendingReschedulesPage = () => {
                                   <optgroup label="Other classes">
                                     {other.map(s => (
                                       <option key={s.id} value={s.id}>
-                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
                                       </option>
                                     ))}
                                   </optgroup>
@@ -438,21 +463,29 @@ const AdminPendingReschedulesPage = () => {
                           })()}
                         </select>
 
-                        <button
-                          onClick={() => handleConfirmAssign(item.bookingId)}
-                          disabled={assigning || !selectedScheduleId}
-                          className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                          {assigning && <Loader2 className="w-4 h-4 animate-spin" />}
-                          {assigning ? 'Assigning...' : 'Confirm Assignment'}
-                        </button>
+                        {capacityWarning && (
+                          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded text-sm">
+                            <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <span>{capacityWarning}</span>
+                          </div>
+                        )}
 
-                        <button
-                          onClick={() => setExpandedBookingId(null)}
-                          className="text-sm text-gray-500 hover:text-gray-700"
-                        >
-                          Cancel
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleConfirmAssign(item.bookingId)}
+                            disabled={assigning || !selectedScheduleId}
+                            className="flex items-center gap-2 px-4 py-2 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            {assigning && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {assigning ? 'Assigning...' : 'Confirm Assignment'}
+                          </button>
+                          <button
+                            onClick={() => { setExpandedBookingId(null); setCapacityWarning(''); }}
+                            className="text-sm text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     )}
 

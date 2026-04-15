@@ -29,6 +29,7 @@ import {
   GraduationCap,
   X,
   ArrowRightLeft,
+  AlertTriangle,
   Loader2,
 } from 'lucide-react';
 
@@ -1854,6 +1855,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [capacityWarning, setCapacityWarning] = useState('');
 
   // Skip step 1 if only one participant in the booking
   useEffect(() => {
@@ -1921,8 +1923,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         .filter((s: any) => {
           if (s.fields['Is Cancelled']) return false;
           if (!s.fields.Date || s.fields.Date < today) return false;
-          const remaining = (s.fields['Available Spots'] || 0) - (s.fields['Booked Spots'] || 0);
-          return remaining > 0;
+          return true; // Show all future classes, even full ones
         })
         .map((s: any) => {
           const classId = s.fields.Class?.[0];
@@ -1987,9 +1988,41 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
 
   const handleConfirm = async () => {
     setSubmitError('');
+
+    // Capacity check with confirmation
+    if (capacityWarning && !isPending && selectedScheduleId) {
+      if (!window.confirm('This will exceed the current class capacity. The available spots will be increased automatically. Continue?')) {
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
+      // Increase capacity if needed
+      if (!isPending && selectedScheduleId && capacityWarning) {
+        const selected = upcomingSchedules.find(s => s.id === selectedScheduleId);
+        if (selected) {
+          const movingCount = selectedIds.size;
+          const schedRes = await fetch(`/api/admin/class-schedule-manage?id=${selectedScheduleId}`);
+          if (schedRes.ok) {
+            const schedData = await schedRes.json();
+            const currentAvailable = schedData.record?.fields?.['Available Spots'] || 0;
+            const needed = movingCount - selected.availableSpots;
+            if (needed > 0) {
+              await fetch('/api/admin/class-schedule-manage', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: selectedScheduleId,
+                  fields: { 'Available Spots': currentAvailable + needed },
+                }),
+              });
+            }
+          }
+        }
+      }
+
       const response = await fetch('/api/admin/reschedule-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2309,11 +2342,20 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                           value={selectedScheduleId || ''}
                           onChange={e => {
                             const val = e.target.value || null;
+                            setCapacityWarning('');
                             if (val) {
                               const selected = upcomingSchedules.find(s => s.id === val);
                               if (selected && selected.classId !== originalClassId) {
                                 if (!window.confirm(`"${selected.className}" is a different class type than the original. Are you sure you want to reschedule to this class?`)) {
                                   return;
+                                }
+                              }
+                              const movingCount = selectedIds.size;
+                              if (selected && selected.availableSpots < movingCount) {
+                                if (selected.availableSpots <= 0) {
+                                  setCapacityWarning(`This class is full. Proceeding will increase the class capacity to accommodate ${movingCount} participant(s).`);
+                                } else {
+                                  setCapacityWarning(`This class only has ${selected.availableSpots} spot(s) available but you're moving ${movingCount} participant(s). Proceeding will increase the class capacity.`);
                                 }
                               }
                             }
@@ -2331,7 +2373,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                                   <optgroup label="Same class type">
                                     {matching.map(s => (
                                       <option key={s.id} value={s.id}>
-                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
                                       </option>
                                     ))}
                                   </optgroup>
@@ -2340,7 +2382,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                                   <optgroup label="Other classes">
                                     {other.map(s => (
                                       <option key={s.id} value={s.id}>
-                                        {formatDate(s.date)} — {s.className} ({s.availableSpots} spots)
+                                        {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
                                       </option>
                                     ))}
                                   </optgroup>
@@ -2365,6 +2407,13 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                     />
                   </div>
+
+                  {capacityWarning && (
+                    <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>{capacityWarning}</span>
+                    </div>
+                  )}
 
                   {submitError && (
                     <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
