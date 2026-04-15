@@ -1864,8 +1864,8 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   }, []);
 
   // Pre-fill contact info when entering step 2
+  const isWholeGroup = selectedIds.size === bookingParticipants.length;
   const bookerIsMoving = bookerParticipant ? selectedIds.has(bookerParticipant.id) : false;
-
   const needsStayerContact = !isWholeGroup && bookerIsMoving;
 
   useEffect(() => {
@@ -2026,7 +2026,6 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
     }
   };
 
-  const isWholeGroup = selectedIds.size === bookingParticipants.length;
   const bookerName = bookerParticipant
     ? `${bookerParticipant.firstName} ${bookerParticipant.lastName}`
     : 'the original booker';
