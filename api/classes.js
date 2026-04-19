@@ -1,58 +1,57 @@
 // /api/classes.js
+import { requireSupabase } from './_supabase.js';
+
+const FIELD_MAP = {
+  'ID': 'class_id',
+  'Class Name': 'class_name',
+  'Type': 'type',
+  'Max Participants': 'max_participants',
+  'Location': 'location',
+  'City': 'city',
+  'Instructor': 'instructor',
+  'Price': 'price',
+  'Pricing Unit': 'pricing_unit',
+  'Partner Organization': 'partner_organization',
+  'Booking Method': 'booking_method',
+  'Is Active': 'is_active',
+  'Parking Instructions': 'parking_instructions',
+  'Parking Map URL': 'parking_map_url',
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
-    if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-      return res.status(500).json({ error: 'Airtable not configured' });
+  try {
+    let query = supabase.from('classes').select('*');
+
+    // Frontend passes Airtable filterByFormula syntax. The only form currently
+    // used is RECORD_ID()='recXXX' (SatisfactionSurveyPage).
+    const { filter } = req.query;
+    if (filter) {
+      const recordIdMatch = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
+      if (!recordIdMatch) {
+        return res.status(400).json({ error: `Unsupported filter formula: ${filter}` });
+      }
+      query = query.eq('airtable_record_id', recordIdMatch[1]);
     }
 
-    const { filter } = req.query;
-    const endpoint = filter
-      ? `/Classes?filterByFormula=${encodeURIComponent(filter)}`
-      : '/Classes';
+    const { data, error } = await query;
+    if (error) throw error;
 
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+    const records = (data || []).map((row) => {
+      const fields = {};
+      for (const [airtableKey, supaKey] of Object.entries(FIELD_MAP)) {
+        fields[airtableKey] = row[supaKey];
+      }
+      return { id: row.airtable_record_id, fields };
     });
 
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    // Map to expected format (same as server.js)
-    const classes = (data.records || []).map((record) => ({
-      id: record.id,
-      fields: {
-        'ID': record.fields.ID,
-        'Class Name': record.fields['Class Name'] || record.fields.Title,
-        'Type': record.fields.Type,
-        'Max Participants': record.fields['Max Participants'],
-        'Location': record.fields.Location,
-        'City': record.fields.City,
-        'Instructor': record.fields.Instructor,
-        'Price': record.fields.Price,
-        'Pricing Unit': record.fields['Pricing Unit'],
-        'Partner Organization': record.fields['Partner Organization'],
-        'Booking Method': record.fields['Booking Method'],
-        'Is Active': record.fields['Is Active'],
-        'Parking Instructions': record.fields['Parking Instructions'],
-        'Parking Map URL': record.fields['Parking Map URL'],     
-      }
-    }));
-
-    res.json({ records: classes });
-
+    res.json({ records });
   } catch (error) {
     console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Failed to fetch classes' });

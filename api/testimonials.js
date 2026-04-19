@@ -1,58 +1,51 @@
-
 // /api/testimonials.js
+import { requireSupabase } from './_supabase.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
-    if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-      return res.status(500).json({ error: 'Airtable not configured' });
-    }
+  try {
+    let query = supabase.from('testimonials').select('*');
 
     const { filter } = req.query;
-    const endpoint = filter
-      ? `/Testimonials?filterByFormula=${encodeURIComponent(filter)}`
-      : '/Testimonials';
-
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
+    if (filter) {
+      const recordIdMatch = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
+      if (!recordIdMatch) {
+        return res.status(400).json({ error: `Unsupported filter formula: ${filter}` });
+      }
+      query = query.eq('airtable_record_id', recordIdMatch[1]);
     }
 
-    const data = await response.json();
+    const { data, error } = await query;
+    if (error) throw error;
 
-    // Use the exact same mapping logic from your server.js
-    const testimonials = (data.records || []).map((record) => {
+    const testimonials = (data || []).map((row) => {
+      // profile_picture was an Airtable attachment array in legacy data;
+      // fall back to the explicit string field profile_image_url otherwise.
       let profileImageUrl = null;
-      const profileField = record.fields['Profile Image URL'];
-      if (typeof profileField === 'string') {
-        profileImageUrl = profileField;
-      } else if (Array.isArray(profileField) && profileField.length > 0) {
-        profileImageUrl = profileField[0]?.url || null;
+      if (typeof row.profile_image_url === 'string') {
+        profileImageUrl = row.profile_image_url;
+      } else if (Array.isArray(row.profile_picture) && row.profile_picture.length > 0) {
+        profileImageUrl = row.profile_picture[0]?.url || null;
       }
 
       return {
-        id: record.id,
-        name: record.fields.Name || '',
-        content: record.fields.Content || '',
-        rating: parseInt(record.fields.Rating) || 5,
-        class_type: record.fields['Class Type'] || '',
-        platform: record.fields.Platform?.toLowerCase(),
+        id: row.airtable_record_id,
+        name: row.name || '',
+        content: row.content || '',
+        rating: parseInt(row.rating) || 5,
+        class_type: row.class_type || '',
+        platform: row.platform?.toLowerCase(),
         profile_image_url: profileImageUrl,
-        review_url: record.fields['Original Review URL'],
-        homepage_position: record.fields['Homepage position'],
-        is_featured: !!record.fields['Is Featured'],
-        is_published: !!record.fields['Is Published'],
+        review_url: row.original_review_url,
+        homepage_position: row.homepage_position,
+        is_featured: !!row.is_featured,
+        is_published: !!row.is_published,
       };
     });
 
