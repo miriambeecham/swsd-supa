@@ -29,13 +29,28 @@ export default async function handler(req, res) {
       .from('class_schedules')
       .select('*, classes(airtable_record_id)');
 
+    // Translate the Airtable filter formulas the frontend actually uses into
+    // Supabase predicates. Unknown formulas return 400 so the caller can add
+    // an explicit pattern here rather than silently over-fetching.
     const { filter } = req.query;
     if (filter) {
-      const recordIdMatch = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
-      if (!recordIdMatch) {
+      const recordId = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
+      // SatisfactionSurveyPage — date range, not cancelled
+      const dateRange = filter.match(
+        /^AND\(IS_AFTER\(\{Date\}, '([^']+)'\), NOT\(IS_AFTER\(\{Date\}, '([^']+)'\)\), NOT\(\{Is Cancelled\}\)\)$/,
+      );
+
+      if (recordId) {
+        query = query.eq('airtable_record_id', recordId[1]);
+      } else if (dateRange) {
+        // IS_AFTER({Date}, X) → date > X;  NOT(IS_AFTER({Date}, Y)) → date <= Y
+        query = query
+          .gt('date', dateRange[1])
+          .lte('date', dateRange[2])
+          .eq('is_cancelled', false);
+      } else {
         return res.status(400).json({ error: `Unsupported filter formula: ${filter}` });
       }
-      query = query.eq('airtable_record_id', recordIdMatch[1]);
     }
 
     const [schedulesResult, bookingsResult] = await Promise.all([

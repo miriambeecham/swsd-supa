@@ -12,13 +12,42 @@ export default async function handler(req, res) {
   try {
     let query = supabase.from('testimonials').select('*');
 
+    // Translate the Airtable filterByFormula patterns the frontend actually uses
+    // into equivalent Supabase predicates. Unknown formulas return 400 so the
+    // caller can add an explicit pattern here rather than silently over-fetching.
     const { filter } = req.query;
     if (filter) {
-      const recordIdMatch = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
-      if (!recordIdMatch) {
+      const recordId = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
+      // HomePage — all homepage-positioned published testimonials
+      const homepageAll = filter.match(
+        /^AND\(\{Is [Pp]ublished\}=1,\{Homepage position\}!="None",\{Homepage position\}!=""\)$/,
+      );
+      // AboutPage — exact homepage_position match
+      const homepageExact = filter.match(
+        /^AND\(\{Is [Pp]ublished\}=1,\{Homepage position\}="([^"]+)"\)$/,
+      );
+      // CorporatePage — homepage_position in (A, B)
+      const homepageOr = filter.match(
+        /^AND\(\{Is [Pp]ublished\}=1,OR\(\{Homepage position\}="([^"]+)",\{Homepage position\}="([^"]+)"\)\)$/,
+      );
+
+      if (recordId) {
+        query = query.eq('airtable_record_id', recordId[1]);
+      } else if (homepageAll) {
+        query = query
+          .eq('is_published', true)
+          .not('homepage_position', 'is', null)
+          .neq('homepage_position', '')
+          .neq('homepage_position', 'None');
+      } else if (homepageExact) {
+        query = query.eq('is_published', true).eq('homepage_position', homepageExact[1]);
+      } else if (homepageOr) {
+        query = query
+          .eq('is_published', true)
+          .in('homepage_position', [homepageOr[1], homepageOr[2]]);
+      } else {
         return res.status(400).json({ error: `Unsupported filter formula: ${filter}` });
       }
-      query = query.eq('airtable_record_id', recordIdMatch[1]);
     }
 
     const { data, error } = await query;
