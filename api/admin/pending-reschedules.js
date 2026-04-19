@@ -1,203 +1,155 @@
 // /api/admin/pending-reschedules.js
-// Returns all bookings with Reschedule Status = "Pending Reschedule",
-// enriched with participant details and original/assigned class info.
-import jwt from 'jsonwebtoken';
+// Returns bookings with Reschedule Status = "Pending Reschedule", enriched with
+// participants and original/assigned class info.
+import { requireSupabase, outerId } from '../_supabase.js';
+import { requireAdminAuth } from '../_admin-auth.js';
 
-function verifyAuth(req) {
-  const JWT_SECRET = process.env.JWT_SECRET;
-  const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
+const SCHEDULE_NESTED =
+  'airtable_record_id, id, date, start_time_new, classes(airtable_record_id, class_name)';
 
-  const token = cookies?.auth_token;
-  if (!token) return false;
-
-  try {
-    jwt.verify(token, JWT_SECRET);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const shapeOriginalFromSchedule = (s, extras = {}) => ({
+  bookingId: extras.bookingId ?? null,
+  bookingNumber: extras.bookingNumber ?? null,
+  scheduleId: outerId(s),
+  classId: s?.classes?.airtable_record_id || s?.classes?.id || null,
+  className: s?.classes?.class_name || '',
+  classDate: s?.date || '',
+  classStartTime: s?.start_time_new || '',
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-  const JWT_SECRET = process.env.JWT_SECRET;
-
-  if (!JWT_SECRET || !AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
-  if (!verifyAuth(req)) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const BASE_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`;
-  const headers = { Authorization: `Bearer ${AIRTABLE_API_KEY}` };
+  if (!requireAdminAuth(req, res)) return;
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
   try {
-    // ── Step 1: Fetch all bookings with Reschedule Status = "Pending Reschedule" ──
-    const filter = encodeURIComponent('{Reschedule Status}="Pending Reschedule"');
-    const bookingsRes = await fetch(
-      `${BASE_URL}/Bookings?filterByFormula=${filter}`,
-      { headers }
-    );
+    const { data: pending, error: bErr } = await supabase
+      .from('bookings')
+      .select(`*, class_schedules(${SCHEDULE_NESTED})`)
+      .eq('reschedule_status', 'Pending Reschedule');
+    if (bErr) throw bErr;
+    if (!pending || pending.length === 0) return res.json([]);
 
-    if (!bookingsRes.ok) {
-      const err = await bookingsRes.text();
-      return res.status(500).json({ error: `Failed to fetch pending reschedules: ${err}` });
+    // Gather referenced "original" IDs — may be recXXX (legacy) or UUID (new).
+    const originalBookingRefs = new Set();
+    const originalScheduleRefs = new Set();
+    for (const b of pending) {
+      if (b.original_booking_id) {
+        originalBookingRefs.add(b.original_booking_id);
+      } else if (b.reschedule_notes) {
+        const m = b.reschedule_notes.match(/\[Original Schedule: (rec[^\]]+)\]/);
+        if (m) originalScheduleRefs.add(m[1]);
+      }
     }
 
-    const bookingsData = await bookingsRes.json();
-    const pendingBookings = bookingsData.records || [];
+    // Look up original bookings by either airtable_record_id or id.
+    const originalBookingsByRef = new Map();
+    if (originalBookingRefs.size > 0) {
+      const refs = [...originalBookingRefs];
+      const airtableRefs = refs.filter(r => /^rec/.test(r));
+      const uuidRefs = refs.filter(r => !/^rec/.test(r));
+      const select = `id, airtable_record_id, booking_id, class_schedule_id, class_schedules(${SCHEDULE_NESTED})`;
 
-    if (pendingBookings.length === 0) {
-      return res.json([]);
-    }
-
-    // ── Step 2: Enrich each booking with participants and class info ──
-    const enriched = await Promise.all(pendingBookings.map(async (booking) => {
-      const bf = booking.fields;
-
-      // Fetch participants
-      const participantIds = bf['Participants'] || [];
-      const participants = await Promise.all(participantIds.map(async (pid) => {
-        try {
-          const pRes = await fetch(`${BASE_URL}/Participants/${pid}`, { headers });
-          if (!pRes.ok) return { id: pid, firstName: '', lastName: '', ageGroup: '' };
-          const pData = await pRes.json();
-          return {
-            id: pid,
-            firstName: pData.fields['First Name'] || '',
-            lastName: pData.fields['Last Name'] || '',
-            ageGroup: pData.fields['Age Group'] || '',
-          };
-        } catch {
-          return { id: pid, firstName: '', lastName: '', ageGroup: '' };
+      const queries = [];
+      if (airtableRefs.length) {
+        queries.push(supabase.from('bookings').select(select).in('airtable_record_id', airtableRefs));
+      }
+      if (uuidRefs.length) {
+        queries.push(supabase.from('bookings').select(select).in('id', uuidRefs));
+      }
+      const results = await Promise.all(queries);
+      for (const r of results) {
+        if (r.error) throw r.error;
+        for (const row of r.data || []) {
+          if (row.airtable_record_id) originalBookingsByRef.set(row.airtable_record_id, row);
+          originalBookingsByRef.set(row.id, row);
         }
+      }
+    }
+
+    // Look up schedules referenced in reschedule notes.
+    const originalSchedulesByAirtableId = new Map();
+    if (originalScheduleRefs.size > 0) {
+      const { data: schedules, error: sErr } = await supabase
+        .from('class_schedules')
+        .select(SCHEDULE_NESTED)
+        .in('airtable_record_id', [...originalScheduleRefs]);
+      if (sErr) throw sErr;
+      for (const s of schedules || []) {
+        if (s.airtable_record_id) originalSchedulesByAirtableId.set(s.airtable_record_id, s);
+      }
+    }
+
+    // Participants for the pending bookings.
+    const bookingUuids = pending.map(b => b.id);
+    const { data: participants, error: pErr } = await supabase
+      .from('participants')
+      .select('*')
+      .in('booking_id', bookingUuids);
+    if (pErr) throw pErr;
+
+    const participantsByBooking = new Map();
+    for (const p of participants || []) {
+      const list = participantsByBooking.get(p.booking_id) || [];
+      list.push(p);
+      participantsByBooking.set(p.booking_id, list);
+    }
+
+    const enriched = pending.map((b) => {
+      let originalBooking = null;
+
+      if (b.original_booking_id) {
+        const ob = originalBookingsByRef.get(b.original_booking_id);
+        if (ob?.class_schedules) {
+          originalBooking = shapeOriginalFromSchedule(ob.class_schedules, {
+            bookingId: outerId(ob),
+            bookingNumber: ob.booking_id || null,
+          });
+        }
+      } else if (b.reschedule_notes) {
+        const m = b.reschedule_notes.match(/\[Original Schedule: (rec[^\]]+)\]/);
+        if (m) {
+          const s = originalSchedulesByAirtableId.get(m[1]);
+          if (s) originalBooking = shapeOriginalFromSchedule(s);
+        }
+      }
+
+      const assignedClass = b.class_schedules
+        ? {
+            scheduleId: outerId(b.class_schedules),
+            className: b.class_schedules.classes?.class_name || '',
+            classDate: b.class_schedules.date || '',
+            classStartTime: b.class_schedules.start_time_new || '',
+          }
+        : null;
+
+      const participantList = (participantsByBooking.get(b.id) || []).map(p => ({
+        id: outerId(p),
+        firstName: p.first_name || '',
+        lastName: p.last_name || '',
+        ageGroup: p.age_group || '',
       }));
 
-      // Fetch original class info.
-      // For split moves: Original Booking ID points to the parent booking.
-      // For whole-group moves: notes contain [Original Schedule: recXXX].
-      let originalBooking = null;
-      const originalBookingId = bf['Original Booking ID'];
-
-      // Helper to build originalBooking from a schedule ID
-      const buildOriginalFromSchedule = async (scheduleId) => {
-        try {
-          const schedRes = await fetch(`${BASE_URL}/Class%20Schedules/${scheduleId}`, { headers });
-          if (!schedRes.ok) return null;
-          const schedData = await schedRes.json();
-          const sf = schedData.fields;
-          let className = '';
-          const classLinkId = (sf['Class'] || [])[0];
-          if (classLinkId) {
-            const classRes = await fetch(`${BASE_URL}/Classes/${classLinkId}`, { headers });
-            if (classRes.ok) {
-              const classData = await classRes.json();
-              className = classData.fields['Class Name'] || '';
-            }
-          }
-          return {
-            bookingId: null,
-            bookingNumber: null,
-            scheduleId,
-            classId: classLinkId || null,
-            className,
-            classDate: sf['Date'] || '',
-            classStartTime: sf['Start Time New'] || '',
-          };
-        } catch { return null; }
-      };
-
-      if (originalBookingId) {
-        // Split move — fetch the parent booking's class schedule
-        try {
-          const obRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, { headers });
-          if (obRes.ok) {
-            const obData = await obRes.json();
-            const obFields = obData.fields;
-            const obScheduleId = (obFields['Class Schedule'] || [])[0];
-
-            if (obScheduleId) {
-              const info = await buildOriginalFromSchedule(obScheduleId);
-              if (info) {
-                info.bookingId = originalBookingId;
-                info.bookingNumber = obFields['Booking ID'] || null;
-                originalBooking = info;
-              }
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to fetch original booking ${originalBookingId}:`, err);
-        }
-      } else {
-        // Whole-group move — check notes for [Original Schedule: recXXX]
-        const notes = bf['Reschedule Notes'] || '';
-        const schedMatch = notes.match(/\[Original Schedule: (rec[^\]]+)\]/);
-        if (schedMatch) {
-          originalBooking = await buildOriginalFromSchedule(schedMatch[1]);
-        }
-      }
-
-      // Fetch assigned class info (if a class schedule is already set on this booking)
-      let assignedClass = null;
-      const assignedScheduleId = (bf['Class Schedule'] || [])[0];
-      if (assignedScheduleId) {
-        try {
-          const schedRes = await fetch(`${BASE_URL}/Class%20Schedules/${assignedScheduleId}`, { headers });
-          if (schedRes.ok) {
-            const schedData = await schedRes.json();
-            const sf = schedData.fields;
-
-            let className = '';
-            const classLinkId = (sf['Class'] || [])[0];
-            if (classLinkId) {
-              const classRes = await fetch(`${BASE_URL}/Classes/${classLinkId}`, { headers });
-              if (classRes.ok) {
-                const classData = await classRes.json();
-                className = classData.fields['Class Name'] || '';
-              }
-            }
-
-            assignedClass = {
-              scheduleId: assignedScheduleId,
-              className,
-              classDate: sf['Date'] || '',
-              classStartTime: sf['Start Time New'] || '',
-            };
-          }
-        } catch (err) {
-          console.error(`Failed to fetch assigned schedule ${assignedScheduleId}:`, err);
-        }
-      }
-
       return {
-        bookingId: booking.id,
-        bookingNumber: bf['Booking ID'] || null,
-        contactFirstName: bf['Contact First Name'] || '',
-        contactLastName: bf['Contact Last Name'] || '',
-        contactEmail: bf['Contact Email'] || '',
-        rescheduleNotes: bf['Reschedule Notes'] || '',
-        createdAt: booking.createdTime || '',
-        participants,
+        bookingId: outerId(b),
+        bookingNumber: b.booking_id || null,
+        contactFirstName: b.contact_first_name || '',
+        contactLastName: b.contact_last_name || '',
+        contactEmail: b.contact_email || '',
+        rescheduleNotes: b.reschedule_notes || '',
+        createdAt: b.created_at || '',
+        participants: participantList,
         originalBooking,
         assignedClass,
       };
-    }));
+    });
 
-    return res.json(enriched);
-
+    res.json(enriched);
   } catch (error) {
     console.error('Pending reschedules error:', error);
-    return res.status(500).json({ error: `Failed to fetch pending reschedules: ${error.message}` });
+    res.status(500).json({ error: `Failed to fetch pending reschedules: ${error.message}` });
   }
 }

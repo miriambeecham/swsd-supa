@@ -1,252 +1,108 @@
 // /api/admin/persons.js
-// GET: Fetch persons (optionally filtered by role)
+// GET: Fetch persons (optionally filtered by role/status)
 // POST: Create a new person
 // PATCH: Update an existing person
-import jwt from 'jsonwebtoken';
+import { requireSupabase, outerId } from '../_supabase.js';
+import { requireAdminAuth } from '../_admin-auth.js';
+
+const formatPerson = (row) => ({
+  id: outerId(row),
+  name: row.name || '',
+  email: row.email || '',
+  phone: row.phone || '',
+  roles: row.roles || [],
+  status: row.status || 'Active',
+  notes: row.notes || '',
+  emergencyContactName: row.emergency_contact_name || '',
+  emergencyContactRelationship: row.emergency_contact_relationship || '',
+  emergencyContactPhone: row.emergency_contact_phone || '',
+  emergencyContactEmail: row.emergency_contact_email || '',
+});
 
 export default async function handler(req, res) {
-  const JWT_SECRET = process.env.JWT_SECRET;
-  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+  if (!requireAdminAuth(req, res)) return;
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
-  if (!JWT_SECRET || !AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
-  // Verify authentication
-  const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
-
-  const token = cookies?.auth_token;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  try {
-    jwt.verify(token, JWT_SECRET);
-  } catch (jwtError) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
-
-  // ========================================
-  // GET - Fetch persons
-  // ========================================
   if (req.method === 'GET') {
     try {
       const { role, status } = req.query;
-
-      // Fetch all persons
-      const response = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
-        {
-          headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch persons');
-      }
-
-      const data = await response.json();
-      let persons = data.records || [];
-
-      // Filter by role if specified (Roles is a multiple select field)
-      if (role) {
-        persons = persons.filter(person => {
-          const roles = person.fields['Roles'] || [];
-          return roles.includes(role);
-        });
-      }
-
-      // Filter by status if specified
-      if (status) {
-        persons = persons.filter(person => person.fields['Status'] === status);
-      }
-
-      // Map to cleaner format
-      const formattedPersons = persons.map(person => ({
-        id: person.id,
-        name: person.fields['Name'] || '',
-        email: person.fields['Email'] || '',
-        phone: person.fields['Phone'] || '',
-        roles: person.fields['Roles'] || [],
-        status: person.fields['Status'] || 'Active',
-        notes: person.fields['Notes'] || '',
-        emergencyContactName: person.fields['Emergency Contact Name'] || '',
-        emergencyContactRelationship: person.fields['Emergency Contact Relationship'] || '',
-        emergencyContactPhone: person.fields['Emergency Contact Phone'] || '',
-        emergencyContactEmail: person.fields['Emergency Contact Email'] || ''
-      }));
-
-      return res.status(200).json({ persons: formattedPersons });
-
+      let query = supabase.from('persons').select('*');
+      if (role) query = query.contains('roles', [role]);
+      if (status) query = query.eq('status', status);
+      const { data, error } = await query;
+      if (error) throw error;
+      return res.status(200).json({ persons: (data || []).map(formatPerson) });
     } catch (error) {
       console.error('Error fetching persons:', error);
       return res.status(500).json({ error: error.message });
     }
   }
 
-  // ========================================
-  // POST - Create a new person
-  // ========================================
   if (req.method === 'POST') {
     try {
-      const { 
-        name, 
-        email, 
-        phone, 
-        roles, 
-        notes,
-        emergencyContactName,
-        emergencyContactRelationship,
-        emergencyContactPhone,
-        emergencyContactEmail
+      const {
+        name, email, phone, roles, notes,
+        emergencyContactName, emergencyContactRelationship,
+        emergencyContactPhone, emergencyContactEmail,
       } = req.body;
-
       if (!name || !name.trim()) {
         return res.status(400).json({ error: 'Name is required' });
       }
 
-      // Build fields object
-      const fields = {
-        'Name': name.trim(),
-        'Status': 'Active'
-      };
+      const row = { name: name.trim(), status: 'Active' };
+      if (email) row.email = email.trim();
+      if (phone) row.phone = phone.trim();
+      if (Array.isArray(roles)) row.roles = roles;
+      if (notes) row.notes = notes.trim();
+      if (emergencyContactName) row.emergency_contact_name = emergencyContactName.trim();
+      if (emergencyContactRelationship) row.emergency_contact_relationship = emergencyContactRelationship.trim();
+      if (emergencyContactPhone) row.emergency_contact_phone = emergencyContactPhone.trim();
+      if (emergencyContactEmail) row.emergency_contact_email = emergencyContactEmail.trim();
 
-      if (email) fields['Email'] = email.trim();
-      if (phone) fields['Phone'] = phone.trim();
-      if (roles && Array.isArray(roles)) fields['Roles'] = roles;
-      if (notes) fields['Notes'] = notes.trim();
-      if (emergencyContactName) fields['Emergency Contact Name'] = emergencyContactName.trim();
-      if (emergencyContactRelationship) fields['Emergency Contact Relationship'] = emergencyContactRelationship.trim();
-      if (emergencyContactPhone) fields['Emergency Contact Phone'] = emergencyContactPhone.trim();
-      if (emergencyContactEmail) fields['Emergency Contact Email'] = emergencyContactEmail.trim();
-
-      const response = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ fields })
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Airtable error:', errorData);
-        throw new Error(errorData.error?.message || 'Failed to create person');
-      }
-
-      const data = await response.json();
-
-      const person = {
-        id: data.id,
-        name: data.fields['Name'] || '',
-        email: data.fields['Email'] || '',
-        phone: data.fields['Phone'] || '',
-        roles: data.fields['Roles'] || [],
-        status: data.fields['Status'] || 'Active',
-        notes: data.fields['Notes'] || '',
-        emergencyContactName: data.fields['Emergency Contact Name'] || '',
-        emergencyContactRelationship: data.fields['Emergency Contact Relationship'] || '',
-        emergencyContactPhone: data.fields['Emergency Contact Phone'] || '',
-        emergencyContactEmail: data.fields['Emergency Contact Email'] || ''
-      };
-
-      return res.status(201).json({ person });
-
+      const { data, error } = await supabase.from('persons').insert(row).select('*').single();
+      if (error) throw error;
+      return res.status(201).json({ person: formatPerson(data) });
     } catch (error) {
       console.error('Error creating person:', error);
       return res.status(500).json({ error: error.message });
     }
   }
 
-  // ========================================
-  // PATCH - Update an existing person
-  // ========================================
   if (req.method === 'PATCH') {
     try {
-      const { 
-        id,
-        name, 
-        email, 
-        phone, 
-        roles,
-        status,
-        notes,
-        emergencyContactName,
-        emergencyContactRelationship,
-        emergencyContactPhone,
-        emergencyContactEmail
+      const {
+        id, name, email, phone, roles, status, notes,
+        emergencyContactName, emergencyContactRelationship,
+        emergencyContactPhone, emergencyContactEmail,
       } = req.body;
+      if (!id) return res.status(400).json({ error: 'Person ID is required' });
 
-      if (!id) {
-        return res.status(400).json({ error: 'Person ID is required' });
-      }
+      const updates = {};
+      if (name !== undefined) updates.name = name.trim();
+      if (email !== undefined) updates.email = email.trim();
+      if (phone !== undefined) updates.phone = phone.trim();
+      if (roles !== undefined) updates.roles = roles;
+      if (status !== undefined) updates.status = status;
+      if (notes !== undefined) updates.notes = notes.trim();
+      if (emergencyContactName !== undefined) updates.emergency_contact_name = emergencyContactName.trim();
+      if (emergencyContactRelationship !== undefined) updates.emergency_contact_relationship = emergencyContactRelationship.trim();
+      if (emergencyContactPhone !== undefined) updates.emergency_contact_phone = emergencyContactPhone.trim();
+      if (emergencyContactEmail !== undefined) updates.emergency_contact_email = emergencyContactEmail.trim();
 
-      // Build fields object with only provided fields
-      const fields = {};
+      const isAirtableId = /^rec/.test(id);
+      let query = supabase.from('persons').update(updates);
+      query = isAirtableId ? query.eq('airtable_record_id', id) : query.eq('id', id);
 
-      if (name !== undefined) fields['Name'] = name.trim();
-      if (email !== undefined) fields['Email'] = email.trim();
-      if (phone !== undefined) fields['Phone'] = phone.trim();
-      if (roles !== undefined) fields['Roles'] = roles;
-      if (status !== undefined) fields['Status'] = status;
-      if (notes !== undefined) fields['Notes'] = notes.trim();
-      if (emergencyContactName !== undefined) fields['Emergency Contact Name'] = emergencyContactName.trim();
-      if (emergencyContactRelationship !== undefined) fields['Emergency Contact Relationship'] = emergencyContactRelationship.trim();
-      if (emergencyContactPhone !== undefined) fields['Emergency Contact Phone'] = emergencyContactPhone.trim();
-      if (emergencyContactEmail !== undefined) fields['Emergency Contact Email'] = emergencyContactEmail.trim();
-
-      const response = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons/${id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ fields })
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Airtable error:', errorData);
-        throw new Error(errorData.error?.message || 'Failed to update person');
-      }
-
-      const data = await response.json();
-
-      const person = {
-        id: data.id,
-        name: data.fields['Name'] || '',
-        email: data.fields['Email'] || '',
-        phone: data.fields['Phone'] || '',
-        roles: data.fields['Roles'] || [],
-        status: data.fields['Status'] || 'Active',
-        notes: data.fields['Notes'] || '',
-        emergencyContactName: data.fields['Emergency Contact Name'] || '',
-        emergencyContactRelationship: data.fields['Emergency Contact Relationship'] || '',
-        emergencyContactPhone: data.fields['Emergency Contact Phone'] || '',
-        emergencyContactEmail: data.fields['Emergency Contact Email'] || ''
-      };
-
-      return res.status(200).json({ person });
-
+      const { data, error } = await query.select('*').maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: 'Person not found' });
+      return res.status(200).json({ person: formatPerson(data) });
     } catch (error) {
       console.error('Error updating person:', error);
       return res.status(500).json({ error: error.message });
     }
   }
 
-  // Method not allowed
   return res.status(405).json({ error: 'Method not allowed' });
 }
