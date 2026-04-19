@@ -1,264 +1,162 @@
 // /api/admin/persons/convert-from-participant.js
-// POST: Convert a participant to a person with Teaching Assistant role
-// Creates Person record, then creates Teaching Assignment for a class
+// Convert a participant to a Person with Teaching Assistant role.
+// (Original endpoint did not require admin auth; preserved for parity.)
+import { requireSupabase, outerId } from '../../_supabase.js';
+
+const formatPerson = (p) => ({
+  id: outerId(p),
+  name: p.name || '',
+  email: p.email || '',
+  phone: p.phone || '',
+  roles: p.roles || ['Teaching Assistant'],
+  status: p.status || 'Active',
+});
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-
-  if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
   try {
     const { participantId, classScheduleId } = req.body;
+    if (!participantId) return res.status(400).json({ error: 'Participant ID is required' });
 
-    if (!participantId) {
-      return res.status(400).json({ error: 'Participant ID is required' });
-    }
+    const isAirtableId = /^rec/.test(participantId);
+    const partQ = supabase
+      .from('participants')
+      .select('id, airtable_record_id, first_name, last_name, booking_id, bookings(contact_first_name, contact_last_name, contact_email, contact_phone)');
+    const { data: participant, error: partErr } = await (isAirtableId
+      ? partQ.eq('airtable_record_id', participantId)
+      : partQ.eq('id', participantId)
+    ).maybeSingle();
+    if (partErr) throw partErr;
+    if (!participant) return res.status(404).json({ error: 'Participant not found' });
 
-    console.log(`[CONVERT-PERSON] Converting participant ${participantId} to Person with TA role`);
+    const fullName = `${participant.first_name || ''} ${participant.last_name || ''}`.trim();
+    if (!fullName) return res.status(400).json({ error: 'Participant has no name' });
 
-    // Step 1: Fetch the participant record
-    const participantResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants/${participantId}`,
-      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-    );
-
-    if (!participantResponse.ok) {
-      if (participantResponse.status === 404) {
-        return res.status(404).json({ error: 'Participant not found' });
-      }
-      throw new Error(`Failed to fetch participant: ${participantResponse.status}`);
-    }
-
-    const participantData = await participantResponse.json();
-    const participant = participantData.fields;
-
-    const participantFirstName = participant['First Name'] || '';
-    const participantLastName = participant['Last Name'] || '';
-    const participantFullName = `${participantFirstName} ${participantLastName}`.trim();
-
-    if (!participantFullName) {
-      return res.status(400).json({ error: 'Participant has no name' });
-    }
-
-    console.log(`[CONVERT-PERSON] Participant name: ${participantFullName}`);
-
-    // Step 2: Get the linked booking to check if participant is the booker
-    const bookingIds = participant['Booking'] || [];
+    // If the participant is also the booker, copy their contact info
     let bookerEmail = null;
     let bookerPhone = null;
-
-    if (bookingIds.length > 0) {
-      const bookingResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings/${bookingIds[0]}`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-
-      if (bookingResponse.ok) {
-        const bookingData = await bookingResponse.json();
-        const booking = bookingData.fields;
-
-        const bookerFirstName = booking['Contact First Name'] || '';
-        const bookerLastName = booking['Contact Last Name'] || '';
-
-        const isBooker = 
-          participantFirstName.toLowerCase() === bookerFirstName.toLowerCase() &&
-          participantLastName.toLowerCase() === bookerLastName.toLowerCase();
-
-        if (isBooker) {
-          bookerEmail = booking['Contact Email'] || null;
-          bookerPhone = booking['Contact Phone'] || null;
-          console.log(`[CONVERT-PERSON] Participant is the booker, copying email: ${bookerEmail}, phone: ${bookerPhone}`);
-        } else {
-          console.log(`[CONVERT-PERSON] Participant is NOT the booker (${bookerFirstName} ${bookerLastName})`);
-        }
+    const booking = participant.bookings;
+    if (booking) {
+      const isBooker =
+        (participant.first_name || '').toLowerCase() === (booking.contact_first_name || '').toLowerCase() &&
+        (participant.last_name || '').toLowerCase() === (booking.contact_last_name || '').toLowerCase();
+      if (isBooker) {
+        bookerEmail = booking.contact_email || null;
+        bookerPhone = booking.contact_phone || null;
       }
     }
 
-    // Step 3: Check if Person with same email already exists
-    let existingPerson = null;
-    
+    // Look for an existing person by email, then by name
+    let existing = null;
     if (bookerEmail) {
-      const checkResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-
-      if (checkResponse.ok) {
-        const checkData = await checkResponse.json();
-        existingPerson = checkData.records.find(
-          r => r.fields['Email']?.toLowerCase() === bookerEmail.toLowerCase()
-        );
-      }
+      const { data } = await supabase
+        .from('persons')
+        .select('*')
+        .ilike('email', bookerEmail)
+        .maybeSingle();
+      existing = data;
+    }
+    if (!existing) {
+      const { data } = await supabase
+        .from('persons')
+        .select('*')
+        .ilike('name', fullName)
+        .maybeSingle();
+      existing = data;
     }
 
-    // Also check by name match if no email match
-    if (!existingPerson) {
-      const checkResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-
-      if (checkResponse.ok) {
-        const checkData = await checkResponse.json();
-        existingPerson = checkData.records.find(
-          r => r.fields['Name']?.toLowerCase() === participantFullName.toLowerCase()
-        );
-      }
-    }
-
-    let personId;
     let personRecord;
     let wasExisting = false;
 
-    if (existingPerson) {
-      // Person exists - just add TA role if not already present
-      console.log(`[CONVERT-PERSON] Found existing person: ${existingPerson.id}`);
-      personId = existingPerson.id;
+    if (existing) {
       wasExisting = true;
-
-      const currentRoles = existingPerson.fields['Roles'] || [];
+      const currentRoles = existing.roles || [];
       if (!currentRoles.includes('Teaching Assistant')) {
-        const updatedRoles = [...currentRoles, 'Teaching Assistant'];
-        
-        const updateResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons/${personId}`,
-          {
-            method: 'PATCH',
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fields: { 'Roles': updatedRoles }
-            })
-          }
-        );
-
-        if (updateResponse.ok) {
-          personRecord = await updateResponse.json();
-        }
+        const { data: updated, error: updErr } = await supabase
+          .from('persons')
+          .update({ roles: [...currentRoles, 'Teaching Assistant'] })
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+        if (updErr) throw updErr;
+        personRecord = updated;
       } else {
-        personRecord = existingPerson;
+        personRecord = existing;
       }
     } else {
-      // Create new Person
-      console.log(`[CONVERT-PERSON] Creating new person`);
-      
-      const personFields = {
-        'Name': participantFullName,
-        'Roles': ['Teaching Assistant'],
-        'Status': 'Active',
-        'Source Participant': [participantId]
+      const insertRow = {
+        name: fullName,
+        roles: ['Teaching Assistant'],
+        status: 'Active',
+        source_participant_id: participant.id,
       };
-
-      if (bookerEmail) personFields['Email'] = bookerEmail;
-      if (bookerPhone) personFields['Phone'] = bookerPhone;
-
-      const createResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Persons`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ fields: personFields })
-        }
-      );
-
-      if (!createResponse.ok) {
-        const errorText = await createResponse.text();
-        throw new Error(`Failed to create person: ${errorText}`);
-      }
-
-      personRecord = await createResponse.json();
-      personId = personRecord.id;
+      if (bookerEmail) insertRow.email = bookerEmail;
+      if (bookerPhone) insertRow.phone = bookerPhone;
+      const { data: created, error: insErr } = await supabase
+        .from('persons')
+        .insert(insertRow)
+        .select('*')
+        .single();
+      if (insErr) throw insErr;
+      personRecord = created;
     }
 
-    // Step 4: Create Teaching Assignment if classScheduleId provided
+    // Optional: create the teaching assignment for this class schedule
     let assignmentCreated = false;
     let assignmentRecord = null;
-
     if (classScheduleId) {
-      // Check if assignment already exists
-      const checkAssignmentResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-
-      let assignmentExists = false;
-      if (checkAssignmentResponse.ok) {
-        const checkData = await checkAssignmentResponse.json();
-        assignmentExists = checkData.records.some(a => {
-          const aPersonId = a.fields['Person']?.[0];
-          const aScheduleId = a.fields['Class Schedule']?.[0];
-          return aPersonId === personId && aScheduleId === classScheduleId;
-        });
+      let scheduleUuid = classScheduleId;
+      if (/^rec/.test(classScheduleId)) {
+        const { data: sched } = await supabase
+          .from('class_schedules')
+          .select('id')
+          .eq('airtable_record_id', classScheduleId)
+          .maybeSingle();
+        scheduleUuid = sched?.id || null;
       }
 
-      if (!assignmentExists) {
-        const assignmentResponse = await fetch(
-          `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Teaching%20Assignments`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fields: {
-                'Person': [personId],
-                'Class Schedule': [classScheduleId]
-              }
-            })
-          }
-        );
+      if (scheduleUuid) {
+        const { data: existingAssignment } = await supabase
+          .from('teaching_assignments')
+          .select('id')
+          .eq('person_id', personRecord.id)
+          .eq('class_schedule_id', scheduleUuid)
+          .maybeSingle();
 
-        if (assignmentResponse.ok) {
-          assignmentRecord = await assignmentResponse.json();
-          assignmentCreated = true;
+        if (!existingAssignment) {
+          const { data: created, error: aErr } = await supabase
+            .from('teaching_assignments')
+            .insert({ person_id: personRecord.id, class_schedule_id: scheduleUuid })
+            .select('id, assignment_id, airtable_record_id')
+            .single();
+          if (!aErr) {
+            assignmentCreated = true;
+            assignmentRecord = created;
+          }
         }
       }
     }
-
-    console.log(`[CONVERT-PERSON] Success - Person: ${personId}, Assignment created: ${assignmentCreated}`);
-
-    const fields = personRecord.fields || personRecord;
 
     return res.status(201).json({
       success: true,
       wasExisting,
-      person: {
-        id: personId,
-        name: fields['Name'] || participantFullName,
-        email: fields['Email'] || '',
-        phone: fields['Phone'] || '',
-        roles: fields['Roles'] || ['Teaching Assistant'],
-        status: fields['Status'] || 'Active'
-      },
+      person: formatPerson(personRecord),
       assignmentCreated,
       assignment: assignmentRecord ? {
-        id: assignmentRecord.id,
-        assignmentId: assignmentRecord.fields['Assignment ID']
+        id: outerId(assignmentRecord),
+        assignmentId: assignmentRecord.assignment_id,
       } : null,
-      contactInfoCopied: !!(bookerEmail || bookerPhone)
+      contactInfoCopied: !!(bookerEmail || bookerPhone),
     });
-
   } catch (error) {
     console.error('[CONVERT-PERSON] Error:', error);
     return res.status(500).json({ error: error.message });

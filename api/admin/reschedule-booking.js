@@ -1,89 +1,86 @@
 // /api/admin/reschedule-booking.js
-// Handles whole-group moves and split moves for rescheduling participants.
-import jwt from 'jsonwebtoken';
+// Whole-group and split-move reschedules.
+import { requireSupabase, outerId } from '../_supabase.js';
+import { requireAdminAuth } from '../_admin-auth.js';
+import {
+  convertToISO, formatTimeForDisplay, formatDateForDisplay,
+  buildGcalURL, buildClassIcal, sendBookingEmailAndTrack,
+} from '../_email.js';
 
-function verifyAuth(req) {
-  const JWT_SECRET = process.env.JWT_SECRET;
-  const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
+const BOOKING_COLS =
+  'id, airtable_record_id, contact_first_name, contact_last_name, contact_email, ' +
+  'contact_phone, number_of_participants, class_schedule_id, offshoot_booking_ids';
 
-  const token = cookies?.auth_token;
-  if (!token) return false;
-
-  try {
-    jwt.verify(token, JWT_SECRET);
-    return true;
-  } catch {
-    return false;
-  }
+async function findBooking(supabase, bookingId) {
+  const isAirtableId = /^rec/.test(bookingId);
+  const q = supabase.from('bookings').select(BOOKING_COLS);
+  const { data, error } = await (isAirtableId
+    ? q.eq('airtable_record_id', bookingId)
+    : q.eq('id', bookingId)
+  ).maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
-async function sendRescheduleEmail({ bookingId, contactFirstName, contactEmail, participantCount, classScheduleId, baseUrl, atHeaders, req }) {
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY || !contactEmail || !classScheduleId) return;
+async function resolveScheduleUuid(supabase, scheduleId) {
+  if (!scheduleId) return null;
+  if (!/^rec/.test(scheduleId)) return scheduleId;
+  const { data, error } = await supabase
+    .from('class_schedules')
+    .select('id')
+    .eq('airtable_record_id', scheduleId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id || null;
+}
 
+// Resolve participant identifiers (mix of recXXX and UUID) to UUIDs.
+async function resolveParticipantUuids(supabase, ids) {
+  if (!ids || ids.length === 0) return [];
+  const airtableIds = ids.filter(id => /^rec/.test(id));
+  const uuids = ids.filter(id => !/^rec/.test(id));
+  if (airtableIds.length === 0) return uuids;
+  const { data, error } = await supabase
+    .from('participants')
+    .select('id, airtable_record_id')
+    .in('airtable_record_id', airtableIds);
+  if (error) throw error;
+  const map = new Map((data || []).map(p => [p.airtable_record_id, p.id]));
+  return [...uuids, ...airtableIds.map(id => map.get(id)).filter(Boolean)];
+}
+
+async function sendRescheduleEmail({ supabase, bookingUuid, contactFirstName, contactEmail, participantCount, scheduleUuid, req }) {
+  if (!process.env.RESEND_API_KEY || !contactEmail || !scheduleUuid) return;
   try {
-    const schedRes = await fetch(`${baseUrl}/Class%20Schedules/${classScheduleId}`, { headers: atHeaders });
-    if (!schedRes.ok) return;
-    const scheduleData = await schedRes.json();
+    const { data: schedule } = await supabase
+      .from('class_schedules')
+      .select('id, airtable_record_id, date, start_time_new, end_time_new, classes(class_name, location)')
+      .eq('id', scheduleUuid)
+      .maybeSingle();
+    if (!schedule) return;
 
-    let classData = null;
-    const classId = (scheduleData.fields.Class || [])[0];
-    if (classId) {
-      const classRes = await fetch(`${baseUrl}/Classes/${classId}`, { headers: atHeaders });
-      if (classRes.ok) classData = await classRes.json();
-    }
+    const klass = schedule.classes;
+    const className = klass?.class_name || 'Self Defense Class';
+    const location = klass?.location || 'Walnut Creek, CA';
+    const startISO = convertToISO(schedule.date, schedule.start_time_new);
+    const endISO = convertToISO(schedule.date, schedule.end_time_new);
+    const displayStartTime = formatTimeForDisplay(schedule.start_time_new);
+    const displayEndTime = formatTimeForDisplay(schedule.end_time_new);
+    const formattedDate = formatDateForDisplay(schedule.date);
 
     const host = req.headers.host || 'www.streetwiseselfdefense.com';
     const protocol = host.includes('localhost') ? 'http' : 'https';
-    const classPrepUrl = `${protocol}://${host}/class-prep/${classScheduleId}`;
+    const scheduleRouteId = schedule.airtable_record_id || schedule.id;
+    const classPrepUrl = `${protocol}://${host}/class-prep/${scheduleRouteId}`;
 
-    const convertToISO = (dateStr, timeStr) => {
-      if (!dateStr || !timeStr) return new Date().toISOString();
-      if (timeStr.includes('T')) return new Date(timeStr).toISOString();
-      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (!match) return new Date(dateStr + 'T12:00:00').toISOString();
-      let hours = parseInt(match[1]);
-      const mins = parseInt(match[2]);
-      const meridiem = match[3].toUpperCase();
-      if (meridiem === 'PM' && hours !== 12) hours += 12;
-      if (meridiem === 'AM' && hours === 12) hours = 0;
-      return new Date(`${dateStr}T${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:00-08:00`).toISOString();
-    };
+    const gcalURL = buildGcalURL({
+      className, startISO, endISO, location, details: 'Self defense class rescheduled',
+    });
+    const icalString = await buildClassIcal({
+      className, startISO, endISO, location, description: 'Self defense class rescheduled',
+    });
 
-    const formatTimeForDisplay = (timeStr) => {
-      if (!timeStr) return 'TBD';
-      if (timeStr.includes('T')) {
-        return new Date(timeStr).toLocaleTimeString('en-US', {
-          hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles',
-        });
-      }
-      return timeStr;
-    };
-
-    const startISO = convertToISO(scheduleData.fields?.Date, scheduleData.fields?.['Start Time New']);
-    const endISO = convertToISO(scheduleData.fields?.Date, scheduleData.fields?.['End Time New']);
-    const displayStartTime = formatTimeForDisplay(scheduleData.fields?.['Start Time New']);
-    const displayEndTime = formatTimeForDisplay(scheduleData.fields?.['End Time New']);
-    const className = classData?.fields?.['Class Name'] || 'Self Defense Class';
-    const location = scheduleData.fields?.Location || classData?.fields?.Location || 'Walnut Creek, CA';
-
-    const formattedDate = scheduleData.fields?.Date
-      ? new Date(scheduleData.fields.Date + 'T12:00:00').toLocaleDateString('en-US', {
-          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-        })
-      : 'TBD';
-
-    const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(className)}&dates=${new Date(startISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}/${new Date(endISO).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}&details=${encodeURIComponent('Self defense class rescheduled')}&location=${encodeURIComponent(location)}&ctz=America/Los_Angeles`;
-
-    const { default: ical } = await import('ical-generator');
-    const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
-    cal.createEvent({ start: new Date(startISO), end: new Date(endISO), summary: className, location, description: 'Self defense class rescheduled' });
-
-    const emailHTML = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    const html = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
 <div style="text-align: center; margin-bottom: 30px;"><img src="https://www.streetwiseselfdefense.com/swsd-logo-official.png" alt="Streetwise Self Defense" style="max-width: 300px;"></div>
 <h1 style="color: #1E293B; text-align: center;">You've Been Rescheduled!</h1>
 <p>Dear ${contactFirstName || 'Valued Participant'},</p>
@@ -106,32 +103,16 @@ async function sendRescheduleEmail({ bookingId, contactFirstName, contactEmail, 
 <p>See you in class!</p><p><strong>The Streetwise Self Defense Team</strong></p>
 <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
 <p style="text-align: center; font-size: 14px; color: #6B7280;">Streetwise Self Defense | Walnut Creek, CA<br>© ${new Date().getFullYear()} Streetwise Self Defense. All rights reserved.</p>
-<p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;"><a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingId}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a></p>
+<p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;"><a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingUuid}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a></p>
 </body></html>`;
 
-    const { Resend } = await import('resend');
-    const resend = new Resend(RESEND_API_KEY);
-    const FROM_EMAIL = `"Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
-
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL, to: contactEmail,
+    await sendBookingEmailAndTrack({
+      supabase, bookingUuid, to: contactEmail,
       subject: 'Your Self Defense Class Has Been Rescheduled!',
-      html: emailHTML,
-      attachments: [{ filename: 'class-event.ics', content: cal.toString() }],
-      headers: { 'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingId}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+      html, icalString,
     });
-
-    if (error) {
-      console.error(`[RESCHEDULE-EMAIL] Error for ${bookingId}:`, error);
-    } else {
-      console.log(`[RESCHEDULE-EMAIL] Sent to ${contactEmail}, Resend ID: ${data.id}`);
-      await fetch(`${baseUrl}/Bookings/${bookingId}`, {
-        method: 'PATCH', headers: { ...atHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { 'Confirmation Email ID': data.id, 'Confirmation Email Status': 'Sent', 'Confirmation Email Sent At': new Date().toISOString() } }),
-      });
-    }
-  } catch (emailError) {
-    console.error(`[RESCHEDULE-EMAIL] Failed for ${bookingId}:`, emailError);
+  } catch (err) {
+    console.error('[RESCHEDULE-EMAIL] Failed:', err);
   }
 }
 
@@ -139,24 +120,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-  const JWT_SECRET = process.env.JWT_SECRET;
-
-  if (!JWT_SECRET || !AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
-
-  if (!verifyAuth(req)) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const BASE_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`;
-  const headers = {
-    Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-    'Content-Type': 'application/json',
-  };
+  if (!requireAdminAuth(req, res)) return;
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
   const {
     originalBookingId,
@@ -174,7 +140,6 @@ export default async function handler(req, res) {
     rescheduleNotes,
   } = req.body || {};
 
-  // Validate required fields
   if (!originalBookingId) {
     return res.status(400).json({ error: 'originalBookingId is required' });
   }
@@ -186,210 +151,156 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ── Step 1: Fetch the original booking ──
-    const bookingRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, { headers });
-    if (!bookingRes.ok) {
-      const err = await bookingRes.text();
-      return res.status(500).json({ error: `Failed to fetch original booking: ${err}` });
-    }
-    const originalBooking = await bookingRes.json();
-    const ob = originalBooking.fields;
+    const original = await findBooking(supabase, originalBookingId);
+    if (!original) return res.status(404).json({ error: 'Original booking not found' });
 
-    const currentClassSchedule = ob['Class Schedule'] || [];
-    const currentParticipantCount = ob['Number of Participants'] || 0;
-    const allParticipantIds = ob['Participants'] || [];
+    const newScheduleUuid = await resolveScheduleUuid(supabase, newClassScheduleId);
 
-    // ── Step 2: Determine whole-group vs split ──
-    const isWholeGroup = movingParticipantIds.length === allParticipantIds.length;
+    // Look up all participants currently linked to the original booking
+    const { data: originalParticipants, error: pErr } = await supabase
+      .from('participants')
+      .select('id, airtable_record_id')
+      .eq('booking_id', original.id);
+    if (pErr) throw pErr;
+    const allParticipantUuids = (originalParticipants || []).map(p => p.id);
+    const movingParticipantUuids = await resolveParticipantUuids(supabase, movingParticipantIds);
+    const isWholeGroup = movingParticipantUuids.length === allParticipantUuids.length;
 
     if (isWholeGroup) {
-      // ── Step 3A: Whole-group move ──
-      const patchFields = {};
+      const updates = {
+        contact_first_name: primaryContactFirstName,
+        contact_last_name: primaryContactLastName,
+        contact_email: primaryContactEmail,
+      };
+      if (primaryContactPhone) updates.contact_phone = primaryContactPhone;
+      if (smsConsent) updates.sms_consent_date = new Date().toISOString();
 
-      if (newClassScheduleId) {
-        patchFields['Class Schedule'] = [newClassScheduleId];
+      if (newScheduleUuid) {
+        updates.class_schedule_id = newScheduleUuid;
+        if (rescheduleNotes) updates.reschedule_notes = rescheduleNotes;
       } else {
-        patchFields['Reschedule Status'] = 'Pending Reschedule';
-        // Clear Class Schedule so the booking is no longer counted in the old class's rollup.
-        // Prepend the original schedule ID to notes so the pending page can show it.
-        const origScheduleId = currentClassSchedule[0] || '';
-        const notePrefix = origScheduleId ? `[Original Schedule: ${origScheduleId}] ` : '';
-        patchFields['Reschedule Notes'] = notePrefix + (rescheduleNotes || '');
-        patchFields['Class Schedule'] = [];
+        // Pending: clear schedule, mark Pending Reschedule, prepend original schedule ID to notes
+        const origScheduleRef = original.class_schedule_id;
+        let prefix = '';
+        if (origScheduleRef) {
+          const { data: origSched } = await supabase
+            .from('class_schedules')
+            .select('airtable_record_id')
+            .eq('id', origScheduleRef)
+            .maybeSingle();
+          const ref = origSched?.airtable_record_id || origScheduleRef;
+          prefix = `[Original Schedule: ${ref}] `;
+        }
+        updates.reschedule_status = 'Pending Reschedule';
+        updates.reschedule_notes = prefix + (rescheduleNotes || '');
+        updates.class_schedule_id = null;
       }
 
-      if (rescheduleNotes && !patchFields['Reschedule Notes']) {
-        patchFields['Reschedule Notes'] = rescheduleNotes;
-      }
+      const { error: updErr } = await supabase
+        .from('bookings')
+        .update(updates)
+        .eq('id', original.id);
+      if (updErr) throw updErr;
 
-      // Update contact info to the provided primary contact
-      patchFields['Contact First Name'] = primaryContactFirstName;
-      patchFields['Contact Last Name'] = primaryContactLastName;
-      patchFields['Contact Email'] = primaryContactEmail;
-      if (primaryContactPhone) patchFields['Contact Phone'] = primaryContactPhone;
-      if (smsConsent) patchFields['SMS Consent Date'] = new Date().toISOString();
-
-      const patchRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ fields: patchFields }),
-      });
-
-      if (!patchRes.ok) {
-        const err = await patchRes.text();
-        return res.status(500).json({ error: `Failed to update original booking: ${err}` });
-      }
-
-      // Send reschedule confirmation email if moving to a specific class
-      if (newClassScheduleId) {
+      if (newScheduleUuid) {
         await sendRescheduleEmail({
-          bookingId: originalBookingId,
+          supabase,
+          bookingUuid: original.id,
           contactFirstName: primaryContactFirstName,
           contactEmail: primaryContactEmail,
-          participantCount: allParticipantIds.length,
-          classScheduleId: newClassScheduleId,
-          baseUrl: BASE_URL,
-          atHeaders: headers,
+          participantCount: allParticipantUuids.length,
+          scheduleUuid: newScheduleUuid,
           req,
         });
       }
 
-      return res.json({
-        type: 'whole-group',
-        updatedBookingId: originalBookingId,
-      });
+      return res.json({ type: 'whole-group', updatedBookingId: outerId(original) });
     }
 
-    // ── Step 3B: Split move ──
+    // ── Split move ──
+    const stayingUuids = allParticipantUuids.filter(id => !movingParticipantUuids.includes(id));
 
-    // Determine which participants stay on the original booking
-    const stayingParticipantIds = allParticipantIds.filter(
-      (id) => !movingParticipantIds.includes(id)
-    );
+    // Update original booking's participant count + record original count
+    const { error: origErr } = await supabase
+      .from('bookings')
+      .update({
+        original_participant_count: allParticipantUuids.length,
+        number_of_participants: stayingUuids.length,
+      })
+      .eq('id', original.id);
+    if (origErr) throw origErr;
 
-    // Patch the original booking: preserve count, update participants
-    const originalPatchFields = {
-      'Original Participant Count': allParticipantIds.length,
-      'Participants': stayingParticipantIds,
-      'Number of Participants': stayingParticipantIds.length,
+    // Create child booking
+    const childRow = {
+      booking_date: new Date().toISOString(),
+      status: 'Confirmed',
+      payment_status: 'Prepaid',
+      contact_first_name: primaryContactFirstName,
+      contact_last_name: primaryContactLastName,
+      contact_email: primaryContactEmail,
+      contact_phone: primaryContactPhone || '',
+      number_of_participants: movingParticipantUuids.length,
+      original_booking_id: original.id,
+      total_amount: 0,
     };
-
-    const originalPatchRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ fields: originalPatchFields }),
-    });
-
-    if (!originalPatchRes.ok) {
-      const err = await originalPatchRes.text();
-      return res.status(500).json({ error: `Failed to update original booking for split: ${err}` });
-    }
-
-    // Create the child booking
-    const childFields = {
-      'Booking Date': new Date().toISOString().split('T')[0],
-      'Status': 'Confirmed',
-      'Payment Status': 'Prepaid',
-      'Contact First Name': primaryContactFirstName,
-      'Contact Last Name': primaryContactLastName,
-      'Contact Email': primaryContactEmail,
-      'Contact Phone': primaryContactPhone || '',
-      ...(smsConsent ? { 'SMS Consent Date': new Date().toISOString() } : {}),
-      'Number of Participants': movingParticipantIds.length,
-      'Participants': movingParticipantIds,
-      'Original Booking ID': originalBookingId,
-      'Total Amount': 0,
-    };
-
-    if (newClassScheduleId) {
-      childFields['Class Schedule'] = [newClassScheduleId];
+    if (smsConsent) childRow.sms_consent_date = new Date().toISOString();
+    if (newScheduleUuid) {
+      childRow.class_schedule_id = newScheduleUuid;
     } else {
-      childFields['Reschedule Status'] = 'Pending Reschedule';
+      childRow.reschedule_status = 'Pending Reschedule';
     }
+    if (rescheduleNotes) childRow.reschedule_notes = rescheduleNotes;
 
-    if (rescheduleNotes) {
-      childFields['Reschedule Notes'] = rescheduleNotes;
-    }
+    const { data: child, error: childErr } = await supabase
+      .from('bookings')
+      .insert(childRow)
+      .select('id')
+      .single();
+    if (childErr) throw childErr;
+    const childUuid = child.id;
 
-    const createRes = await fetch(`${BASE_URL}/Bookings`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ fields: childFields }),
-    });
+    // Move participants to the child booking
+    const { error: pUpdErr } = await supabase
+      .from('participants')
+      .update({ booking_id: childUuid })
+      .in('id', movingParticipantUuids);
+    if (pUpdErr) console.error('Warning: failed to move participants:', pUpdErr.message);
 
-    if (!createRes.ok) {
-      const err = await createRes.text();
-      return res.status(500).json({ error: `Failed to create child booking: ${err}` });
-    }
-
-    const childBooking = await createRes.json();
-    const childBookingId = childBooking.id;
-
-    // Update the original booking's Offshoot Booking IDs
-    const existingOffshoots = ob['Offshoot Booking IDs'] || '';
-    const updatedOffshoots = existingOffshoots
-      ? `${existingOffshoots},${childBookingId}`
-      : childBookingId;
-
-    // Update original booking: offshoot IDs + stayer contact info if booker is moving
-    const offshootPatchFields = { 'Offshoot Booking IDs': updatedOffshoots };
+    // Update original booking's offshoot list + optional stayer contact override
+    const existingOffshoots = original.offshoot_booking_ids || '';
+    const updatedOffshoots = existingOffshoots ? `${existingOffshoots},${childUuid}` : childUuid;
+    const offshootUpdates = { offshoot_booking_ids: updatedOffshoots };
     if (stayerContactEmail) {
-      offshootPatchFields['Contact First Name'] = stayerContactFirstName || '';
-      offshootPatchFields['Contact Last Name'] = stayerContactLastName || '';
-      offshootPatchFields['Contact Email'] = stayerContactEmail;
-      if (stayerContactPhone) offshootPatchFields['Contact Phone'] = stayerContactPhone;
+      offshootUpdates.contact_first_name = stayerContactFirstName || '';
+      offshootUpdates.contact_last_name = stayerContactLastName || '';
+      offshootUpdates.contact_email = stayerContactEmail;
+      if (stayerContactPhone) offshootUpdates.contact_phone = stayerContactPhone;
     }
+    const { error: offErr } = await supabase
+      .from('bookings')
+      .update(offshootUpdates)
+      .eq('id', original.id);
+    if (offErr) console.error('Warning: failed to update original offshoots:', offErr.message);
 
-    const offshootPatchRes = await fetch(`${BASE_URL}/Bookings/${originalBookingId}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ fields: offshootPatchFields }),
-    });
-
-    if (!offshootPatchRes.ok) {
-      const err = await offshootPatchRes.text();
-      console.error(`Warning: Failed to update original booking: ${err}`);
-      // Non-fatal — continue
-    }
-
-    // ── Step 4: Update each moving participant's Booking link ──
-    for (const participantId of movingParticipantIds) {
-      const partPatchRes = await fetch(`${BASE_URL}/Participants/${participantId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ fields: { 'Booking': [childBookingId] } }),
-      });
-
-      if (!partPatchRes.ok) {
-        const err = await partPatchRes.text();
-        console.error(`Warning: Failed to update participant ${participantId}: ${err}`);
-        // Non-fatal — continue
-      }
-    }
-
-    // ── Step 5: Send reschedule email if moving to a specific class ──
-    if (newClassScheduleId) {
+    if (newScheduleUuid) {
       await sendRescheduleEmail({
-        bookingId: childBookingId,
+        supabase,
+        bookingUuid: childUuid,
         contactFirstName: primaryContactFirstName,
         contactEmail: primaryContactEmail,
-        participantCount: movingParticipantIds.length,
-        classScheduleId: newClassScheduleId,
-        baseUrl: BASE_URL,
-        atHeaders: headers,
+        participantCount: movingParticipantUuids.length,
+        scheduleUuid: newScheduleUuid,
         req,
       });
     }
 
-    // ── Step 6: Return result ──
     return res.json({
       type: 'split',
-      originalBookingId,
-      childBookingId,
-      movedParticipantCount: movingParticipantIds.length,
-      remainingParticipantCount: stayingParticipantIds.length,
+      originalBookingId: outerId(original),
+      childBookingId: childUuid,
+      movedParticipantCount: movingParticipantUuids.length,
+      remainingParticipantCount: stayingUuids.length,
     });
-
   } catch (error) {
     console.error('Reschedule error:', error);
     return res.status(500).json({ error: `Reschedule failed: ${error.message}` });
