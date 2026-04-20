@@ -47,7 +47,9 @@ export default async function handler(req, res) {
       const displayEndTime = formatTimeForDisplay(schedule.end_time_new);
       const formattedDate = formatDateForDisplay(schedule.date);
       const scheduleRouteId = outerId(schedule);
-      const BASE_URL = process.env.BASE_URL || 'https://www.streetwiseselfdefense.com';
+      const host = req.headers.host || 'www.streetwiseselfdefense.com';
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+      const BASE_URL = `${protocol}://${host}`;
       const classPrepUrl = `${BASE_URL}/class-prep/${scheduleRouteId}`;
 
       // ── Students ────────────────────────────────────────────────────

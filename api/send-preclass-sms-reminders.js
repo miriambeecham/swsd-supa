@@ -57,7 +57,9 @@ export default async function handler(req, res) {
         ? `https://maps.google.com/?q=${encodeURIComponent(classLocation)}`
         : '';
       const scheduleRouteId = outerId(schedule);
-      const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${scheduleRouteId}`;
+      const host = req.headers.host || 'www.streetwiseselfdefense.com';
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+      const classPrepUrl = `${protocol}://${host}/class-prep/${scheduleRouteId}`;
       const displayStartTime = formatTimeForDisplay(schedule.start_time_new);
 
       // ── Students ────────────────────────────────────────────────────

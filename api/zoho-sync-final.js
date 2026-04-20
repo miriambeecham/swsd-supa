@@ -44,7 +44,9 @@ export default async function handler(req, res) {
           date: schedule?.date || '',
           participantCount: booking.number_of_participants || 1,
         };
-        const classPreparationUrl = `https://streetwiseselfdefense.com/class-prep/${outerId(booking)}`;
+        // Note: zoho-sync-final has no req object (cron only); production URL is the right
+        // default since these links land in Zoho records consumed by the prod team.
+        const classPreparationUrl = `https://www.streetwiseselfdefense.com/class-prep/${outerId(booking)}`;
         const classType = (klass?.type || '').toLowerCase().includes('mother')
           ? 'mother-daughter'
           : 'adult';

@@ -103,13 +103,14 @@ async function sendRescheduleEmail({ supabase, bookingUuid, contactFirstName, co
 <p>See you in class!</p><p><strong>The Streetwise Self Defense Team</strong></p>
 <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
 <p style="text-align: center; font-size: 14px; color: #6B7280;">Streetwise Self Defense | Walnut Creek, CA<br>© ${new Date().getFullYear()} Streetwise Self Defense. All rights reserved.</p>
-<p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;"><a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingUuid}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a></p>
+<p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;"><a href="${protocol}://${host}/api/unsubscribe?id=${bookingUuid}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a></p>
 </body></html>`;
 
     await sendBookingEmailAndTrack({
       supabase, bookingUuid, to: contactEmail,
       subject: 'Your Self Defense Class Has Been Rescheduled!',
       html, icalString,
+      unsubscribeUrl: `${protocol}://${host}/api/unsubscribe?id=${bookingUuid}`,
     });
   } catch (err) {
     console.error('[RESCHEDULE-EMAIL] Failed:', err);

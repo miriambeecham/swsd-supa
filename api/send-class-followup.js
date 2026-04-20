@@ -11,8 +11,11 @@ export default async function handler(req, res) {
   if (!supabase) return;
 
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const SITE_URL = process.env.SITE_URL || 'https://streetwiseselfdefense.com';
   const FROM_EMAIL = `"Jay Beecham - Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
+  // Build links from the request host so staging emails point at staging
+  const host = req.headers.host || 'www.streetwiseselfdefense.com';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const SITE_URL = `${protocol}://${host}`;
   if (!RESEND_API_KEY) {
     return res.status(500).json({ success: false, error: 'RESEND_API_KEY not configured' });
   }
@@ -108,7 +111,7 @@ export default async function handler(req, res) {
 </td></tr>
 <tr><td style="background-color:#f8f9fa;padding:20px 30px;border-radius:0 0 8px 8px;text-align:center">
 <p style="margin:0;color:#6C757D;font-size:13px;line-height:1.5">Streetwise Self Defense<br>Empowering individuals through practical self-defense training</p>
-<p style="margin-top:15px;font-size:12px;color:#9CA3AF"><a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}" style="color:#6B7280;text-decoration:underline">Unsubscribe from emails</a></p>
+<p style="margin-top:15px;font-size:12px;color:#9CA3AF"><a href="${SITE_URL}/api/unsubscribe?id=${booking.id}" style="color:#6B7280;text-decoration:underline">Unsubscribe from emails</a></p>
 </td></tr></table></td></tr></table>
 </body></html>`.trim();
 
@@ -119,7 +122,7 @@ export default async function handler(req, res) {
             subject: `Thank You for Attending ${className}!`,
             html: emailHTML,
             headers: {
-              'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}>`,
+              'List-Unsubscribe': `<${SITE_URL}/api/unsubscribe?id=${booking.id}>`,
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
             },
           });

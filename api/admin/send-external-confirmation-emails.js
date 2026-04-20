@@ -133,7 +133,7 @@ export default async function handler(req, res) {
     © ${new Date().getFullYear()} Streetwise Self Defense. All rights reserved.
   </p>
   <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
-    <a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+    <a href="${protocol}://${host}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
   </p>
 </body>
 </html>
@@ -143,6 +143,7 @@ export default async function handler(req, res) {
           supabase, bookingUuid: booking.id, to: contactEmail,
           subject: 'Your Self Defense Class Registration is Confirmed!',
           html, icalString,
+          unsubscribeUrl: `${protocol}://${host}/api/unsubscribe?id=${booking.id}`,
         });
         if (!sendResult.ok) throw new Error(`Resend error: ${sendResult.error?.message || 'unknown'}`);
 

@@ -50,7 +50,10 @@ export default async function handler(req, res) {
       const displayEndTime = formatTimeForDisplay(schedule.end_time_new);
       const formattedDate = formatDateForDisplay(schedule.date);
       const scheduleRouteId = outerId(schedule);
-      const classPrepUrl = `https://streetwiseselfdefense.com/class-prep/${scheduleRouteId}`;
+      const host = req.headers.host || 'www.streetwiseselfdefense.com';
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+      const SITE_URL = `${protocol}://${host}`;
+      const classPrepUrl = `${SITE_URL}/class-prep/${scheduleRouteId}`;
 
       const { data: bookings, error: bErr } = await supabase
         .from('bookings')
@@ -148,7 +151,7 @@ export default async function handler(req, res) {
       Empowering women and vulnerable populations through practical self-defense training<br>
       Walnut Creek, CA | (925) 532-9953
     </p>
-    <p style="margin-top: 20px; font-size: 12px; color: #9CA3AF;"><a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from reminder emails</a></p>
+    <p style="margin-top: 20px; font-size: 12px; color: #9CA3AF;"><a href="${SITE_URL}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from reminder emails</a></p>
   </div>
 </body>
 </html>`;
@@ -160,7 +163,7 @@ export default async function handler(req, res) {
               subject: `Tomorrow: Your ${className} Class`,
               html: emailHTML,
               headers: {
-                'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}>`,
+                'List-Unsubscribe': `<${SITE_URL}/api/unsubscribe?id=${booking.id}>`,
                 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
               },
             });

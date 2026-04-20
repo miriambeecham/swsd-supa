@@ -56,8 +56,11 @@ export async function buildClassIcal({ className, startISO, endISO, location, de
 
 // Send an email via Resend, then write tracking columns onto the booking row.
 // Caller is responsible for skip logic (unsubscribed, already-sent, etc.).
+// `unsubscribeUrl` should be derived from req.headers.host so staging emails
+// keep their unsubscribe links on staging.
 export async function sendBookingEmailAndTrack({
   supabase, bookingUuid, to, from, subject, html, icalString,
+  unsubscribeUrl,
 }) {
   const { Resend } = await import('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -70,7 +73,7 @@ export async function sendBookingEmailAndTrack({
     html,
     attachments: icalString ? [{ filename: 'class-event.ics', content: icalString }] : [],
     headers: {
-      'List-Unsubscribe': `<https://streetwiseselfdefense.com/api/unsubscribe?id=${bookingUuid}>`,
+      'List-Unsubscribe': `<${unsubscribeUrl || `https://www.streetwiseselfdefense.com/api/unsubscribe?id=${bookingUuid}`}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     },
   });

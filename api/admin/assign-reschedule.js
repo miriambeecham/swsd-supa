@@ -121,7 +121,7 @@ export default async function handler(req, res) {
     © ${new Date().getFullYear()} Streetwise Self Defense. All rights reserved.
   </p>
   <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
-    <a href="https://streetwiseselfdefense.com/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+    <a href="${protocol}://${host}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
   </p>
 </body>
 </html>
@@ -131,6 +131,7 @@ export default async function handler(req, res) {
           supabase, bookingUuid: booking.id, to: booking.contact_email,
           subject: 'Your Self Defense Class Has Been Rescheduled!',
           html, icalString,
+          unsubscribeUrl: `${protocol}://${host}/api/unsubscribe?id=${booking.id}`,
         });
       } catch (emailErr) {
         console.error(`[RESCHEDULE-EMAIL] Failed for ${booking.id}:`, emailErr);
