@@ -1,5 +1,5 @@
 // /api/schedules.js
-import { requireSupabase } from './_supabase.js';
+import { requireSupabase, outerId } from './_supabase.js';
 
 const FIELD_MAP = {
   'Date': 'date',
@@ -78,14 +78,16 @@ export default async function handler(req, res) {
       for (const [airtableKey, supaKey] of Object.entries(FIELD_MAP)) {
         fields[airtableKey] = row[supaKey];
       }
-      // Class: array of Airtable class record IDs (matches Airtable linked-record shape)
-      fields['Class'] = row.classes?.airtable_record_id ? [row.classes.airtable_record_id] : [];
+      // Class: array of Airtable-style linked-record IDs (Airtable recXXX when
+      // available, Supabase UUID otherwise for newly-created classes).
+      const classRef = outerId(row.classes);
+      fields['Class'] = classRef ? [classRef] : [];
       // Booked Spots (rollup) + Remaining Spots (formula) — computed, not stored
       const bookedSpots = bookedByScheduleUuid.get(row.id) || 0;
       fields['Booked Spots'] = bookedSpots;
       const avail = row.available_spots;
       fields['Remaining Spots'] = Number.isFinite(avail) ? Math.max(0, avail - bookedSpots) : null;
-      return { id: row.airtable_record_id, fields };
+      return { id: outerId(row), fields };
     });
 
     res.json({ records });

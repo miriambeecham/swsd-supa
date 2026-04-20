@@ -1,5 +1,5 @@
 // /api/classes.js
-import { requireSupabase } from './_supabase.js';
+import { requireSupabase, outerId } from './_supabase.js';
 
 const FIELD_MAP = {
   'ID': 'class_id',
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       for (const [airtableKey, supaKey] of Object.entries(FIELD_MAP)) {
         fields[airtableKey] = row[supaKey];
       }
-      return { id: row.airtable_record_id, fields };
+      return { id: outerId(row), fields };
     });
 
     res.json({ records });

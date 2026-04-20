@@ -1,5 +1,5 @@
 // /api/testimonials.js
-import { requireSupabase } from './_supabase.js';
+import { requireSupabase, outerId } from './_supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       }
 
       return {
-        id: row.airtable_record_id,
+        id: outerId(row),
         name: row.name || '',
         content: row.content || '',
         rating: parseInt(row.rating) || 5,

@@ -1,5 +1,5 @@
 // /api/faqs.js
-import { requireSupabase } from './_supabase.js';
+import { requireSupabase, outerId } from './_supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     if (faqsResult.error) throw faqsResult.error;
 
     const categories = (categoriesResult.data || []).map((row) => ({
-      id: row.airtable_record_id,
+      id: outerId(row),
       name: row.category_name || '',
       displayOrder: row.display_order || 999,
       isActive: !!row.is_active,
@@ -37,10 +37,10 @@ export default async function handler(req, res) {
     }));
 
     const faqs = (faqsResult.data || []).map((row) => ({
-      id: row.airtable_record_id,
+      id: outerId(row),
       question: row.question || '',
       answer: row.answer || '',
-      categoryId: row.categories?.airtable_record_id || null,
+      categoryId: outerId(row.categories),
       questionOrder: row.question_order || 999,
       isPublished: !!row.is_published,
     }));
