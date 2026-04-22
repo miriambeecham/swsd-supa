@@ -1,275 +1,169 @@
 // /api/admin/class-roster.js
-// ✅ UPDATED: Added SMS tracking fields (Reminder SMS + Preclass SMS)
-import jwt from 'jsonwebtoken';
+import { requireSupabase, outerId } from '../_supabase.js';
+import { requireAdminAuth } from '../_admin-auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!requireAdminAuth(req, res)) return;
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
 
   try {
-    const JWT_SECRET = process.env.JWT_SECRET;
-    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-
-    if (!JWT_SECRET || !AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    // Verify authentication
-    const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
-      const [key, value] = cookie.trim().split('=');
-      acc[key] = value;
-      return acc;
-    }, {});
-
-    const token = cookies?.auth_token;
-
-    if (!token) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    try {
-      jwt.verify(token, JWT_SECRET);
-    } catch (jwtError) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-
-    // Get classScheduleId from query params
     const { classScheduleId } = req.query;
-
     if (!classScheduleId) {
       return res.status(400).json({ error: 'classScheduleId is required' });
     }
 
-    // Fetch class schedule
-    const scheduleResponse = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Class%20Schedules/${classScheduleId}`,
-      { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-    );
+    const isAirtableId = /^rec/.test(classScheduleId);
+    const scheduleQuery = supabase
+      .from('class_schedules')
+      .select('*, classes(class_name, location)');
+    const scheduleResult = await (isAirtableId
+      ? scheduleQuery.eq('airtable_record_id', classScheduleId)
+      : scheduleQuery.eq('id', classScheduleId)
+    ).maybeSingle();
+    if (scheduleResult.error) throw scheduleResult.error;
+    if (!scheduleResult.data) return res.status(404).json({ error: 'Class schedule not found' });
+    const schedule = scheduleResult.data;
 
-    if (!scheduleResponse.ok) {
-      return res.status(404).json({ error: 'Class schedule not found' });
-    }
+    // Roster bookings: Confirmed and not Pending Reschedule.
+    // .neq() alone excludes NULL values, so combine with .or() to match "not 'Pending Reschedule'
+    // OR null". Use the column-filter grouping syntax that postgREST accepts.
+    const { data: bookings, error: bErr } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('class_schedule_id', schedule.id)
+      .eq('status', 'Confirmed')
+      .or('reschedule_status.is.null,reschedule_status.neq.Pending Reschedule');
+    if (bErr) throw bErr;
 
-    const schedule = await scheduleResponse.json();
-    const classId = schedule.fields?.Class?.[0];
-
-    // Fetch class details
-    let classData = null;
-    if (classId) {
-      const classResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Classes/${classId}`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-      if (classResponse.ok) {
-        classData = await classResponse.json();
-      }
-    }
-
-    // Fetch bookings for this schedule (only Confirmed bookings)
-    const bookingIds = schedule.fields?.Bookings || [];
-    let bookings = [];
-
-    if (bookingIds.length > 0) {
-      const orConditions = bookingIds.map(id => `RECORD_ID()="${id}"`).join(',');
-      // Filter for only Confirmed bookings that are not pending reschedule
-      const filterFormula = `AND(OR(${orConditions}), {Status}="Confirmed", {Reschedule Status}!="Pending Reschedule")`;
-      
-      const bookingsResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Bookings?filterByFormula=${encodeURIComponent(filterFormula)}`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-
-      if (bookingsResponse.ok) {
-        const bookingsData = await bookingsResponse.json();
-        bookings = bookingsData.records || [];
-      }
-    }
-
-    // Fetch all participants for these bookings (WITH PAGINATION)
-    const allParticipantIds = bookings.flatMap(b => b.fields?.Participants || []);
+    const bookingUuids = (bookings || []).map(b => b.id);
     let participants = [];
-
-    if (allParticipantIds.length > 0) {
-      const orConditions = allParticipantIds.map(id => `RECORD_ID()="${id}"`).join(',');
-      const filterFormula = `OR(${orConditions})`;
-      
-      // Pagination support
-      let offset = null;
-      do {
-        const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Participants`);
-        url.searchParams.append('filterByFormula', filterFormula);
-        if (offset) {
-          url.searchParams.append('offset', offset);
-        }
-        
-        const participantsResponse = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` }
-        });
-
-        if (participantsResponse.ok) {
-          const participantsData = await participantsResponse.json();
-          participants = participants.concat(participantsData.records || []);
-          offset = participantsData.offset;
-        } else {
-          break;
-        }
-      } while (offset);
+    if (bookingUuids.length > 0) {
+      const { data, error } = await supabase
+        .from('participants')
+        .select('*')
+        .in('booking_id', bookingUuids);
+      if (error) throw error;
+      participants = data || [];
     }
+    const bookingById = new Map((bookings || []).map(b => [b.id, b]));
 
-    // Combine participant data with booking contact info
-    const roster = participants.map(participant => {
-      const booking = bookings.find(b => 
-        b.fields?.Participants?.includes(participant.id)
-      );
-
-      // Check if this participant is the primary contact for the booking
-      const isPrimaryContact = 
-        participant.fields['First Name'] === booking?.fields['Contact First Name'] &&
-        participant.fields['Last Name'] === booking?.fields['Contact Last Name'];
-
+    const roster = participants.map((p) => {
+      const booking = bookingById.get(p.booking_id);
+      const isPrimaryContact =
+        p.first_name === booking?.contact_first_name &&
+        p.last_name === booking?.contact_last_name;
       return {
-        id: participant.id,
-        firstName: participant.fields['First Name'],
-        lastName: participant.fields['Last Name'],
-        ageGroup: participant.fields['Age Group'],
-        attendance: participant.fields['Attendance'] || 'Not Recorded',
-        contactEmail: booking?.fields['Contact Email'],
-        contactPhone: booking?.fields['Contact Phone'],
-        smsOptedOutDate: booking?.fields['SMS Opted Out Date'],
-        smsConsentDate: booking?.fields['SMS Consent Date'],
-        bookingId: booking?.id,
-        bookingNumber: booking?.fields['Booking ID'],
+        id: outerId(p),
+        firstName: p.first_name,
+        lastName: p.last_name,
+        ageGroup: p.age_group,
+        attendance: p.attendance || 'Not Recorded',
+        contactEmail: booking?.contact_email,
+        contactPhone: booking?.contact_phone,
+        smsOptedOutDate: booking?.sms_opted_out_date,
+        smsConsentDate: booking?.sms_consent_date,
+        bookingId: booking ? outerId(booking) : null,
+        bookingNumber: booking?.booking_id,
         isPrimaryContact,
-        bookingDate: booking?.fields['Booking Date'],
-        
-        // Email tracking fields
-        confirmationEmailStatus: booking?.fields['Confirmation Email Status'],
-        confirmationEmailSentAt: booking?.fields['Confirmation Email Sent At'],
-        confirmationEmailDeliveredAt: booking?.fields['Confirmation Email Delivered At'],
-        confirmationEmailClickedAt: booking?.fields['Confirmation Email Clicked At'],
-        reminderEmailStatus: booking?.fields['Reminder Email Status'],
-        reminderEmailSentAt: booking?.fields['Reminder Email Sent At'],
-        reminderEmailDeliveredAt: booking?.fields['Reminder Email Delivered At'],
-        reminderEmailClickedAt: booking?.fields['Reminder Email Clicked At'],
-        followupEmailStatus: booking?.fields['Followup Email Status'],
-        followupEmailSentAt: booking?.fields['Followup Email Sent At'],
-        followupEmailClickedAt: booking?.fields['Followup Email Clicked At'],
-        
-        // ✅ NEW: SMS tracking fields
-        // Afternoon SMS (day before, 3pm) - called "Reminder SMS" in Airtable
-        reminderSmsStatus: booking?.fields['Reminder SMS Status'],
-        reminderSmsSentAt: booking?.fields['Reminder SMS Sent At'],
-        reminderSmsDeliveredAt: booking?.fields['Reminder SMS Delivered At'],
-        
-        // Pre-class SMS (morning of, 2 hours before)
-        preclassSmsStatus: booking?.fields['Preclass SMS Status'],
-        preclassSmsSentAt: booking?.fields['Preclass SMS Sent At'],
-        preclassSmsDeliveredAt: booking?.fields['Preclass SMS Delivered At']
+        bookingDate: booking?.booking_date,
+        confirmationEmailStatus: booking?.confirmation_email_status,
+        confirmationEmailSentAt: booking?.confirmation_email_sent_at,
+        confirmationEmailDeliveredAt: booking?.confirmation_email_delivered_at,
+        confirmationEmailClickedAt: booking?.confirmation_email_clicked_at,
+        reminderEmailStatus: booking?.reminder_email_status,
+        reminderEmailSentAt: booking?.reminder_email_sent_at,
+        reminderEmailDeliveredAt: booking?.reminder_email_delivered_at,
+        reminderEmailClickedAt: booking?.reminder_email_clicked_at,
+        followupEmailStatus: booking?.followup_email_status,
+        followupEmailSentAt: booking?.followup_email_sent_at,
+        followupEmailClickedAt: booking?.followup_email_clicked_at,
+        reminderSmsStatus: booking?.reminder_sms_status,
+        reminderSmsSentAt: booking?.reminder_sms_sent_at,
+        reminderSmsDeliveredAt: booking?.reminder_sms_delivered_at,
+        preclassSmsStatus: booking?.preclass_sms_status,
+        preclassSmsSentAt: booking?.preclass_sms_sent_at,
+        preclassSmsDeliveredAt: booking?.preclass_sms_delivered_at,
       };
     });
 
-    // Propagate SMS opt-out status to all participants with the same phone number
+    // Propagate SMS opt-out to every participant sharing the opted-out phone number.
     const optedOutPhones = new Set();
-    roster.forEach(p => {
-      if (p.smsOptedOutDate && p.contactPhone) {
-        optedOutPhones.add(p.contactPhone);
-      }
-    });
-    roster.forEach(p => {
+    for (const p of roster) {
+      if (p.smsOptedOutDate && p.contactPhone) optedOutPhones.add(p.contactPhone);
+    }
+    for (const p of roster) {
       if (p.contactPhone && optedOutPhones.has(p.contactPhone) && !p.smsOptedOutDate) {
-        p.smsOptedOutDate = 'opted-out'; // Just needs a truthy value to show the badge
+        p.smsOptedOutDate = 'opted-out';
       }
-    });
-        
-    // Sort by booking (keeps booking groups together), then put primary contact first
+    }
+
     roster.sort((a, b) => {
-      // First sort by booking ID
       if (a.bookingId !== b.bookingId) {
-        const aBookingNum = a.bookingNumber || 0;
-        const bBookingNum = b.bookingNumber || 0;
-        return aBookingNum - bBookingNum;
+        return (a.bookingNumber || 0) - (b.bookingNumber || 0);
       }
-      
-      // Within same booking, put primary contact first
       if (a.isPrimaryContact && !b.isPrimaryContact) return -1;
       if (!a.isPrimaryContact && b.isPrimaryContact) return 1;
-      
-      // Then sort by name
-      const lastNameCompare = (a.lastName || '').localeCompare(b.lastName || '');
-      if (lastNameCompare !== 0) return lastNameCompare;
+      const lastCmp = (a.lastName || '').localeCompare(b.lastName || '');
+      if (lastCmp !== 0) return lastCmp;
       return (a.firstName || '').localeCompare(b.firstName || '');
     });
 
-    // Fetch survey responses for this class schedule
-    // Note: Class Schedule is a linked record field (array of IDs), so we fetch all and filter in JS
-    let surveyResponses = [];
-    try {
-      const surveyResponse = await fetch(
-        `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Satisfaction%20Surveys`,
-        { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-      );
-      
-      if (surveyResponse.ok) {
-        const surveyData = await surveyResponse.json();
-        const allSurveys = surveyData.records || [];
-        
-        // Filter surveys for this specific class schedule (linked record is an array of IDs)
-        const matchingSurveys = allSurveys.filter(survey => {
-          const surveyScheduleIds = survey.fields['Class Schedule'] || [];
-          return surveyScheduleIds.includes(classScheduleId);
-        });
-        
-        console.log(`[CLASS-ROSTER] Found ${matchingSurveys.length} survey responses for class ${classScheduleId} (out of ${allSurveys.length} total)`);
-        
-        surveyResponses = matchingSurveys.map(record => ({
-          id: record.id,
-          submissionDate: record.fields['Submission Date'] || record.createdTime,
-          firstName: record.fields['First Name'],
-          lastName: record.fields['Last Name'],
-          email: record.fields['Email'],
-          phone: record.fields['Phone'],
-          overallExperience: record.fields['Q1: Overall Experience'],
-          confidenceLevel: record.fields['Q2: Confidence Level'],
-          mostValuable: record.fields['Q3: Most Valuable Part'],
-          areasForImprovement: record.fields['Q4: Areas for Improvement'],
-          wouldRecommend: record.fields['Q5: Would Recommend'],
-          optInCommunication: record.fields['Q6: Opt-in to Future Communication'],
-          willingToShare: record.fields['Q7: Willing to Share Experience'],
-          writtenTestimonial: record.fields['Q7: Written Testimonial'],
-          reviewPlatformClicked: record.fields['Q7: Review Platform Clicked'],
-          preferredContactMethod: record.fields['Preferred Contact Method']
-        }));
-      }
-    } catch (surveyError) {
-      console.error('[CLASS-ROSTER] Error fetching survey responses:', surveyError);
-      // Continue without survey data - non-critical
-    }
+    const { data: surveys, error: sErr } = await supabase
+      .from('satisfaction_surveys')
+      .select('*')
+      .eq('class_schedule_id', schedule.id);
+    if (sErr) throw sErr;
 
-    console.log(`[CLASS-ROSTER] Returning ${roster.length} participants and ${surveyResponses.length} surveys`);
+    const surveyResponses = (surveys || []).map(s => ({
+      id: outerId(s),
+      submissionDate: s.submission_date || s.created_at,
+      firstName: s.first_name,
+      lastName: s.last_name,
+      email: s.email,
+      phone: s.phone,
+      overallExperience: s.q1_overall_experience,
+      confidenceLevel: s.q2_confidence_level,
+      mostValuable: s.q3_most_valuable_part,
+      areasForImprovement: s.q4_areas_for_improvement,
+      wouldRecommend: s.q5_would_recommend,
+      optInCommunication: s.q6_opt_in_future_communication,
+      willingToShare: s.q7_willing_to_share_experience,
+      writtenTestimonial: s.q7_written_testimonial,
+      reviewPlatformClicked: s.q7_review_platform_clicked,
+      preferredContactMethod: s.preferred_contact_method,
+    }));
 
-    // Prepare response
-    const response = {
+    // Matches the computed "Booked Spots" used by /api/schedules: sum of
+    // participants across all Confirmed bookings (regardless of reschedule status).
+    const { data: allConfirmed, error: bcErr } = await supabase
+      .from('bookings')
+      .select('number_of_participants')
+      .eq('class_schedule_id', schedule.id)
+      .eq('status', 'Confirmed');
+    if (bcErr) throw bcErr;
+    const bookedSpots = (allConfirmed || []).reduce((n, b) => n + (b.number_of_participants || 0), 0);
+
+    res.status(200).json({
       classInfo: {
         id: classScheduleId,
-        className: classData?.fields['Class Name'] || 'Unknown Class',
-        date: schedule.fields?.Date,
-        startTime: schedule.fields['Start Time New'] || schedule.fields['Start Time'],
-        endTime: schedule.fields['End Time New'] || schedule.fields['End Time'],
-        location: schedule.fields?.Location || classData?.fields?.Location,
-        availableSpots: schedule.fields['Available Spots'],
-        bookedSpots: schedule.fields['Booked Spots']
+        className: schedule.classes?.class_name || 'Unknown Class',
+        date: schedule.date,
+        startTime: schedule.start_time_new || schedule.start_time,
+        endTime: schedule.end_time_new || schedule.end_time,
+        location: schedule.classes?.location || null,
+        availableSpots: schedule.available_spots,
+        bookedSpots,
       },
       roster,
       surveyResponses,
-      totalParticipants: roster.length
-    };
-
-    return res.status(200).json(response);
-
+      totalParticipants: roster.length,
+    });
   } catch (error) {
     console.error('Class roster error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -23,11 +23,13 @@ const richTextOptions: Options = {
     [BLOCKS.PARAGRAPH]: (node, children) => (
       <p className="text-gray-700 leading-relaxed mb-4">{children}</p>
     ),
+    // Contentful wraps each list item's text in a <p>; the arbitrary variants
+    // here flatten that paragraph's block layout so the text sits next to the bullet.
     [BLOCKS.UL_LIST]: (node, children) => (
-      <ul className="list-disc list-inside text-gray-700 mb-4 space-y-1 pl-4">{children}</ul>
+      <ul className="list-disc list-inside text-gray-700 mb-4 space-y-1 pl-4 [&_p]:inline [&_p]:m-0">{children}</ul>
     ),
     [BLOCKS.OL_LIST]: (node, children) => (
-      <ol className="list-decimal list-inside text-gray-700 mb-4 space-y-1 pl-4">{children}</ol>
+      <ol className="list-decimal list-inside text-gray-700 mb-4 space-y-1 pl-4 [&_p]:inline [&_p]:m-0">{children}</ol>
     ),
     [BLOCKS.LIST_ITEM]: (node, children) => <li>{children}</li>,
     [BLOCKS.QUOTE]: (node, children) => (

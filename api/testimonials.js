@@ -1,58 +1,80 @@
-
 // /api/testimonials.js
+import { requireSupabase, outerId } from './_supabase.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const supabase = requireSupabase(res);
+  if (!supabase) return;
+
   try {
-    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
+    let query = supabase.from('testimonials').select('*');
 
-    if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-      return res.status(500).json({ error: 'Airtable not configured' });
-    }
-
+    // Translate the Airtable filterByFormula patterns the frontend actually uses
+    // into equivalent Supabase predicates. Unknown formulas return 400 so the
+    // caller can add an explicit pattern here rather than silently over-fetching.
     const { filter } = req.query;
-    const endpoint = filter
-      ? `/Testimonials?filterByFormula=${encodeURIComponent(filter)}`
-      : '/Testimonials';
+    if (filter) {
+      const recordId = filter.match(/^RECORD_ID\(\)='([^']+)'$/);
+      // HomePage — all homepage-positioned published testimonials
+      const homepageAll = filter.match(
+        /^AND\(\{Is [Pp]ublished\}=1,\{Homepage position\}!="None",\{Homepage position\}!=""\)$/,
+      );
+      // AboutPage — exact homepage_position match
+      const homepageExact = filter.match(
+        /^AND\(\{Is [Pp]ublished\}=1,\{Homepage position\}="([^"]+)"\)$/,
+      );
+      // CorporatePage — homepage_position in (A, B)
+      const homepageOr = filter.match(
+        /^AND\(\{Is [Pp]ublished\}=1,OR\(\{Homepage position\}="([^"]+)",\{Homepage position\}="([^"]+)"\)\)$/,
+      );
 
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Airtable API error: ${response.status}`);
+      if (recordId) {
+        query = query.eq('airtable_record_id', recordId[1]);
+      } else if (homepageAll) {
+        query = query
+          .eq('is_published', true)
+          .not('homepage_position', 'is', null)
+          .neq('homepage_position', '')
+          .neq('homepage_position', 'None');
+      } else if (homepageExact) {
+        query = query.eq('is_published', true).eq('homepage_position', homepageExact[1]);
+      } else if (homepageOr) {
+        query = query
+          .eq('is_published', true)
+          .in('homepage_position', [homepageOr[1], homepageOr[2]]);
+      } else {
+        return res.status(400).json({ error: `Unsupported filter formula: ${filter}` });
+      }
     }
 
-    const data = await response.json();
+    const { data, error } = await query;
+    if (error) throw error;
 
-    // Use the exact same mapping logic from your server.js
-    const testimonials = (data.records || []).map((record) => {
+    const testimonials = (data || []).map((row) => {
+      // profile_picture was an Airtable attachment array in legacy data;
+      // fall back to the explicit string field profile_image_url otherwise.
       let profileImageUrl = null;
-      const profileField = record.fields['Profile Image URL'];
-      if (typeof profileField === 'string') {
-        profileImageUrl = profileField;
-      } else if (Array.isArray(profileField) && profileField.length > 0) {
-        profileImageUrl = profileField[0]?.url || null;
+      if (typeof row.profile_image_url === 'string') {
+        profileImageUrl = row.profile_image_url;
+      } else if (Array.isArray(row.profile_picture) && row.profile_picture.length > 0) {
+        profileImageUrl = row.profile_picture[0]?.url || null;
       }
 
       return {
-        id: record.id,
-        name: record.fields.Name || '',
-        content: record.fields.Content || '',
-        rating: parseInt(record.fields.Rating) || 5,
-        class_type: record.fields['Class Type'] || '',
-        platform: record.fields.Platform?.toLowerCase(),
+        id: outerId(row),
+        name: row.name || '',
+        content: row.content || '',
+        rating: parseInt(row.rating) || 5,
+        class_type: row.class_type || '',
+        platform: row.platform?.toLowerCase(),
         profile_image_url: profileImageUrl,
-        review_url: record.fields['Original Review URL'],
-        homepage_position: record.fields['Homepage position'],
-        is_featured: !!record.fields['Is Featured'],
-        is_published: !!record.fields['Is Published'],
+        review_url: row.original_review_url,
+        homepage_position: row.homepage_position,
+        is_featured: !!row.is_featured,
+        is_published: !!row.is_published,
       };
     });
 

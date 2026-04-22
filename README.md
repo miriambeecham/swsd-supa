@@ -1,4 +1,4 @@
-# Streetwise Self Defense - Web Application
+# Streetwise Self Defense - Web Application -
 
 React + TypeScript frontend with Vercel serverless API functions, backed by Airtable.
 
