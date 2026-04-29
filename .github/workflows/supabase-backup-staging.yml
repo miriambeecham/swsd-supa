@@ -1,0 +1,53 @@
+# .github/workflows/supabase-backup-staging.yml
+# Snapshot staging whenever a schema migration lands.
+# Staging data isn't worth backing up daily, but having a full dump pinned to
+# each schema change means we can rebuild a staging environment with the
+# correct schema even if the staging project is lost.
+
+name: Supabase Staging Backup (on schema change)
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'supabase/migrations/**'
+
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump staging database (full)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL_STAGING }}
+        run: |
+          mkdir -p backups/supabase/staging
+          DATE=$(date +'%Y-%m-%d')
+          supabase db dump --db-url "$SUPABASE_DB_URL" \
+            --file "backups/supabase/staging/swsd-staging-${DATE}.sql"
+          echo "Wrote backups/supabase/staging/swsd-staging-${DATE}.sql ($(wc -c < backups/supabase/staging/swsd-staging-${DATE}.sql) bytes)"
+
+      - name: Commit and push backup
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add backups/supabase/staging/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: automated staging backup after schema change $(date +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi

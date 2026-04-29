@@ -1,0 +1,47 @@
+# .github/workflows/supabase-keepalive.yml
+# Keep both Supabase projects active.
+# Free-tier projects pause after 7 days without API activity. Twice-weekly REST
+# pings keep prod and staging alive. Each ping is a no-op SELECT against the
+# `classes` table using the service key.
+
+name: Supabase Keep-Alive
+
+on:
+  # Mondays and Thursdays at noon UTC — predictable 3-4 day spacing, well
+  # under the 7-day pause window even if one run fails.
+  schedule:
+    - cron: '0 12 * * 1,4'
+
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: prod
+            url_secret: SUPABASE_URL_PROD
+            key_secret: SUPABASE_SERVICE_KEY_PROD
+          - name: staging
+            url_secret: SUPABASE_URL_STAGING
+            key_secret: SUPABASE_SERVICE_KEY_STAGING
+
+    steps:
+      - name: Ping ${{ matrix.name }}
+        env:
+          SUPABASE_URL: ${{ secrets[matrix.url_secret] }}
+          SUPABASE_KEY: ${{ secrets[matrix.key_secret] }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "Missing secrets for ${{ matrix.name }}"
+            exit 1
+          fi
+          curl -fsS \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/classes?select=id&limit=1" \
+            > /dev/null
+          echo "Pinged ${{ matrix.name }}"

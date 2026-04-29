@@ -1,0 +1,51 @@
+# .github/workflows/supabase-backup-full.yml
+# Weekly full dump (schema + data) of production Supabase.
+# Catches any schema drift between prod and supabase/migrations/ — e.g. if
+# someone hotfixes prod via the SQL editor and forgets to commit a migration,
+# this snapshot is still self-contained and restorable.
+
+name: Supabase Weekly Full Backup
+
+on:
+  # Sundays at 11 AM UTC (3 AM Pacific) — same hour as the daily, different day.
+  schedule:
+    - cron: '0 11 * * 0'
+
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump database (full)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL_PROD }}
+        run: |
+          mkdir -p backups/supabase/full
+          DATE=$(date +'%Y-%m-%d')
+          supabase db dump --db-url "$SUPABASE_DB_URL" \
+            --file "backups/supabase/full/swsd-full-${DATE}.sql"
+          echo "Wrote backups/supabase/full/swsd-full-${DATE}.sql ($(wc -c < backups/supabase/full/swsd-full-${DATE}.sql) bytes)"
+
+      - name: Commit and push backup
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add backups/supabase/full/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: automated Supabase full backup $(date +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
