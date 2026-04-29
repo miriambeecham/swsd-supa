@@ -4,7 +4,7 @@ SET session_replication_role = replica;
 -- PostgreSQL database dump
 --
 
--- \restrict glIrDKZc4VAAjJFrzwBwDVh7d6peQVI0bQaGGHB0Kz5TAYdO2hNwu7eaaKeaYJA
+-- \restrict I9P7Vi8PXdrJRQKVd7pkoQya7ldPu0C5ToBE6l69T6OZSp2Oyc1A4fT3JOVfzoI
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -924,6 +924,6 @@ SELECT pg_catalog.setval('"public"."teaching_assignments_assignment_id_seq"', 3,
 -- PostgreSQL database dump complete
 --
 
--- \unrestrict glIrDKZc4VAAjJFrzwBwDVh7d6peQVI0bQaGGHB0Kz5TAYdO2hNwu7eaaKeaYJA
+-- \unrestrict I9P7Vi8PXdrJRQKVd7pkoQya7ldPu0C5ToBE6l69T6OZSp2Oyc1A4fT3JOVfzoI
 
 RESET ALL;
