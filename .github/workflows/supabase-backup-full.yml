@@ -36,11 +36,17 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL_PROD }}
         run: |
+          # `supabase db dump` defaults to schema-only, so a true schema+data
+          # dump requires two passes concatenated.
           mkdir -p backups/supabase/full
           DATE=$(date +'%Y-%m-%d')
-          supabase db dump --db-url "$SUPABASE_DB_URL" \
-            --file "backups/supabase/full/swsd-full-${DATE}.sql"
-          echo "Wrote backups/supabase/full/swsd-full-${DATE}.sql ($(wc -c < backups/supabase/full/swsd-full-${DATE}.sql) bytes)"
+          DIR=backups/supabase/full
+          OUT="$DIR/swsd-full-${DATE}.sql"
+          supabase db dump --db-url "$SUPABASE_DB_URL" --file "$DIR/.schema.sql"
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --file "$DIR/.data.sql"
+          cat "$DIR/.schema.sql" "$DIR/.data.sql" > "$OUT"
+          rm "$DIR/.schema.sql" "$DIR/.data.sql"
+          echo "Wrote $OUT ($(wc -c < "$OUT") bytes)"
 
       - name: Commit and push backup
         run: |
