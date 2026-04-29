@@ -23,9 +23,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout backups branch
         uses: actions/checkout@v4
         with:
+          ref: backups
           fetch-depth: 0
 
       - name: Install Supabase CLI
