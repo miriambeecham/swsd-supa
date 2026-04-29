@@ -1,0 +1,62 @@
+# .github/workflows/supabase-backup.yml
+# Daily Supabase Backup — Runs at 3 AM Pacific Time (1h after the Airtable backup)
+# Dumps the production database to /backups/supabase/ and commits the file.
+# Data-only: schema lives in supabase/migrations/ and is committed there.
+# A separate weekly workflow (supabase-backup-full.yml) takes a full
+# schema+data dump as a safety net against migration drift.
+
+name: Supabase Daily Backup
+
+on:
+  # 3 AM Pacific = 11 AM UTC
+  schedule:
+    - cron: '0 11 * * *'
+
+  # Manual trigger from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL_PROD }}
+        run: |
+          mkdir -p backups/supabase
+          DATE=$(date +'%Y-%m-%d')
+          # --data-only to keep file small (schema is already version-controlled
+          # in supabase/migrations/). Drop --data-only if you want a full dump.
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only \
+            --file "backups/supabase/swsd-${DATE}.sql"
+          echo "Wrote backups/supabase/swsd-${DATE}.sql ($(wc -c < backups/supabase/swsd-${DATE}.sql) bytes)"
+
+      - name: Commit and push backup
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add backups/supabase/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: automated Supabase backup $(date +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
+
+      - name: Backup summary
+        if: success()
+        run: |
+          echo "✅ Backup completed."
+          echo "📅 $(date)"
+          echo "📁 backups/supabase/"
