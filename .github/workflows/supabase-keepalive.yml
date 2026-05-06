@@ -1,16 +1,16 @@
 # .github/workflows/supabase-keepalive.yml
 # Keep both Supabase projects active.
-# Free-tier projects pause after 7 days without API activity. Twice-weekly REST
-# pings keep prod and staging alive. Each ping is a no-op SELECT against the
-# `classes` table using the service key.
+# Free-tier projects pause after 7 days without "activity". REST reads don't
+# reliably reset that clock — writes do. Each run upserts a row in the
+# singleton `keepalive` table.
 
 name: Supabase Keep-Alive
 
 on:
-  # Mondays and Thursdays at noon UTC — predictable 3-4 day spacing, well
-  # under the 7-day pause window even if one run fails.
+  # Mon/Wed/Fri at 12:00 UTC — at most 3 days between runs, well under the
+  # 7-day pause window even if two consecutive runs fail.
   schedule:
-    - cron: '0 12 * * 1,4'
+    - cron: '0 12 * * 1,3,5'
 
   workflow_dispatch:
 
@@ -39,9 +39,17 @@ jobs:
             echo "Missing secrets for ${{ matrix.name }}"
             exit 1
           fi
+          NOW=$(date -u +%FT%TZ)
+          # Upsert the singleton keepalive row. POST with merge-duplicates
+          # works whether the row exists yet or not, and the PK conflict
+          # target (id=1) is inferred automatically.
           curl -fsS \
+            -X POST \
             -H "apikey: $SUPABASE_KEY" \
             -H "Authorization: Bearer $SUPABASE_KEY" \
-            "$SUPABASE_URL/rest/v1/classes?select=id&limit=1" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates,return=minimal" \
+            "$SUPABASE_URL/rest/v1/keepalive" \
+            -d "{\"id\":1,\"updated_at\":\"$NOW\"}" \
             > /dev/null
-          echo "Pinged ${{ matrix.name }}"
+          echo "Pinged ${{ matrix.name }} at $NOW"

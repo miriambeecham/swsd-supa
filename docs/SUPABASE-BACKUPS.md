@@ -8,7 +8,7 @@ Four GitHub Actions workflows handle the database lifecycle:
 
 | Workflow | File | Schedule | Purpose |
 |---|---|---|---|
-| Keep-alive | `supabase-keepalive.yml` | Mon & Thu at 12:00 UTC | Pings prod + staging via REST so free-tier projects don't auto-pause |
+| Keep-alive | `supabase-keepalive.yml` | Mon, Wed, Fri at 12:00 UTC | Upserts a row in the `keepalive` table on prod + staging so free-tier projects don't auto-pause |
 | Daily prod backup | `supabase-backup.yml` | Daily at 11:00 UTC (3 AM Pacific) | Data-only dump of production |
 | Weekly full prod backup | `supabase-backup-full.yml` | Sundays at 11:00 UTC | Schema + data dump of production (safety net for migration drift) |
 | Staging backup on schema change | `supabase-backup-staging.yml` | On push to `staging` touching `supabase/migrations/**` | Schema dump of staging |
@@ -57,9 +57,13 @@ Six repository secrets (Settings → Secrets and variables → Actions):
 
 ## Why the keep-alive matters
 
-Supabase pauses free-tier projects after 7 days without API activity. The keep-alive workflow runs every Monday and Thursday at noon UTC, hitting both projects with a no-op `select=id&limit=1` REST call against the `classes` table. The 3-4 day cadence keeps us under the 7-day limit even if one run fails.
+Supabase pauses free-tier projects after 7 days without "activity". The keep-alive workflow runs Mon/Wed/Fri at 12:00 UTC, upserting a single row in a dedicated `keepalive` table on both projects.
 
-If we ever upgrade to a paid plan, the keep-alive workflow can be deleted.
+**Why a write, not a read.** The first version of this workflow did a no-op REST `SELECT` against the `classes` table. Reads succeeded but staging still got paused, and we got a 90-day archive warning email. Supabase's inactivity metric doesn't reliably count read-only API traffic — writes do. Schema for the table is in `supabase/migrations/0002_keepalive.sql`.
+
+The 2-3 day cadence means even two consecutive failed runs leave us under the 7-day limit.
+
+If we ever upgrade to a paid plan, both the keep-alive workflow and the `keepalive` table can be deleted.
 
 ## Gotchas (read before touching workflows)
 
