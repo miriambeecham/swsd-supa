@@ -1,5 +1,6 @@
 // /api/verify-payment.js
 import { requireSupabase } from './_supabase.js';
+import { getSiteUrl } from './_email.js';
 
 // Look up a booking by either UUID (new) or Airtable record ID (legacy).
 async function findBooking(supabase, bookingId) {
@@ -97,10 +98,9 @@ export default async function handler(req, res) {
     const klass = schedule?.classes;
 
     // Class prep URL — prefer airtable_record_id for legacy frontend routes
-    const host = req.headers.host || 'www.streetwiseselfdefense.com';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const SITE_URL = getSiteUrl(req);
     const scheduleRouteId = schedule?.airtable_record_id || schedule?.id || null;
-    const classPrepUrl = scheduleRouteId ? `${protocol}://${host}/class-prep/${scheduleRouteId}` : null;
+    const classPrepUrl = scheduleRouteId ? `${SITE_URL}/class-prep/${scheduleRouteId}` : null;
 
     // Send confirmation email (best-effort; never block the success response)
     if (!booking.email_unsubscribed && booking.contact_email && process.env.RESEND_API_KEY) {
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
     © 2025 Streetwise Self Defense. All rights reserved.
   </p>
   <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
-    <a href="${protocol}://${host}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+    <a href="${SITE_URL}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
   </p>
 </body>
 </html>
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
           html: emailHTML,
           attachments: [{ filename: 'class-event.ics', content: cal.toString() }],
           headers: {
-            'List-Unsubscribe': `<${protocol}://${host}/api/unsubscribe?id=${booking.id}>`,
+            'List-Unsubscribe': `<${SITE_URL}/api/unsubscribe?id=${booking.id}>`,
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           },
         });

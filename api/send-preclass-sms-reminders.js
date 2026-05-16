@@ -3,7 +3,7 @@
 // Includes the address and a Google Maps link. TAs get a similar SMS.
 import { requireSupabase, outerId } from './_supabase.js';
 import { requireCronAuth } from './_cron-auth.js';
-import { formatTimeForDisplay } from './_email.js';
+import { formatTimeForDisplay, getSiteUrl } from './_email.js';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -57,9 +57,7 @@ export default async function handler(req, res) {
         ? `https://maps.google.com/?q=${encodeURIComponent(classLocation)}`
         : '';
       const scheduleRouteId = outerId(schedule);
-      const host = req.headers.host || 'www.streetwiseselfdefense.com';
-      const protocol = host.includes('localhost') ? 'http' : 'https';
-      const classPrepUrl = `${protocol}://${host}/class-prep/${scheduleRouteId}`;
+      const classPrepUrl = `${getSiteUrl(req)}/class-prep/${scheduleRouteId}`;
       const displayStartTime = formatTimeForDisplay(schedule.start_time_new);
 
       // ── Students ────────────────────────────────────────────────────

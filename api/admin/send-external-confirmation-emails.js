@@ -5,7 +5,7 @@ import { requireSupabase } from '../_supabase.js';
 import { requireAdminAuth } from '../_admin-auth.js';
 import {
   convertToISO, formatTimeForDisplay, formatDateForDisplay,
-  buildGcalURL, buildClassIcal, sendBookingEmailAndTrack,
+  buildGcalURL, buildClassIcal, sendBookingEmailAndTrack, getSiteUrl,
 } from '../_email.js';
 
 async function findBookingForEmail(supabase, bookingId) {
@@ -72,10 +72,9 @@ export default async function handler(req, res) {
         const displayEndTime = formatTimeForDisplay(schedule?.end_time_new);
         const formattedDate = formatDateForDisplay(schedule?.date);
 
-        const host = req.headers.host || 'www.streetwiseselfdefense.com';
-        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const SITE_URL = getSiteUrl(req);
         const scheduleRouteId = schedule?.airtable_record_id || schedule?.id;
-        const classPrepUrl = scheduleRouteId ? `${protocol}://${host}/class-prep/${scheduleRouteId}` : null;
+        const classPrepUrl = scheduleRouteId ? `${SITE_URL}/class-prep/${scheduleRouteId}` : null;
 
         const gcalURL = buildGcalURL({
           className, startISO, endISO, location,
@@ -133,7 +132,7 @@ export default async function handler(req, res) {
     © ${new Date().getFullYear()} Streetwise Self Defense. All rights reserved.
   </p>
   <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
-    <a href="${protocol}://${host}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+    <a href="${SITE_URL}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
   </p>
 </body>
 </html>
@@ -143,7 +142,7 @@ export default async function handler(req, res) {
           supabase, bookingUuid: booking.id, to: contactEmail,
           subject: 'Your Self Defense Class Registration is Confirmed!',
           html, icalString,
-          unsubscribeUrl: `${protocol}://${host}/api/unsubscribe?id=${booking.id}`,
+          unsubscribeUrl: `${SITE_URL}/api/unsubscribe?id=${booking.id}`,
         });
         if (!sendResult.ok) throw new Error(`Resend error: ${sendResult.error?.message || 'unknown'}`);
 

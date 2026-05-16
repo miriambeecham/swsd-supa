@@ -5,6 +5,7 @@ import { requireAdminAuth } from '../_admin-auth.js';
 import {
   convertToISO, formatTimeForDisplay, formatDateForDisplay,
   buildGcalURL, buildClassIcal, sendBookingEmailAndTrack,
+  getSiteUrl,
 } from '../_email.js';
 
 export default async function handler(req, res) {
@@ -63,10 +64,9 @@ export default async function handler(req, res) {
         const displayEndTime = formatTimeForDisplay(schedule?.end_time_new);
         const formattedDate = formatDateForDisplay(schedule?.date);
 
-        const host = req.headers.host || 'www.streetwiseselfdefense.com';
-        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const SITE_URL = getSiteUrl(req);
         const scheduleRouteId = schedule?.airtable_record_id || schedule?.id;
-        const classPrepUrl = `${protocol}://${host}/class-prep/${scheduleRouteId}`;
+        const classPrepUrl = `${SITE_URL}/class-prep/${scheduleRouteId}`;
 
         const gcalURL = buildGcalURL({
           className, startISO, endISO, location,
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
     © ${new Date().getFullYear()} Streetwise Self Defense. All rights reserved.
   </p>
   <p style="text-align: center; margin-top: 15px; font-size: 12px; color: #9CA3AF;">
-    <a href="${protocol}://${host}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
+    <a href="${SITE_URL}/api/unsubscribe?id=${booking.id}" style="color: #6B7280; text-decoration: underline;">Unsubscribe from emails</a>
   </p>
 </body>
 </html>
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
           supabase, bookingUuid: booking.id, to: booking.contact_email,
           subject: 'Your Self Defense Class Has Been Rescheduled!',
           html, icalString,
-          unsubscribeUrl: `${protocol}://${host}/api/unsubscribe?id=${booking.id}`,
+          unsubscribeUrl: `${SITE_URL}/api/unsubscribe?id=${booking.id}`,
         });
       } catch (emailErr) {
         console.error(`[RESCHEDULE-EMAIL] Failed for ${booking.id}:`, emailErr);

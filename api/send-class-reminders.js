@@ -3,7 +3,7 @@
 // Sends to confirmed students AND assigned Teaching Assistants.
 import { requireSupabase, outerId } from './_supabase.js';
 import { requireCronAuth } from './_cron-auth.js';
-import { formatTimeForDisplay, formatDateForDisplay } from './_email.js';
+import { formatTimeForDisplay, formatDateForDisplay, getSiteUrl } from './_email.js';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -47,9 +47,7 @@ export default async function handler(req, res) {
       const displayEndTime = formatTimeForDisplay(schedule.end_time_new);
       const formattedDate = formatDateForDisplay(schedule.date);
       const scheduleRouteId = outerId(schedule);
-      const host = req.headers.host || 'www.streetwiseselfdefense.com';
-      const protocol = host.includes('localhost') ? 'http' : 'https';
-      const BASE_URL = `${protocol}://${host}`;
+      const BASE_URL = getSiteUrl(req);
       const classPrepUrl = `${BASE_URL}/class-prep/${scheduleRouteId}`;
 
       // ── Students ────────────────────────────────────────────────────

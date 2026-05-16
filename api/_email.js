@@ -54,10 +54,22 @@ export async function buildClassIcal({ className, startISO, endISO, location, de
   return cal.toString();
 }
 
+// Resolve the site URL for outbound links in emails/SMS. Prefers SITE_URL so
+// production emails always link to the canonical domain — falling back to
+// req.headers.host leaks Vercel preview URLs that are gated by Deployment
+// Protection (recipients hit a Vercel login page). Host fallback is kept for
+// local dev where SITE_URL isn't set.
+export function getSiteUrl(req) {
+  if (process.env.SITE_URL) return process.env.SITE_URL.replace(/\/$/, '');
+  const host = req?.headers?.host || 'www.streetwiseselfdefense.com';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  return `${protocol}://${host}`;
+}
+
 // Send an email via Resend, then write tracking columns onto the booking row.
 // Caller is responsible for skip logic (unsubscribed, already-sent, etc.).
-// `unsubscribeUrl` should be derived from req.headers.host so staging emails
-// keep their unsubscribe links on staging.
+// `unsubscribeUrl` should be built with getSiteUrl(req) so links resolve to
+// the canonical domain in production.
 export async function sendBookingEmailAndTrack({
   supabase, bookingUuid, to, from, subject, html, icalString,
   unsubscribeUrl,

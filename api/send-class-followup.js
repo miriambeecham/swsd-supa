@@ -2,6 +2,7 @@
 // Cron job to send follow-up survey/review emails ~1 hour after class ends.
 import { requireSupabase, outerId } from './_supabase.js';
 import { requireCronAuth } from './_cron-auth.js';
+import { getSiteUrl } from './_email.js';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -12,10 +13,7 @@ export default async function handler(req, res) {
 
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const FROM_EMAIL = `"Jay Beecham - Streetwise Self Defense" <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`;
-  // Build links from the request host so staging emails point at staging
-  const host = req.headers.host || 'www.streetwiseselfdefense.com';
-  const protocol = host.includes('localhost') ? 'http' : 'https';
-  const SITE_URL = `${protocol}://${host}`;
+  const SITE_URL = getSiteUrl(req);
   if (!RESEND_API_KEY) {
     return res.status(500).json({ success: false, error: 'RESEND_API_KEY not configured' });
   }
