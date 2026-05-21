@@ -4,7 +4,7 @@
 // additional skip when the confirmation email bounced.
 import { requireSupabase, outerId } from './_supabase.js';
 import { requireCronAuth } from './_cron-auth.js';
-import { formatTimeForDisplay, formatDateForDisplay } from './_email.js';
+import { formatTimeForDisplay, formatDateForDisplay, getSiteUrl } from './_email.js';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -50,9 +50,7 @@ export default async function handler(req, res) {
       const displayEndTime = formatTimeForDisplay(schedule.end_time_new);
       const formattedDate = formatDateForDisplay(schedule.date);
       const scheduleRouteId = outerId(schedule);
-      const host = req.headers.host || 'www.streetwiseselfdefense.com';
-      const protocol = host.includes('localhost') ? 'http' : 'https';
-      const SITE_URL = `${protocol}://${host}`;
+      const SITE_URL = getSiteUrl(req);
       const classPrepUrl = `${SITE_URL}/class-prep/${scheduleRouteId}`;
 
       const { data: bookings, error: bErr } = await supabase
