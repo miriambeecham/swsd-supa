@@ -301,6 +301,12 @@ const AdminClassSchedulesPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Class Schedules</h1>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => navigate('/admin/recent-bookings')}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-sm"
+              >
+                Recent Bookings
+              </button>
+              <button
                 onClick={() => navigate('/admin/schedules/new')}
                 className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
               >

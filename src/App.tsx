@@ -30,6 +30,7 @@ import SatisfactionSurveyPage from './pages/SatisfactionSurveyPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
 import AdminPendingReschedulesPage from './pages/AdminPendingReschedulesPage';
+import AdminRecentBookingsPage from './pages/AdminRecentBookingsPage';
 
 
 
@@ -68,6 +69,7 @@ function App() {
             <Route path="/private-class-policies" element={<PrivateClassPoliciesPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/attendance" element={<AdminAttendancePage />} />
+            <Route path="/admin/recent-bookings" element={<AdminRecentBookingsPage />} />
             <Route path="/admin/pending-reschedules" element={<AdminPendingReschedulesPage />} />
             <Route path="/admin/schedules" element={<AdminClassSchedulesPage />} />
             <Route path="/admin/schedules/new" element={<AdminClassScheduleEditPage />} />

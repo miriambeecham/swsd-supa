@@ -721,11 +721,7 @@ const filter = `AND(IS_AFTER({Date}, '${startDateFilter}'), NOT(IS_AFTER({Date},
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Security Verification</h3>
             <div className="flex justify-center">
               <ReCAPTCHA
-                sitekey={
-                  import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
-                  (process.env as any).REACT_APP_RECAPTCHA_SITE_KEY ||
-                  '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
-                }
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
                 onChange={setRecaptchaValue}
               />
             </div>
