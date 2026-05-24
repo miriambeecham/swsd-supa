@@ -1579,6 +1579,13 @@ const AdminAttendancePage = () => {
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Add/Edit Classes</span>
               </button>
+              <button
+                onClick={() => navigate('/admin/recent-bookings')}
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary hover:bg-accent-dark text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                <ClipboardList className="w-4 h-4" />
+                <span className="hidden sm:inline">Recent Bookings</span>
+              </button>
               <a
                 href="/admin/pending-reschedules"
                 target="_blank"
