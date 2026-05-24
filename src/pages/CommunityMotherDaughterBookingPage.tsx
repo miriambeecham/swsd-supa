@@ -539,7 +539,7 @@ window.location.href = result.checkoutUrl;
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">Security Verification</h3>
                 <div className="flex justify-center">
                   <ReCAPTCHA
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'}
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''}
                     onChange={handleRecaptchaChange}
                   />
                 </div>
