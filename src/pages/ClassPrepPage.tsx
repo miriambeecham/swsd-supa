@@ -197,8 +197,8 @@ console.log('Parking Map URL:', classInfo.fields['Parking Map URL']);
               {classData.waiverUrl ? (
                 <p className="text-gray-700 mb-3">
                   Please make sure to complete the{' '}
-                  <a 
-                    href={classData.waiverUrl}
+                  <a
+                    href={/^[a-z][a-z0-9+.-]*:/i.test(classData.waiverUrl) ? classData.waiverUrl : `https://${classData.waiverUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent-primary font-semibold underline hover:text-accent-dark"
