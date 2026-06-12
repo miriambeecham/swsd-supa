@@ -8,7 +8,7 @@ import { Phone, Users, Shield, Camera, AlertCircle, CheckCircle, Home, Target } 
 
 const JAY_PHONE = '925-532-9953';
 const JAY_EMAIL = 'jay@streetwiseselfdefense.com';
-const LYZ_PHONE = '415-972-1811';
+const LYZ_PHONE = '415-741-8872';
 
 const TOPICS = [
   'Awareness and recognition of early warning signs',
