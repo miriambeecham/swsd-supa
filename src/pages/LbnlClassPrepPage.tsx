@@ -53,39 +53,6 @@ const LbnlClassPrepPage = () => {
               </p>
             </div>
 
-            {/* Additional contacts */}
-            <div className="mt-6">
-              <h4 className="text-base font-bold text-navy mb-3">Additional Contacts</h4>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="font-semibold text-navy">Liana Klivansky</p>
-                  <p className="text-sm text-gray-600">Women&rsquo;s Support &amp; Empowerment Council</p>
-                  <p className="text-sm text-gray-700 mt-2 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-accent-primary" />
-                    <a href="tel:510-486-4199" className="hover:underline">510-486-4199</a>
-                    <span className="text-gray-500">(office)</span>
-                  </p>
-                  <p className="text-sm text-gray-700 mt-1 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-accent-primary" />
-                    <a href="mailto:lmklivansky@lbl.gov" className="hover:underline break-all">lmklivansky@lbl.gov</a>
-                  </p>
-                </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="font-semibold text-navy">Jay Beecham</p>
-                  <p className="text-sm text-gray-600">Streetwise Self Defense</p>
-                  <p className="text-sm text-gray-700 mt-2 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-accent-primary" />
-                    <a href={`tel:${INSTRUCTOR_PHONE}`} className="hover:underline">{INSTRUCTOR_PHONE}</a>
-                    <span className="text-gray-500">(voice or text)</span>
-                  </p>
-                  <p className="text-sm text-gray-700 mt-1 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-accent-primary" />
-                    <a href="mailto:jay@streetwiseselfdefense.com" className="hover:underline break-all">jay@streetwiseselfdefense.com</a>
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div className="mt-6 text-center">
               <p className="text-gray-600">Thank You! ~jhb</p>
               <p className="text-gray-600 font-medium">Jay Beecham (Founder/Instructor)</p>
@@ -238,6 +205,43 @@ const LbnlClassPrepPage = () => {
                     Please let Jay know if you have any privacy concerns.
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contacts */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <h3 className="text-xl font-bold text-navy mb-4">Contacts</h3>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="font-semibold text-navy">Liana Klivansky</p>
+                <p className="text-sm text-gray-600">Women&rsquo;s Support &amp; Empowerment Council</p>
+                <p className="text-sm text-gray-700 mt-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-accent-primary" />
+                  <a href="tel:510-486-4199" className="hover:underline">510-486-4199</a>
+                  <span className="text-gray-500">(office)</span>
+                </p>
+                <p className="text-sm text-gray-700 mt-1 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-accent-primary" />
+                  <a href="mailto:lmklivansky@lbl.gov" className="hover:underline break-all">lmklivansky@lbl.gov</a>
+                </p>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="font-semibold text-navy">Jay Beecham</p>
+                <p className="text-sm text-gray-600">Streetwise Self Defense</p>
+                <p className="text-sm text-gray-700 mt-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-accent-primary" />
+                  <a href={`tel:${INSTRUCTOR_PHONE}`} className="hover:underline">{INSTRUCTOR_PHONE}</a>
+                  <span className="text-gray-500">(voice or text)</span>
+                </p>
+                <p className="text-sm text-gray-700 mt-1 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-accent-primary" />
+                  <a href="mailto:jay@streetwiseselfdefense.com" className="hover:underline break-all">jay@streetwiseselfdefense.com</a>
+                </p>
               </div>
             </div>
           </div>
