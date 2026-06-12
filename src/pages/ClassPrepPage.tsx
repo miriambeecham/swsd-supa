@@ -3,6 +3,13 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { MapPin, Phone, Users, Shield, Clock, Camera, AlertCircle, CheckCircle, Home, ParkingCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import LbnlClassPrepPage from './LbnlClassPrepPage';
+import SfGiantsClassPrepPage from './SfGiantsClassPrepPage';
+
+// Schedules with a fully customized, hand-written prep page (rendered instead of
+// the data-driven layout so their existing /class-prep/<id> links keep working).
+const LBNL_SCHEDULE_ID = '44f0668a-b747-4613-b3b7-59fdf4c5069f'; // June 17, 2026 LBNL private session
+const SFGIANTS_SCHEDULE_ID = '1c9bcb1d-0a12-47f2-858f-798c3ac62c19'; // June 16, 2026 SF Giants private session
 
 interface ClassPrepData {
   className: string;
@@ -31,11 +38,21 @@ const ClassPrepPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const hasCustomPage = scheduleId === LBNL_SCHEDULE_ID || scheduleId === SFGIANTS_SCHEDULE_ID;
+
   useEffect(() => {
-    if (scheduleId) {
+    if (scheduleId && !hasCustomPage) {
       fetchClassPrepData();
     }
   }, [scheduleId]);
+
+  // Rendered after all hooks so hook order stays stable across route changes.
+  if (scheduleId === LBNL_SCHEDULE_ID) {
+    return <LbnlClassPrepPage />;
+  }
+  if (scheduleId === SFGIANTS_SCHEDULE_ID) {
+    return <SfGiantsClassPrepPage />;
+  }
 
   const fetchClassPrepData = async () => {
     try {
@@ -197,8 +214,8 @@ console.log('Parking Map URL:', classInfo.fields['Parking Map URL']);
               {classData.waiverUrl ? (
                 <p className="text-gray-700 mb-3">
                   Please make sure to complete the{' '}
-                  <a 
-                    href={classData.waiverUrl}
+                  <a
+                    href={/^[a-z][a-z0-9+.-]*:/i.test(classData.waiverUrl) ? classData.waiverUrl : `https://${classData.waiverUrl}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent-primary font-semibold underline hover:text-accent-dark"
@@ -267,7 +284,7 @@ console.log('Parking Map URL:', classInfo.fields['Parking Map URL']);
                       The address is <strong>{address}</strong>
                     </p>
                     <div className="flex flex-wrap gap-3">
-                      <a 
+                      <a
                         href={`https://maps.apple.com/?q=${encodedAddress}`}
                         className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors"
                         target="_blank"
@@ -276,7 +293,7 @@ console.log('Parking Map URL:', classInfo.fields['Parking Map URL']);
                         <MapPin className="w-4 h-4" />
                         Apple Maps
                       </a>
-                      <a 
+                      <a
                         href={`https://maps.google.com/?q=${encodedAddress}`}
                         className="inline-flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-2 rounded-lg transition-colors"
                         target="_blank"
