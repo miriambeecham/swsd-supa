@@ -152,11 +152,12 @@ export default function StripeSuccessPage() {
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Date:</span>
                   <span className="font-medium text-gray-900">
-                    {startDT?.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {startDT?.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      timeZone: 'America/Los_Angeles'
                     })}
                   </span>
                 </div>
@@ -165,8 +166,8 @@ export default function StripeSuccessPage() {
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600">Time:</span>
                   <span className="font-medium text-gray-900">
-                    {startDT?.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                    {endDT && ` - ${endDT.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                    {startDT?.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}
+                    {endDT && ` - ${endDT.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}`}
                   </span>
                 </div>
               )}

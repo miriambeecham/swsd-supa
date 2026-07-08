@@ -43,7 +43,13 @@ export function buildGcalURL({ className, startISO, endISO, location, details })
 // Build an iCal attachment for a single class event.
 export async function buildClassIcal({ className, startISO, endISO, location, description }) {
   const { default: ical } = await import('ical-generator');
-  const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
+  // NOTE: do NOT set `timezone` here. ical-generator only converts to a named
+  // timezone when a VTIMEZONE resolver is registered; without one it emits a
+  // bare floating DTSTART using the *server's* local wall-clock (UTC on Vercel),
+  // so recipients' calendars read the time off by the UTC offset. startISO/endISO
+  // are already absolute instants, so let ical emit them as UTC (`...Z`), which
+  // every calendar client converts to the correct local time.
+  const cal = ical({ name: 'Self Defense Class' });
   cal.createEvent({
     start: new Date(startISO),
     end: new Date(endISO),
