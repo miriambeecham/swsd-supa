@@ -121,7 +121,11 @@ export default async function handler(req, res) {
         const stripStripeFmt = (d) => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
         const gcalURL = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(className)}&dates=${stripStripeFmt(startISO)}/${stripStripeFmt(endISO)}&details=${encodeURIComponent('Self defense class registration confirmed')}&location=${encodeURIComponent(location)}&ctz=America/Los_Angeles`;
 
-        const cal = ical({ name: 'Self Defense Class', timezone: 'America/Los_Angeles' });
+        // No `timezone` option: without a VTIMEZONE resolver ical-generator emits a
+        // floating DTSTART in the server's local wall-clock (UTC on Vercel), which
+        // reads as the wrong time in recipients' calendars. startISO/endISO are
+        // absolute instants, so emit them as UTC (`...Z`) instead.
+        const cal = ical({ name: 'Self Defense Class' });
         cal.createEvent({
           start: new Date(startISO),
           end: new Date(endISO),
