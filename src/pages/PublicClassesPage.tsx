@@ -229,7 +229,7 @@ const PublicClassesPage = () => {
 
   const formatRegistrationDate = (dateTime: string) => {
     const date = new Date(dateTime);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
       + ' at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' });
   };
 
@@ -429,15 +429,24 @@ const PublicClassesPage = () => {
                 </button>
               )
             ) : (classData.booking_method === 'external' && classData.booking_url) ? (
-              <a
-                href={classData.booking_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm font-medium text-accent-primary hover:text-accent-dark transition-colors leading-tight"
-              >
-                <span>Register with our partner</span>
-                <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-              </a>
+              classData.registration_opens && new Date() < new Date(classData.registration_opens) ? (
+                <div className="text-xs text-gray-500 font-medium">
+                  <div className="bg-gray-400 text-white px-2 py-0.5 rounded-full text-xs font-medium mb-1 inline-block">
+                    Coming Soon
+                  </div>
+                  <div>Opens {formatRegistrationDate(classData.registration_opens)}</div>
+                </div>
+              ) : (
+                <a
+                  href={classData.booking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-accent-primary hover:text-accent-dark transition-colors leading-tight"
+                >
+                  <span>Register with our partner</span>
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                </a>
+              )
             ) : classData.booking_method === 'contact' ? (
               <button
                 onClick={() => handleBooking(classData)}
