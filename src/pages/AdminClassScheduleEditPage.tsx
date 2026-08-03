@@ -125,7 +125,7 @@ const AdminClassScheduleEditPage = () => {
             'Booked Spots': record.fields['Booked Spots'] ?? '',
             'Booking URL': record.fields['Booking URL'] || '',
             'Waiver URL': record.fields['Waiver URL'] || '',
-            'Registration Opens': record.fields['Registration Opens'] || '',
+            'Registration Opens': formatDatetimeForInput(record.fields['Registration Opens']),
             'Special Notes': record.fields['Special Notes'] || '',
             'Is Cancelled': record.fields['Is Cancelled'] || false,
           });
@@ -280,7 +280,7 @@ const AdminClassScheduleEditPage = () => {
       if (fields['Available Spots'] !== '') airtableFields['Available Spots'] = Number(fields['Available Spots']);
       if (fields['Booking URL']) airtableFields['Booking URL'] = fields['Booking URL'];
       if (fields['Waiver URL']) airtableFields['Waiver URL'] = fields['Waiver URL'];
-      if (fields['Registration Opens']) airtableFields['Registration Opens'] = fields['Registration Opens'];
+      if (fields['Registration Opens']) airtableFields['Registration Opens'] = convertLocalToISO(fields['Registration Opens']);
       if (fields['Special Notes']) airtableFields['Special Notes'] = fields['Special Notes'];
       airtableFields['Is Cancelled'] = fields['Is Cancelled'];
 
@@ -425,6 +425,18 @@ const AdminClassScheduleEditPage = () => {
 
         {/* Form */}
         <div className="bg-white rounded-lg shadow p-6 space-y-6">
+          {/* Time zone notice */}
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <p className="text-sm">
+              <span className="font-semibold">Times use your browser&rsquo;s time zone.</span>{' '}
+              The <span className="font-medium">Start Time</span>, <span className="font-medium">End Time</span>, and{' '}
+              <span className="font-medium">Registration Opens</span> fields are entered and displayed in the time zone your
+              computer is currently set to. If your browser is in a different time zone than where the class is held,
+              adjust the time accordingly so it is correct for the class location.
+            </p>
+          </div>
+
           {/* Class (Required) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -531,12 +543,12 @@ const AdminClassScheduleEditPage = () => {
               Registration Opens
             </label>
             <input
-              type="date"
+              type="datetime-local"
               value={fields['Registration Opens']}
               onChange={(e) => updateField('Registration Opens', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
-            <p className="mt-1 text-xs text-gray-500 italic">Optional — date when the class will be open for registration if it is not already</p>
+            <p className="mt-1 text-xs text-gray-500 italic">Optional — date and time the class opens for registration if it is not already. Leave blank if registration is already open.</p>
           </div>
 
           {/* Booking URL */}
