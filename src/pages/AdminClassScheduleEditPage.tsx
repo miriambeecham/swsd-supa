@@ -13,6 +13,8 @@ import {
   GraduationCap,
   Plus,
   Trash2,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 
 interface ClassOption {
@@ -60,15 +62,16 @@ const emptyFields: ScheduleFields = {
 // One date being added in the multi-date "new" flow. All fields are per-date;
 // Available Spots and the Start/End times default from the first row.
 interface DateRow {
-  Date: string;
-  startTime: string; // datetime-local string (YYYY-MM-DDTHH:MM)
-  endTime: string;
+  Date: string; // YYYY-MM-DD
+  startTime: string; // time-only, HH:MM (combined with Date on save)
+  endTime: string; // time-only, HH:MM
   availableSpots: number | '';
   bookingUrl: string;
   waiverUrl: string;
-  registrationOpens: string;
+  registrationOpens: string; // datetime-local, YYYY-MM-DDTHH:MM
   specialNotes: string;
   waiverTouched: boolean; // once true, stop auto-generating the waiver URL
+  expanded: boolean; // UI: detail (URLs/notes) row open
 }
 
 const makeEmptyRow = (): DateRow => ({
@@ -81,6 +84,7 @@ const makeEmptyRow = (): DateRow => ({
   registrationOpens: '',
   specialNotes: '',
   waiverTouched: false,
+  expanded: false,
 });
 
 const getDateFromDatetimeLocal = (datetimeLocal: string): string => {
@@ -264,27 +268,19 @@ const AdminClassScheduleEditPage = () => {
     clearMessages();
   };
 
-  // When a row's date changes, sync the date portion of its Start/End times
-  // (defaulting the time-of-day from the first row) and refresh the auto
-  // waiver URL unless the user has manually edited it.
+  // When a row's date changes, refresh the auto waiver URL unless the user has
+  // manually edited it. (Start/End are time-only and don't depend on the date.)
   const handleRowDateChange = (index: number, newDate: string) => {
-    setRows(prev => {
-      const firstStartTime = getTimeFromDatetimeLocal(prev[0]?.startTime) || '00:00';
-      const firstEndTime = getTimeFromDatetimeLocal(prev[0]?.endTime) || '00:00';
-      return prev.map((row, i) => {
-        if (i !== index) return row;
-        const startTimePart = getTimeFromDatetimeLocal(row.startTime) || firstStartTime;
-        const endTimePart = getTimeFromDatetimeLocal(row.endTime) || firstEndTime;
-        return {
-          ...row,
-          Date: newDate,
-          startTime: newDate ? `${newDate}T${startTimePart}` : '',
-          endTime: newDate ? `${newDate}T${endTimePart}` : '',
-          waiverUrl: row.waiverTouched ? row.waiverUrl : generateWaiverUrl(newDate),
-        };
-      });
-    });
+    setRows(prev => prev.map((row, i) => (
+      i === index
+        ? { ...row, Date: newDate, waiverUrl: row.waiverTouched ? row.waiverUrl : generateWaiverUrl(newDate) }
+        : row
+    )));
     clearMessages();
+  };
+
+  const toggleRowExpanded = (index: number) => {
+    setRows(prev => prev.map((row, i) => (i === index ? { ...row, expanded: !row.expanded } : row)));
   };
 
   const handleWaiverChange = (index: number, value: string) => {
@@ -301,8 +297,10 @@ const AdminClassScheduleEditPage = () => {
   const addRow = () => {
     setRows(prev => {
       const base = makeEmptyRow();
-      // Default Available Spots from the first row for convenience
+      // Default Available Spots and Start/End times from the first row
       base.availableSpots = prev[0]?.availableSpots ?? '';
+      base.startTime = prev[0]?.startTime ?? '';
+      base.endTime = prev[0]?.endTime ?? '';
       return [...prev, base];
     });
     clearMessages();
@@ -323,19 +321,7 @@ const AdminClassScheduleEditPage = () => {
       if (!r.Date) return `${label}: Date is required.`;
       if (!r.startTime) return `${label}: Start Time is required.`;
       if (!r.endTime) return `${label}: End Time is required.`;
-
-      const startTime = getTimeFromDatetimeLocal(r.startTime);
-      const endTime = getTimeFromDatetimeLocal(r.endTime);
-      if (startTime === '00:00' && endTime === '00:00') {
-        return `${label}: Please set the Start and End times.`;
-      }
-      if (getDateFromDatetimeLocal(r.startTime) !== r.Date) {
-        return `${label}: The Start Time date must match the Date field.`;
-      }
-      if (getDateFromDatetimeLocal(r.endTime) !== r.Date) {
-        return `${label}: The End Time date must match the Date field.`;
-      }
-      if (new Date(r.endTime) <= new Date(r.startTime)) {
+      if (new Date(`${r.Date}T${r.endTime}`) <= new Date(`${r.Date}T${r.startTime}`)) {
         return `${label}: End Time must be later than Start Time.`;
       }
       if (r.availableSpots === '') {
@@ -364,8 +350,8 @@ const AdminClassScheduleEditPage = () => {
       const airtableFields: Record<string, any> = {
         Class: [selectedClass],
         Date: r.Date,
-        'Start Time New': convertLocalToISO(r.startTime),
-        'End Time New': convertLocalToISO(r.endTime),
+        'Start Time New': convertLocalToISO(`${r.Date}T${r.startTime}`),
+        'End Time New': convertLocalToISO(`${r.Date}T${r.endTime}`),
         'Available Spots': Number(r.availableSpots),
         'Is Cancelled': false,
       };
@@ -647,158 +633,163 @@ const AdminClassScheduleEditPage = () => {
                 </p>
               </div>
 
-              {/* Date rows */}
-              <div className="space-y-4">
-                {rows.map((row, i) => (
-                  <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-gray-50/50">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900">Date {i + 1}</h3>
-                      {rows.length > 1 && (
-                        <button
-                          onClick={() => removeRow(i)}
-                          className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Remove
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Date | Start Time | End Time */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={row.Date}
-                          onChange={(e) => handleRowDateChange(i, e.target.value)}
-                          className={inputClass}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Start Time <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={row.startTime}
-                          onChange={(e) => updateRow(i, { startTime: e.target.value })}
-                          className={inputClass}
-                        />
-                        {i > 0 && (
-                          <p className="mt-1 text-xs text-gray-500 italic">Defaults to Date 1&rsquo;s time</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          End Time <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={row.endTime}
-                          onChange={(e) => updateRow(i, { endTime: e.target.value })}
-                          className={inputClass}
-                        />
-                        {i > 0 && (
-                          <p className="mt-1 text-xs text-gray-500 italic">Defaults to Date 1&rsquo;s time</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Available Spots | Registration Opens */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Available Spots <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={row.availableSpots}
-                          onChange={(e) =>
-                            updateRow(i, { availableSpots: e.target.value === '' ? '' : parseInt(e.target.value, 10) })
-                          }
-                          className={inputClass}
-                        />
-                        {i > 0 && (
-                          <p className="mt-1 text-xs text-gray-500 italic">Defaults to Date 1&rsquo;s value</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Registration Opens
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={row.registrationOpens}
-                          onChange={(e) => updateRow(i, { registrationOpens: e.target.value })}
-                          className={inputClass}
-                        />
-                        <p className="mt-1 text-xs text-gray-500 italic">
-                          Optional — leave blank if registration is already open.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Booking URL */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Booking URL
-                      </label>
-                      <input
-                        type="url"
-                        value={row.bookingUrl}
-                        onChange={(e) => updateRow(i, { bookingUrl: e.target.value })}
-                        placeholder="https://..."
-                        className={inputClass}
-                      />
-                      <p className="mt-1 text-xs text-gray-500 italic">Optional — third-party registration link for this date.</p>
-                    </div>
-
-                    {/* Waiver URL */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Waiver URL
-                      </label>
-                      <input
-                        type="url"
-                        value={row.waiverUrl}
-                        onChange={(e) => handleWaiverChange(i, e.target.value)}
-                        placeholder="https://..."
-                        className={inputClass}
-                      />
-                      <p className="mt-1 text-xs text-gray-500 italic">
-                        Auto-filled from the date (e.g. {generateWaiverUrl(row.Date || '2026-08-26')}).{' '}
-                        {row.waiverTouched && row.Date && (
-                          <button
-                            type="button"
-                            onClick={() => resetWaiverToDate(i)}
-                            className="text-teal-600 hover:text-teal-700 underline not-italic"
-                          >
-                            Reset to date-based URL
-                          </button>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Special Notes */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Special Notes
-                      </label>
-                      <textarea
-                        value={row.specialNotes}
-                        onChange={(e) => updateRow(i, { specialNotes: e.target.value })}
-                        rows={2}
-                        placeholder="Any special notes for this date..."
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-                ))}
+              {/* Date rows table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 border-b border-gray-200">
+                      <th className="py-2 pr-2 w-8">#</th>
+                      <th className="py-2 px-2">Date <span className="text-red-500">*</span></th>
+                      <th className="py-2 px-2">Start <span className="text-red-500">*</span></th>
+                      <th className="py-2 px-2">End <span className="text-red-500">*</span></th>
+                      <th className="py-2 px-2">Spots <span className="text-red-500">*</span></th>
+                      <th className="py-2 pl-2 text-right">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, i) => {
+                      const hasDetails = !!(row.bookingUrl || row.registrationOpens || row.specialNotes);
+                      return (
+                        <React.Fragment key={i}>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-2 text-gray-400">{i + 1}</td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="date"
+                                value={row.Date}
+                                onChange={(e) => handleRowDateChange(i, e.target.value)}
+                                className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="time"
+                                value={row.startTime}
+                                onChange={(e) => updateRow(i, { startTime: e.target.value })}
+                                className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="time"
+                                value={row.endTime}
+                                onChange={(e) => updateRow(i, { endTime: e.target.value })}
+                                className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.availableSpots}
+                                onChange={(e) =>
+                                  updateRow(i, { availableSpots: e.target.value === '' ? '' : parseInt(e.target.value, 10) })
+                                }
+                                className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 pl-2">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRowExpanded(i)}
+                                  title="Booking URL, waiver, registration opens, notes"
+                                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-colors ${
+                                    row.expanded
+                                      ? 'border-teal-300 bg-teal-50 text-teal-700'
+                                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {row.expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                  {hasDetails && !row.expanded && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                                  )}
+                                </button>
+                                {rows.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeRow(i)}
+                                    title="Remove this date"
+                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {row.expanded && (
+                            <tr className="border-b border-gray-100 bg-gray-50/60">
+                              <td />
+                              <td colSpan={5} className="py-3 px-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Booking URL</label>
+                                    <input
+                                      type="url"
+                                      value={row.bookingUrl}
+                                      onChange={(e) => updateRow(i, { bookingUrl: e.target.value })}
+                                      placeholder="https://..."
+                                      className={inputClass}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 italic">Optional — third-party registration link for this date.</p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Registration Opens</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={row.registrationOpens}
+                                      onChange={(e) => updateRow(i, { registrationOpens: e.target.value })}
+                                      className={inputClass}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 italic">Optional — leave blank if registration is already open.</p>
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Waiver URL</label>
+                                    <input
+                                      type="url"
+                                      value={row.waiverUrl}
+                                      onChange={(e) => handleWaiverChange(i, e.target.value)}
+                                      placeholder="https://..."
+                                      className={inputClass}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 italic">
+                                      Auto-filled from the date (e.g. {generateWaiverUrl(row.Date || '2026-08-26')}).{' '}
+                                      {row.waiverTouched && row.Date && (
+                                        <button
+                                          type="button"
+                                          onClick={() => resetWaiverToDate(i)}
+                                          className="text-teal-600 hover:text-teal-700 underline not-italic"
+                                        >
+                                          Reset to date-based URL
+                                        </button>
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Special Notes</label>
+                                    <textarea
+                                      value={row.specialNotes}
+                                      onChange={(e) => updateRow(i, { specialNotes: e.target.value })}
+                                      rows={2}
+                                      placeholder="Any special notes for this date..."
+                                      className={inputClass}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+              <p className="text-xs text-gray-500 italic">
+                New dates copy the first row&rsquo;s time and spots — adjust any row as needed. Use the chevron to add a
+                booking URL, waiver URL, registration-opens time, or notes for a date.
+              </p>
 
               {/* Add another date */}
               <button
