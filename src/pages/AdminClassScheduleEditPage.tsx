@@ -11,6 +11,10 @@ import {
   Loader2,
   LogOut,
   GraduationCap,
+  Plus,
+  Trash2,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 
 interface ClassOption {
@@ -55,12 +59,64 @@ const emptyFields: ScheduleFields = {
   'Is Cancelled': false,
 };
 
+// One date being added in the multi-date "new" flow. All fields are per-date;
+// Available Spots and the Start/End times default from the first row.
+interface DateRow {
+  Date: string; // YYYY-MM-DD
+  startTime: string; // time-only, HH:MM (combined with Date on save)
+  endTime: string; // time-only, HH:MM
+  availableSpots: number | '';
+  bookingUrl: string;
+  waiverUrl: string;
+  registrationOpens: string; // datetime-local, YYYY-MM-DDTHH:MM
+  specialNotes: string;
+  waiverTouched: boolean; // once true, stop auto-generating the waiver URL
+  expanded: boolean; // UI: detail (URLs/notes) row open
+}
+
+const makeEmptyRow = (): DateRow => ({
+  Date: '',
+  startTime: '',
+  endTime: '',
+  availableSpots: '',
+  bookingUrl: '',
+  waiverUrl: '',
+  registrationOpens: '',
+  specialNotes: '',
+  waiverTouched: false,
+  expanded: false,
+});
+
+const getDateFromDatetimeLocal = (datetimeLocal: string): string => {
+  if (!datetimeLocal) return '';
+  return datetimeLocal.split('T')[0] || '';
+};
+
+const getTimeFromDatetimeLocal = (datetimeLocal: string): string => {
+  if (!datetimeLocal) return '';
+  return datetimeLocal.split('T')[1] || '';
+};
+
+// Waiver URLs follow a fixed convention keyed on the class date, e.g.
+// 2026-08-26 -> https://bit.ly/Streetwise-Waiver-20260826
+const generateWaiverUrl = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const compact = dateStr.replace(/-/g, '');
+  return `https://bit.ly/Streetwise-Waiver-${compact}`;
+};
+
 const AdminClassScheduleEditPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
 
+  // Single-record (edit) state
   const [fields, setFields] = useState<ScheduleFields>({ ...emptyFields });
+
+  // Multi-date (new) state
+  const [selectedClass, setSelectedClass] = useState('');
+  const [rows, setRows] = useState<DateRow[]>([makeEmptyRow()]);
+
   const [classOptions, setClassOptions] = useState<ClassOption[]>([]);
   const [teachingAssistants, setTeachingAssistants] = useState<TeachingAssignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +125,11 @@ const AdminClassScheduleEditPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  const clearMessages = () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
 
   // Check auth
   useEffect(() => {
@@ -197,18 +258,137 @@ const AdminClassScheduleEditPage = () => {
 
       return updated;
     });
-    setErrorMessage('');
-    setSuccessMessage('');
+    clearMessages();
   };
 
-  const getDateFromDatetimeLocal = (datetimeLocal: string): string => {
-    if (!datetimeLocal) return '';
-    return datetimeLocal.split('T')[0] || '';
+  // ---- Multi-date (new) row helpers ----
+
+  const updateRow = (index: number, changes: Partial<DateRow>) => {
+    setRows(prev => prev.map((row, i) => (i === index ? { ...row, ...changes } : row)));
+    clearMessages();
   };
 
-  const getTimeFromDatetimeLocal = (datetimeLocal: string): string => {
-    if (!datetimeLocal) return '';
-    return datetimeLocal.split('T')[1] || '';
+  // When a row's date changes, refresh the auto waiver URL unless the user has
+  // manually edited it. (Start/End are time-only and don't depend on the date.)
+  const handleRowDateChange = (index: number, newDate: string) => {
+    setRows(prev => prev.map((row, i) => (
+      i === index
+        ? { ...row, Date: newDate, waiverUrl: row.waiverTouched ? row.waiverUrl : generateWaiverUrl(newDate) }
+        : row
+    )));
+    clearMessages();
+  };
+
+  const toggleRowExpanded = (index: number) => {
+    setRows(prev => prev.map((row, i) => (i === index ? { ...row, expanded: !row.expanded } : row)));
+  };
+
+  const handleWaiverChange = (index: number, value: string) => {
+    updateRow(index, { waiverUrl: value, waiverTouched: true });
+  };
+
+  const resetWaiverToDate = (index: number) => {
+    setRows(prev => prev.map((row, i) =>
+      i === index ? { ...row, waiverUrl: generateWaiverUrl(row.Date), waiverTouched: false } : row,
+    ));
+    clearMessages();
+  };
+
+  const addRow = () => {
+    setRows(prev => {
+      const base = makeEmptyRow();
+      // Default Available Spots and Start/End times from the first row
+      base.availableSpots = prev[0]?.availableSpots ?? '';
+      base.startTime = prev[0]?.startTime ?? '';
+      base.endTime = prev[0]?.endTime ?? '';
+      return [...prev, base];
+    });
+    clearMessages();
+  };
+
+  const removeRow = (index: number) => {
+    setRows(prev => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+    clearMessages();
+  };
+
+  const validateRows = (): string | null => {
+    if (!selectedClass) return 'Please select a class.';
+    if (rows.length === 0) return 'Add at least one date.';
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const label = `Date ${i + 1}`;
+      if (!r.Date) return `${label}: Date is required.`;
+      if (!r.startTime) return `${label}: Start Time is required.`;
+      if (!r.endTime) return `${label}: End Time is required.`;
+      if (new Date(`${r.Date}T${r.endTime}`) <= new Date(`${r.Date}T${r.startTime}`)) {
+        return `${label}: End Time must be later than Start Time.`;
+      }
+      if (r.availableSpots === '') {
+        return `${label}: Available Spots is required.`;
+      }
+    }
+    return null;
+  };
+
+  const handleCreateAll = async () => {
+    const validationError = validateRows();
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+
+    setSaving(true);
+    clearMessages();
+
+    const failedRows: DateRow[] = [];
+    const failedLabels: string[] = [];
+    let created = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const airtableFields: Record<string, any> = {
+        Class: [selectedClass],
+        Date: r.Date,
+        'Start Time New': convertLocalToISO(`${r.Date}T${r.startTime}`),
+        'End Time New': convertLocalToISO(`${r.Date}T${r.endTime}`),
+        'Available Spots': Number(r.availableSpots),
+        'Is Cancelled': false,
+      };
+      if (r.bookingUrl) airtableFields['Booking URL'] = r.bookingUrl;
+      if (r.waiverUrl) airtableFields['Waiver URL'] = r.waiverUrl;
+      if (r.registrationOpens) airtableFields['Registration Opens'] = convertLocalToISO(r.registrationOpens);
+      if (r.specialNotes) airtableFields['Special Notes'] = r.specialNotes;
+
+      try {
+        const response = await fetch('/api/admin/class-schedule-manage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: airtableFields }),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        created += 1;
+      } catch (error) {
+        console.error(`Error creating schedule for ${r.Date}:`, error);
+        failedRows.push(r);
+        failedLabels.push(`Date ${i + 1} (${r.Date})`);
+      }
+    }
+
+    setSaving(false);
+
+    if (failedRows.length === 0) {
+      setSuccessMessage(`Created ${created} schedule${created !== 1 ? 's' : ''}.`);
+      setTimeout(() => navigate('/admin/schedules'), 1500);
+    } else {
+      // Keep only the rows that failed so a retry does not duplicate the ones
+      // that already saved.
+      setRows(failedRows);
+      setErrorMessage(
+        `Created ${created} schedule${created !== 1 ? 's' : ''}. Failed: ${failedLabels.join(', ')}. ` +
+          `The failed dates remain below — please review and try again.`,
+      );
+    }
   };
 
   const validate = (): string | null => {
@@ -265,8 +445,7 @@ const AdminClassScheduleEditPage = () => {
     }
 
     setSaving(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    clearMessages();
 
     try {
       // Build the fields object for Airtable, only including non-empty values
@@ -284,34 +463,17 @@ const AdminClassScheduleEditPage = () => {
       if (fields['Special Notes']) airtableFields['Special Notes'] = fields['Special Notes'];
       airtableFields['Is Cancelled'] = fields['Is Cancelled'];
 
-      let response;
-      if (isNew) {
-        response = await fetch('/api/admin/class-schedule-manage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: airtableFields }),
-        });
-      } else {
-        response = await fetch('/api/admin/class-schedule-manage', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, fields: airtableFields }),
-        });
-      }
+      const response = await fetch('/api/admin/class-schedule-manage', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, fields: airtableFields }),
+      });
 
       if (!response.ok) {
         throw new Error('Failed to save');
       }
 
-      const data = await response.json();
-      setSuccessMessage(isNew ? 'Schedule created successfully!' : 'Schedule updated successfully!');
-
-      if (isNew) {
-        // Navigate to edit page for the newly created record
-        setTimeout(() => {
-          navigate(`/admin/schedules/${data.record.id}/edit`, { replace: true });
-        }, 1500);
-      }
+      setSuccessMessage('Schedule updated successfully!');
     } catch (error) {
       console.error('Error saving schedule:', error);
       setErrorMessage('Failed to save. Please try again.');
@@ -374,10 +536,27 @@ const AdminClassScheduleEditPage = () => {
     );
   }
 
+  const inputClass =
+    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500';
+
+  // Shared timezone notice for all date/time fields
+  const timeZoneNotice = (
+    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+      <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+      <p className="text-sm">
+        <span className="font-semibold">Times use your browser&rsquo;s time zone.</span>{' '}
+        The <span className="font-medium">Start Time</span>, <span className="font-medium">End Time</span>, and{' '}
+        <span className="font-medium">Registration Opens</span> fields are entered and displayed in the time zone your
+        computer is currently set to. If your browser is in a different time zone than where the class is held, adjust
+        the time accordingly so it is correct for the class location.
+      </p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Helmet>
-        <title>{isNew ? 'Add Class Schedule' : 'Edit Class Schedule'} - Admin</title>
+        <title>{isNew ? 'Add Class Schedules' : 'Edit Class Schedule'} - Admin</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
@@ -394,7 +573,7 @@ const AdminClassScheduleEditPage = () => {
                 <span className="hidden sm:inline">Back</span>
               </button>
               <h1 className="text-2xl font-bold text-gray-900">
-                {isNew ? 'Add Class Schedule' : 'Edit Class Schedule'}
+                {isNew ? 'Add Class Schedules' : 'Edit Class Schedule'}
               </h1>
             </div>
             <button
@@ -423,257 +602,473 @@ const AdminClassScheduleEditPage = () => {
           </div>
         )}
 
-        {/* Form */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          {/* Time zone notice */}
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
-            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <p className="text-sm">
-              <span className="font-semibold">Times use your browser&rsquo;s time zone.</span>{' '}
-              The <span className="font-medium">Start Time</span>, <span className="font-medium">End Time</span>, and{' '}
-              <span className="font-medium">Registration Opens</span> fields are entered and displayed in the time zone your
-              computer is currently set to. If your browser is in a different time zone than where the class is held,
-              adjust the time accordingly so it is correct for the class location.
-            </p>
-          </div>
+        {isNew ? (
+          /* ---------------- Add: multiple dates for one class ---------------- */
+          <>
+            <div className="bg-white rounded-lg shadow p-6 space-y-6">
+              {timeZoneNotice}
 
-          {/* Class (Required) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Class <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={fields.Class[0] || ''}
-              onChange={(e) => updateField('Class', e.target.value ? [e.target.value] : [])}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="">Select a class...</option>
-              {classOptions.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.classId}{cls.location ? ` — ${cls.location}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date (Required) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={fields.Date}
-              onChange={(e) => updateField('Date', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            />
-          </div>
-
-          {/* Start Time New / End Time New */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={fields['Start Time New']}
-                onChange={(e) => updateField('Start Time New', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
-              <p className="mt-1 text-xs text-gray-500 italic">Date will auto-populate from the Date field — please set the time</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Time <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={fields['End Time New']}
-                onChange={(e) => updateField('End Time New', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
-              <p className="mt-1 text-xs text-gray-500 italic">Must be later than Start Time</p>
-            </div>
-          </div>
-
-          {/* Available Spots / Booked Spots / Remaining Spots */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Available Spots <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={fields['Available Spots']}
-                onChange={(e) => updateField('Available Spots', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Booked Spots <span className="text-gray-400 font-normal">(read-only)</span>
-              </label>
-              <input
-                type="number"
-                value={fields['Booked Spots']}
-                readOnly
-                disabled
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Remaining Spots <span className="text-gray-400 font-normal">(read-only)</span>
-              </label>
-              <input
-                type="number"
-                value={fields['Available Spots'] !== '' && fields['Booked Spots'] !== '' ? Number(fields['Available Spots']) - Number(fields['Booked Spots']) : ''}
-                readOnly
-                disabled
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-              />
-            </div>
-          </div>
-
-          {/* Registration Opens */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Registration Opens
-            </label>
-            <input
-              type="datetime-local"
-              value={fields['Registration Opens']}
-              onChange={(e) => updateField('Registration Opens', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            />
-            <p className="mt-1 text-xs text-gray-500 italic">Optional — date and time the class opens for registration if it is not already. Leave blank if registration is already open.</p>
-          </div>
-
-          {/* Booking URL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Booking URL
-            </label>
-            <input
-              type="url"
-              value={fields['Booking URL']}
-              onChange={(e) => updateField('Booking URL', e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            />
-            <p className="mt-1 text-xs text-gray-500 italic">Optional — URL for third-party registration links</p>
-          </div>
-
-          {/* Waiver URL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Waiver URL
-            </label>
-            <input
-              type="url"
-              value={fields['Waiver URL']}
-              onChange={(e) => updateField('Waiver URL', e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            />
-          </div>
-
-          {/* Special Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Special Notes
-            </label>
-            <textarea
-              value={fields['Special Notes']}
-              onChange={(e) => updateField('Special Notes', e.target.value)}
-              rows={3}
-              placeholder="Any special notes for this class..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-            />
-          </div>
-
-          {/* Teaching Assistants (read-only, only shown when editing) */}
-          {!isNew && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Teaching Assistants <span className="text-gray-400 font-normal">(read-only)</span>
-              </label>
-              {teachingAssistants.length > 0 ? (
-                <div className="space-y-2">
-                  {teachingAssistants.map((ta) => (
-                    <div key={ta.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                      <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">{ta.person?.name || 'Unknown'}</span>
-                      {ta.person?.email && (
-                        <span className="text-sm text-gray-400">({ta.person.email})</span>
-                      )}
-                    </div>
+              {/* Class (Required, shared across all dates) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedClass}
+                  onChange={(e) => {
+                    setSelectedClass(e.target.value);
+                    clearMessages();
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">Select a class...</option>
+                  {classOptions.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.classId}{cls.location ? ` — ${cls.location}` : ''}
+                    </option>
                   ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 italic">No teaching assistants assigned</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500 italic">Manage teaching assistant assignments from the Attendance page</p>
-            </div>
-          )}
+                </select>
+                <p className="mt-1 text-xs text-gray-500 italic">
+                  All of the dates below will be added to this class.
+                </p>
+              </div>
 
-          {/* Is Cancelled */}
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="isCancelled"
-              checked={fields['Is Cancelled']}
-              onChange={(e) => updateField('Is Cancelled', e.target.checked)}
-              className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-            />
-            <label htmlFor="isCancelled" className="text-sm font-medium text-gray-700">
-              Is Cancelled
-            </label>
-          </div>
+              {/* Date rows table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 border-b border-gray-200">
+                      <th className="py-2 pr-2 w-8">#</th>
+                      <th className="py-2 px-2">Date <span className="text-red-500">*</span></th>
+                      <th className="py-2 px-2">Start <span className="text-red-500">*</span></th>
+                      <th className="py-2 px-2">End <span className="text-red-500">*</span></th>
+                      <th className="py-2 px-2">Spots <span className="text-red-500">*</span></th>
+                      <th className="py-2 pl-2 text-right">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, i) => {
+                      const hasDetails = !!(row.bookingUrl || row.registrationOpens || row.specialNotes);
+                      return (
+                        <React.Fragment key={i}>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-2 text-gray-400">{i + 1}</td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="date"
+                                value={row.Date}
+                                onChange={(e) => handleRowDateChange(i, e.target.value)}
+                                className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="time"
+                                value={row.startTime}
+                                onChange={(e) => updateRow(i, { startTime: e.target.value })}
+                                className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="time"
+                                value={row.endTime}
+                                onChange={(e) => updateRow(i, { endTime: e.target.value })}
+                                className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.availableSpots}
+                                onChange={(e) =>
+                                  updateRow(i, { availableSpots: e.target.value === '' ? '' : parseInt(e.target.value, 10) })
+                                }
+                                className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              />
+                            </td>
+                            <td className="py-2 pl-2">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRowExpanded(i)}
+                                  title="Booking URL, waiver, registration opens, notes"
+                                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-colors ${
+                                    row.expanded
+                                      ? 'border-teal-300 bg-teal-50 text-teal-700'
+                                      : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {row.expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                  {hasDetails && !row.expanded && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                                  )}
+                                </button>
+                                {rows.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeRow(i)}
+                                    title="Remove this date"
+                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {row.expanded && (
+                            <tr className="border-b border-gray-100 bg-gray-50/60">
+                              <td />
+                              <td colSpan={5} className="py-3 px-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Booking URL</label>
+                                    <input
+                                      type="url"
+                                      value={row.bookingUrl}
+                                      onChange={(e) => updateRow(i, { bookingUrl: e.target.value })}
+                                      placeholder="https://..."
+                                      className={inputClass}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 italic">Optional — third-party registration link for this date.</p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Registration Opens</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={row.registrationOpens}
+                                      onChange={(e) => updateRow(i, { registrationOpens: e.target.value })}
+                                      className={inputClass}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 italic">Optional — leave blank if registration is already open.</p>
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Waiver URL</label>
+                                    <input
+                                      type="url"
+                                      value={row.waiverUrl}
+                                      onChange={(e) => handleWaiverChange(i, e.target.value)}
+                                      placeholder="https://..."
+                                      className={inputClass}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 italic">
+                                      Auto-filled from the date (e.g. {generateWaiverUrl(row.Date || '2026-08-26')}).{' '}
+                                      {row.waiverTouched && row.Date && (
+                                        <button
+                                          type="button"
+                                          onClick={() => resetWaiverToDate(i)}
+                                          className="text-teal-600 hover:text-teal-700 underline not-italic"
+                                        >
+                                          Reset to date-based URL
+                                        </button>
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Special Notes</label>
+                                    <textarea
+                                      value={row.specialNotes}
+                                      onChange={(e) => updateRow(i, { specialNotes: e.target.value })}
+                                      rows={2}
+                                      placeholder="Any special notes for this date..."
+                                      className={inputClass}
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-gray-500 italic">
+                New dates copy the first row&rsquo;s time and spots — adjust any row as needed. Use the chevron to add a
+                booking URL, waiver URL, registration-opens time, or notes for a date.
+              </p>
 
-          {/* Required fields note */}
-          <p className="text-sm text-gray-500">
-            <span className="text-red-500">*</span> indicates a required field
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 flex flex-col sm:flex-row justify-between gap-4">
-          <div>
-            {!isNew && !fields['Is Cancelled'] && (
+              {/* Add another date */}
               <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                onClick={addRow}
+                className="flex items-center gap-2 px-4 py-2 border border-dashed border-teal-400 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors font-medium"
               >
-                <Ban className="w-4 h-4" />
-                Inactivate
+                <Plus className="w-4 h-4" />
+                Add another date
               </button>
-            )}
-          </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate('/admin/schedules')}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {saving ? 'Saving...' : isNew ? 'Create Schedule' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
+              {/* Required fields note */}
+              <p className="text-sm text-gray-500">
+                <span className="text-red-500">*</span> indicates a required field
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                onClick={() => navigate('/admin/schedules')}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAll}
+                disabled={saving}
+                className="flex items-center justify-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving
+                  ? 'Creating...'
+                  : `Create ${rows.length} Schedule${rows.length !== 1 ? 's' : ''}`}
+              </button>
+            </div>
+          </>
+        ) : (
+          /* ---------------- Edit: single schedule ---------------- */
+          <>
+            <div className="bg-white rounded-lg shadow p-6 space-y-6">
+              {timeZoneNotice}
+
+              {/* Class (Required) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Class <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={fields.Class[0] || ''}
+                  onChange={(e) => updateField('Class', e.target.value ? [e.target.value] : [])}
+                  className={inputClass}
+                >
+                  <option value="">Select a class...</option>
+                  {classOptions.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.classId}{cls.location ? ` — ${cls.location}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date (Required) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={fields.Date}
+                  onChange={(e) => updateField('Date', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Start Time New / End Time New */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={fields['Start Time New']}
+                    onChange={(e) => updateField('Start Time New', e.target.value)}
+                    className={inputClass}
+                  />
+                  <p className="mt-1 text-xs text-gray-500 italic">Date will auto-populate from the Date field — please set the time</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={fields['End Time New']}
+                    onChange={(e) => updateField('End Time New', e.target.value)}
+                    className={inputClass}
+                  />
+                  <p className="mt-1 text-xs text-gray-500 italic">Must be later than Start Time</p>
+                </div>
+              </div>
+
+              {/* Available Spots / Booked Spots / Remaining Spots */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Available Spots <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={fields['Available Spots']}
+                    onChange={(e) => updateField('Available Spots', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Booked Spots <span className="text-gray-400 font-normal">(read-only)</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={fields['Booked Spots']}
+                    readOnly
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Remaining Spots <span className="text-gray-400 font-normal">(read-only)</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={fields['Available Spots'] !== '' && fields['Booked Spots'] !== '' ? Number(fields['Available Spots']) - Number(fields['Booked Spots']) : ''}
+                    readOnly
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Registration Opens */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Registration Opens
+                </label>
+                <input
+                  type="datetime-local"
+                  value={fields['Registration Opens']}
+                  onChange={(e) => updateField('Registration Opens', e.target.value)}
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-gray-500 italic">Optional — date and time the class opens for registration if it is not already. Leave blank if registration is already open.</p>
+              </div>
+
+              {/* Booking URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Booking URL
+                </label>
+                <input
+                  type="url"
+                  value={fields['Booking URL']}
+                  onChange={(e) => updateField('Booking URL', e.target.value)}
+                  placeholder="https://..."
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-gray-500 italic">Optional — URL for third-party registration links</p>
+              </div>
+
+              {/* Waiver URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Waiver URL
+                </label>
+                <input
+                  type="url"
+                  value={fields['Waiver URL']}
+                  onChange={(e) => updateField('Waiver URL', e.target.value)}
+                  placeholder="https://..."
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Special Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Special Notes
+                </label>
+                <textarea
+                  value={fields['Special Notes']}
+                  onChange={(e) => updateField('Special Notes', e.target.value)}
+                  rows={3}
+                  placeholder="Any special notes for this class..."
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Teaching Assistants (read-only, only shown when editing) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Teaching Assistants <span className="text-gray-400 font-normal">(read-only)</span>
+                </label>
+                {teachingAssistants.length > 0 ? (
+                  <div className="space-y-2">
+                    {teachingAssistants.map((ta) => (
+                      <div key={ta.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                        <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{ta.person?.name || 'Unknown'}</span>
+                        {ta.person?.email && (
+                          <span className="text-sm text-gray-400">({ta.person.email})</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No teaching assistants assigned</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500 italic">Manage teaching assistant assignments from the Attendance page</p>
+              </div>
+
+              {/* Is Cancelled */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isCancelled"
+                  checked={fields['Is Cancelled']}
+                  onChange={(e) => updateField('Is Cancelled', e.target.checked)}
+                  className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                />
+                <label htmlFor="isCancelled" className="text-sm font-medium text-gray-700">
+                  Is Cancelled
+                </label>
+              </div>
+
+              {/* Required fields note */}
+              <p className="text-sm text-gray-500">
+                <span className="text-red-500">*</span> indicates a required field
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex flex-col sm:flex-row justify-between gap-4">
+              <div>
+                {!fields['Is Cancelled'] && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  >
+                    <Ban className="w-4 h-4" />
+                    Inactivate
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate('/admin/schedules')}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
