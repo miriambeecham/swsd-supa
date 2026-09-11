@@ -112,7 +112,7 @@ const PrivateClassStaticPage = () => {
           <div className="bg-white rounded-xl shadow-lg p-8">
             <div className="flex items-start gap-4">
               <div className="bg-yellow/20 p-3 rounded-lg flex-shrink-0">
-                <MapPin className="w-6 h-6 text-yellow-700" />
+                <MapPin className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-navy mb-4">Site Logistics</h3>
@@ -213,8 +213,8 @@ const PrivateClassStaticPage = () => {
                         <li>• Comfortable t-shirts or exercise clothing</li>
                       </ul>
                     </div>
-                    <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <p className="text-sm text-yellow-800">
+                    <div className="mt-4 border rounded-lg p-3">
+                      <p className="text-sm">
                         <strong>Note:</strong> I do not recommend shorts for these types of activities.
                       </p>
                     </div>

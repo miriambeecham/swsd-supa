@@ -568,7 +568,7 @@ const AdminClassSchedulesPage = () => {
                             Open
                           </span>
                         ) : schedule.registrationOpens ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium">
                             Opens Later
                           </span>
                         ) : (
@@ -721,7 +721,7 @@ const AdminClassSchedulesPage = () => {
               <h3 className="text-lg font-semibold text-gray-900">Confirm Inactivation</h3>
             </div>
             {bookedCount > 0 && (
-              <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+              <div className="mb-4 flex items-start gap-2 border px-4 py-3 rounded-lg">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <span className="text-sm font-medium">
                   This class currently has {bookedCount} registered participant{bookedCount !== 1 ? 's' : ''}. Inactivating it may affect their bookings.
