@@ -28,7 +28,7 @@ const STATUS_OPTIONS = ['Confirmed', 'Pending Payment', 'Cancelled', 'Refunded',
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
   Confirmed: 'bg-green-100 text-green-800',
-  'Pending Payment': 'bg-yellow-100 text-yellow-800',
+  'Pending Payment': '',
   Cancelled: 'bg-gray-200 text-gray-700',
   Refunded: 'bg-orange-100 text-orange-800',
   Aborted: 'bg-red-100 text-red-800',

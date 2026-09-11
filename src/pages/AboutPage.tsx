@@ -78,7 +78,7 @@ const AboutPage = () => {
       <Star
         key={i}
         className={`w-5 h-5 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+          i < rating ? 'fill-current' : 'text-gray-300'
         }`}
       />
     ));

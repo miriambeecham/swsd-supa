@@ -87,8 +87,8 @@ const FAQPage = () => {
         bg: 'bg-yellow/10',
         border: 'border-yellow/20',
         header: 'bg-yellow',
-        text: 'text-yellow-700',
-        icon: 'text-yellow-700'
+        text: '',
+        icon: ''
       },
       {
         bg: 'bg-accent-primary/5',

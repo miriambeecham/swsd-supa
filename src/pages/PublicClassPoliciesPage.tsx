@@ -60,14 +60,14 @@ const PublicClassPolicies = () => {
               We want signing up for class to be easy and stress-free. Here is how we handle changes if plans shift.
             </p>
 
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
-              <p className="text-yellow-900 font-semibold text-sm md:text-base">
+            <div className="border-2 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+              <p className="font-semibold text-sm md:text-base">
                 <span className="font-bold">Note:</span> Classes hosted by the City of Walnut Creek follow their own rules.{' '}
                 <a
                   href="https://www.walnut-creek.org/departments/parks-recreation"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline hover:text-yellow-700"
+                  className="underline"
                 >
                   View City of Walnut Creek policies
                 </a>

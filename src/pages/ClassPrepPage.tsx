@@ -543,8 +543,8 @@ console.log('Parking Map URL:', classInfo.fields['Parking Map URL']);
                         <li>• Comfortable t-shirts or exercise clothing</li>
                       </ul>
                     </div>
-                    <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <p className="text-sm text-yellow-800">
+                    <div className="mt-4 border rounded-lg p-3">
+                      <p className="text-sm">
                         <strong>Note:</strong> I do not recommend shorts for these types of activities.
                       </p>
                     </div>

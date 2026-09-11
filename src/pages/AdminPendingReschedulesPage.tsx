@@ -464,7 +464,7 @@ const AdminPendingReschedulesPage = () => {
                         </select>
 
                         {capacityWarning && (
-                          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded text-sm">
+                          <div className="flex items-start gap-2 border px-3 py-2 rounded text-sm">
                             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                             <span>{capacityWarning}</span>
                           </div>

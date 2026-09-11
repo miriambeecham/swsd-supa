@@ -528,7 +528,7 @@ const RosterTab: React.FC<RosterTabProps> = ({
                               </span>
                             ) : !participant.smsConsentDate ? (
                               <span 
-                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700" 
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium" 
                                 title="No SMS consent recorded"
                               >
                                 ⚠️
@@ -678,7 +678,7 @@ const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate
     isConditional: boolean = false
   ) => {
     if (status === 'no-consent') {
-      return <span className="text-yellow-600 text-xs">⚠️ No Consent</span>;
+      return <span className="text-xs">⚠️ No Consent</span>;
     }
     if (status === 'opted-out') {
       return <span className="text-red-600 text-xs">🚫 Opted Out</span>;
@@ -818,7 +818,7 @@ const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate
                       hasOptedOut ? (
                         <span className="text-red-600 text-xs">🚫 Opted Out</span>
                       ) : (
-                        <span className="text-yellow-600 text-xs" title="No SMS consent recorded">⚠️ None</span>
+                        <span className="text-xs" title="No SMS consent recorded">⚠️ None</span>
                       )
                     ) : (
                       renderCommCell(
@@ -838,7 +838,7 @@ const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate
                       hasOptedOut ? (
                         <span className="text-red-600 text-xs">🚫 Opted Out</span>
                       ) : (
-                        <span className="text-yellow-600 text-xs" title="No SMS consent recorded">⚠️ None</span>
+                        <span className="text-xs" title="No SMS consent recorded">⚠️ None</span>
                       )
                     ) : (
                       renderCommCell(
@@ -870,7 +870,7 @@ const CommunicationsTab: React.FC<CommunicationsTabProps> = ({ roster, classDate
           <span>🟢 Delivered</span>
           <span>✅ Clicked</span>
           <span>❌ Failed</span>
-          <span><span className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">⚠️ None</span> No SMS consent</span>
+          <span><span className="inline-flex items-center px-1.5 py-0.5 rounded">⚠️ None</span> No SMS consent</span>
           <span><span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700">🚫</span> SMS opted out</span>
           <span><span className="italic">Italic</span> = Scheduled</span>
           <span><span className="italic">?</span> = Conditional</span>
@@ -951,7 +951,7 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
     const ratingMap: Record<string, { stars: number; color: string }> = {
       'Excellent': { stars: 5, color: 'text-green-600' },
       'Good': { stars: 4, color: 'text-green-500' },
-      'Neutral': { stars: 3, color: 'text-yellow-500' },
+      'Neutral': { stars: 3, color: '' },
       'Poor': { stars: 2, color: 'text-orange-500' },
       'Very Poor': { stars: 1, color: 'text-red-500' }
     };
@@ -1018,7 +1018,7 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
                       </span>
                     )}
                     {status === 'sent' && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium">
                         📧 Sent
                       </span>
                     )}
@@ -1046,7 +1046,7 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
                   <td className="px-4 py-3 text-center">
                     {status === 'completed' && survey?.willingToShare ? (
                       survey.willingToShare === 'Google/Yelp Review' ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium">
                           ⭐ Google/Yelp
                         </span>
                       ) : survey.willingToShare === 'Write Here' ? (
@@ -1157,7 +1157,7 @@ const SurveysTab: React.FC<SurveysTabProps> = ({ roster, surveyResponses, classD
       <div className="border-t border-gray-200 px-4 py-3 bg-gray-50">
         <div className="flex flex-wrap gap-4 text-xs text-gray-600">
           <span><span className="text-green-600">✅</span> Completed survey</span>
-          <span><span className="text-yellow-600">📧</span> Follow-up sent, awaiting response</span>
+          <span><span className="">📧</span> Follow-up sent, awaiting response</span>
           <span><span className="text-gray-500">⏳</span> Follow-up not yet sent</span>
         </div>
       </div>
@@ -1765,7 +1765,7 @@ const AdminAttendancePage = () => {
                 </div>
 
                 {hasUnsavedChanges && (
-                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                  <div className="border px-4 py-3 rounded-lg mb-4 text-sm">
                     ⚠️ You have unsaved changes. Remember to click "Save" before leaving this page.
                   </div>
                 )}
@@ -2184,13 +2184,13 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
               </div>
 
               {!isWholeGroup && !bookerIsMoving && (
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                <div className="border px-4 py-3 rounded-lg mb-4 text-sm">
                   Since {bookerName} is staying in the original class, we need a contact for the participants being moved.
                 </div>
               )}
 
               {needsStayerContact && (
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                <div className="border px-4 py-3 rounded-lg mb-4 text-sm">
                   Since {bookerName} is moving to a new class, we need a new contact for the participants staying in the original class.
                 </div>
               )}
@@ -2446,7 +2446,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                   </div>
 
                   {capacityWarning && (
-                    <div className="mb-4 flex items-start gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm">
+                    <div className="mb-4 flex items-start gap-2 border px-4 py-3 rounded-lg text-sm">
                       <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>{capacityWarning}</span>
                     </div>
