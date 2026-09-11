@@ -6,9 +6,24 @@
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Streetwise Self Defense</title>
+
+    <!-- Nunito Sans. Weight range 300..900 covers every font-* utility used in
+         the app (font-light 300 through the typography plugin's 800/900) plus
+         italics. A variable-range request is also a smaller download than
+         separate static weights. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Preloading the latin subset starts the font download immediately rather
+         than after the stylesheet above is fetched and parsed, which is what
+         shortens the display=swap flash. The URL is version-pinned (v19) by
+         Google; if they rotate it this preload simply 404s and the font still
+         loads normally via the stylesheet. Delete this line when we move to
+         self-hosting the font. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="https://fonts.gstatic.com/s/nunitosans/v19/pe0AMImSLYBIv1o4X1M8ce2xCx3yop4tQpF_MeTm0lfUVwoNnq4CLz0_kJ3xzHGGVFM.woff2">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300..900;1,6..12,300..900&display=swap" rel="stylesheet">
 
     <!-- Open Graph / Social Media Preview tags -->
     <meta property="og:type" content="website">

@@ -3,6 +3,27 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Nunito Sans is loaded from Google Fonts in index.html. The tail of
+      // this list is Tailwind's own default sans stack, including the emoji
+      // families — those must stay, or emoji used in the UI (✅ ⚠️ 📧 ✓)
+      // lose their dedicated font on Windows.
+      fontFamily: {
+        sans: [
+          '"Nunito Sans"',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          'sans-serif',
+          '"Apple Color Emoji"',
+          '"Segoe UI Emoji"',
+          '"Segoe UI Symbol"',
+          '"Noto Color Emoji"',
+        ],
+      },
       // Single source of truth for brand colors. Tailwind generates the
       // bg-/text-/border- utilities from these — don't redefine them in CSS.
       colors: {
