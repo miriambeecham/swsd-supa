@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Calendar, Clock, Users, MapPin, ExternalLink, Mail, User, UsersRound, Tag } from 'lucide-react';
+import { getAdjustedPrice } from '../utils/pricing';
 
 interface ClassSchedule {
   id: string;
@@ -271,7 +272,10 @@ const PublicClassesPage = () => {
 
   const getPriceDisplay = (classData: ClassSchedule) => {
     if (!classData.price) return '';
-    let display = `$${classData.price}`;
+    // Show the amount actually charged at checkout (Stripe fee recovery).
+    // booking_method keeps partner-registered classes at their true list price.
+    const shownPrice = getAdjustedPrice(classData.price, classData.date, classData.booking_method);
+    let display = `$${shownPrice}`;
     if (classData.pricing_unit) {
       const unitMap: Record<string, string> = { 'Per Person': '/person', 'Per Mother/Daughter Pair': '/pair' };
       display += unitMap[classData.pricing_unit] || '';
