@@ -51,11 +51,27 @@ export default async function handler(req, res) {
     }
     const bookingById = new Map((bookings || []).map(b => [b.id, b]));
 
+    // Names are stored untrimmed at booking time but trimmed on reschedule, so
+    // compare loosely. Bookings with no name match fall back to their first
+    // participant so every booking group still leads with a primary contact.
+    const normName = (s) => (s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const matchesContact = (p, booking) =>
+      !!booking &&
+      normName(p.first_name) === normName(booking.contact_first_name) &&
+      normName(p.last_name) === normName(booking.contact_last_name);
+    const bookingsWithMatch = new Set(
+      participants.filter(p => matchesContact(p, bookingById.get(p.booking_id))).map(p => p.booking_id)
+    );
+    const fallbackPrimaryIds = new Set();
+    for (const p of participants) {
+      if (bookingsWithMatch.has(p.booking_id)) continue;
+      bookingsWithMatch.add(p.booking_id);
+      fallbackPrimaryIds.add(p.id);
+    }
+
     const roster = participants.map((p) => {
       const booking = bookingById.get(p.booking_id);
-      const isPrimaryContact =
-        p.first_name === booking?.contact_first_name &&
-        p.last_name === booking?.contact_last_name;
+      const isPrimaryContact = matchesContact(p, booking) || fallbackPrimaryIds.has(p.id);
       return {
         id: outerId(p),
         firstName: p.first_name,
