@@ -51,6 +51,7 @@ interface UpcomingSchedule {
   date: string;
   startTime: string;
   availableSpots: number;
+  isPast: boolean;
 }
 
 // ── Helpers ──
@@ -134,13 +135,13 @@ const AdminPendingReschedulesPage = () => {
 
       const schedulesData = await schedulesRes.json();
       const classesData = await classesRes.json();
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
       const upcoming = schedulesData.records
         .filter((s: any) => {
           if (s.fields['Is Cancelled']) return false;
-          if (!s.fields.Date || s.fields.Date < today) return false;
-          return true; // Show all future classes, even full ones
+          if (!s.fields.Date) return false;
+          return true; // Show all classes, even full ones; past ones are grouped separately
         })
         .map((s: any) => {
           const classId = s.fields.Class?.[0];
@@ -153,6 +154,7 @@ const AdminPendingReschedulesPage = () => {
             date: s.fields.Date,
             startTime: s.fields['Start Time New'] || '',
             availableSpots: remaining,
+            isPast: s.fields.Date < today,
           };
         })
         .sort((a: UpcomingSchedule, b: UpcomingSchedule) => a.date.localeCompare(b.date));
@@ -436,8 +438,10 @@ const AdminPendingReschedulesPage = () => {
                         >
                           <option value="">Select a class...</option>
                           {(() => {
-                            const matching = upcomingSchedules.filter(s => s.classId === expandedOriginalClassId);
-                            const other = upcomingSchedules.filter(s => s.classId !== expandedOriginalClassId);
+                            const future = upcomingSchedules.filter(s => !s.isPast);
+                            const matching = future.filter(s => s.classId === expandedOriginalClassId);
+                            const other = future.filter(s => s.classId !== expandedOriginalClassId);
+                            const past = upcomingSchedules.filter(s => s.isPast).sort((a, b) => b.date.localeCompare(a.date));
                             return (
                               <>
                                 {matching.length > 0 && (
@@ -454,6 +458,15 @@ const AdminPendingReschedulesPage = () => {
                                     {other.map(s => (
                                       <option key={s.id} value={s.id}>
                                         {formatDate(s.date)} — {s.className} ({s.availableSpots > 0 ? `${s.availableSpots} spots` : 'FULL'})
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                {past.length > 0 && (
+                                  <optgroup label="Past classes">
+                                    {past.map(s => (
+                                      <option key={s.id} value={s.id}>
+                                        {formatDate(s.date)} — {s.className} (past)
                                       </option>
                                     ))}
                                   </optgroup>
