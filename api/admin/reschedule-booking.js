@@ -58,6 +58,9 @@ async function sendRescheduleEmail({ supabase, bookingUuid, contactFirstName, co
       .eq('id', scheduleUuid)
       .maybeSingle();
     if (!schedule) return;
+    // Moving someone into a class that already happened is record-keeping only.
+    const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    if (schedule.date && schedule.date < todayPacific) return;
 
     const klass = schedule.classes;
     const className = klass?.class_name || 'Self Defense Class';

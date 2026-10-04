@@ -55,6 +55,12 @@ export default async function handler(req, res) {
           .eq('id', scheduleUuid)
           .maybeSingle();
 
+        // Assigning to a class that already happened is record-keeping only.
+        const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+        if (schedule?.date && schedule.date < todayPacific) {
+          return res.json({ success: true, bookingId: outerId(booking), newClassScheduleId });
+        }
+
         const klass = schedule?.classes;
         const className = klass?.class_name || 'Self Defense Class';
         const location = klass?.location || 'Walnut Creek, CA';
