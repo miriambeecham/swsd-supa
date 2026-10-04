@@ -1,6 +1,6 @@
 // /api/admin/assign-reschedule.js
 // Assigns a class schedule to a Pending Reschedule booking and emails the contact.
-import { requireSupabase, airtableIdToUuid, outerId, RESET_CLASS_MESSAGING, attendanceForMove } from '../_supabase.js';
+import { requireSupabase, airtableIdToUuid, outerId, RESET_CLASS_MESSAGING, attendanceForMove, classHasEnded } from '../_supabase.js';
 import { requireAdminAuth } from '../_admin-auth.js';
 import {
   convertToISO, formatTimeForDisplay, formatDateForDisplay,
@@ -63,8 +63,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         // Assigning to a class that already happened is record-keeping only.
-        const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-        if (schedule?.date && schedule.date < todayPacific) {
+        if (classHasEnded(schedule)) {
           return res.json({ success: true, bookingId: outerId(booking), newClassScheduleId });
         }
 

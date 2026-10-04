@@ -71,10 +71,13 @@ export async function attendanceForMove(client, scheduleUuid) {
     .select('date, end_time_new')
     .eq('id', scheduleUuid)
     .maybeSingle();
-  if (!data) return 'Not Recorded';
-  if (data.end_time_new) {
-    return new Date(data.end_time_new) < new Date() ? 'Present' : 'Not Recorded';
-  }
+  return classHasEnded(data) ? 'Present' : 'Not Recorded';
+}
+
+// True once a class_schedules row ({ date, end_time_new }) has finished.
+export function classHasEnded(schedule) {
+  if (!schedule) return false;
+  if (schedule.end_time_new) return new Date(schedule.end_time_new) < new Date();
   const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-  return data.date && data.date < todayPacific ? 'Present' : 'Not Recorded';
+  return !!schedule.date && schedule.date < todayPacific;
 }
