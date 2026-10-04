@@ -58,6 +58,7 @@ interface Participant {
   bookingId: string;
   bookingNumber?: number;
   isPrimaryContact: boolean;
+  isBooker?: boolean;
   bookingDate?: string;
   // Email tracking
   confirmationEmailStatus?: string;
@@ -1867,7 +1868,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set([triggerParticipantId]));
 
   // Step 2: contact info for the movers (child booking)
-  const bookerParticipant = bookingParticipants.find(p => p.isPrimaryContact);
+  const bookerParticipant = bookingParticipants.find(p => p.isBooker);
   const [contactFirst, setContactFirst] = useState('');
   const [contactLast, setContactLast] = useState('');
   const [contactEmail, setContactEmail] = useState('');

@@ -71,7 +71,8 @@ export default async function handler(req, res) {
 
     const roster = participants.map((p) => {
       const booking = bookingById.get(p.booking_id);
-      const isPrimaryContact = matchesContact(p, booking) || fallbackPrimaryIds.has(p.id);
+      const isBooker = matchesContact(p, booking);
+      const isPrimaryContact = isBooker || fallbackPrimaryIds.has(p.id);
       return {
         id: outerId(p),
         firstName: p.first_name,
@@ -85,6 +86,9 @@ export default async function handler(req, res) {
         bookingId: booking ? outerId(booking) : null,
         bookingNumber: booking?.booking_id,
         isPrimaryContact,
+        // Display falls back to the first participant; the reschedule modal
+        // needs to know whether this person is actually the booking contact.
+        isBooker,
         bookingDate: booking?.booking_date,
         confirmationEmailStatus: booking?.confirmation_email_status,
         confirmationEmailSentAt: booking?.confirmation_email_sent_at,
