@@ -1,6 +1,6 @@
 // /api/admin/assign-reschedule.js
 // Assigns a class schedule to a Pending Reschedule booking and emails the contact.
-import { requireSupabase, airtableIdToUuid, outerId } from '../_supabase.js';
+import { requireSupabase, airtableIdToUuid, outerId, RESET_CLASS_MESSAGING, attendanceForMove } from '../_supabase.js';
 import { requireAdminAuth } from '../_admin-auth.js';
 import {
   convertToISO, formatTimeForDisplay, formatDateForDisplay,
@@ -43,9 +43,16 @@ export default async function handler(req, res) {
 
     const { error: updErr } = await supabase
       .from('bookings')
-      .update({ class_schedule_id: scheduleUuid, reschedule_status: null })
+      .update({ ...RESET_CLASS_MESSAGING, class_schedule_id: scheduleUuid, reschedule_status: null })
       .eq('id', booking.id);
     if (updErr) throw updErr;
+
+    // Attendance from the old class doesn't carry over to the new one.
+    const { error: attErr } = await supabase
+      .from('participants')
+      .update({ attendance: await attendanceForMove(supabase, scheduleUuid) })
+      .eq('booking_id', booking.id);
+    if (attErr) console.error('Warning: failed to reset attendance:', attErr.message);
 
     if (process.env.RESEND_API_KEY && booking.contact_email) {
       try {

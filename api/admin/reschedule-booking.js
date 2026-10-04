@@ -1,6 +1,6 @@
 // /api/admin/reschedule-booking.js
 // Whole-group and split-move reschedules.
-import { requireSupabase, outerId } from '../_supabase.js';
+import { requireSupabase, outerId, RESET_CLASS_MESSAGING, attendanceForMove } from '../_supabase.js';
 import { requireAdminAuth } from '../_admin-auth.js';
 import {
   convertToISO, formatTimeForDisplay, formatDateForDisplay,
@@ -171,6 +171,7 @@ export default async function handler(req, res) {
 
     if (isWholeGroup) {
       const updates = {
+        ...RESET_CLASS_MESSAGING,
         contact_first_name: primaryContactFirstName,
         contact_last_name: primaryContactLastName,
         contact_email: primaryContactEmail,
@@ -204,6 +205,13 @@ export default async function handler(req, res) {
         .update(updates)
         .eq('id', original.id);
       if (updErr) throw updErr;
+
+      // Attendance from the old class doesn't carry over to the new one.
+      const { error: attErr } = await supabase
+        .from('participants')
+        .update({ attendance: await attendanceForMove(supabase, newScheduleUuid) })
+        .eq('booking_id', original.id);
+      if (attErr) console.error('Warning: failed to reset attendance:', attErr.message);
 
       if (newScheduleUuid) {
         await sendRescheduleEmail({
@@ -265,7 +273,7 @@ export default async function handler(req, res) {
     // Move participants to the child booking
     const { error: pUpdErr } = await supabase
       .from('participants')
-      .update({ booking_id: childUuid })
+      .update({ booking_id: childUuid, attendance: await attendanceForMove(supabase, newScheduleUuid) })
       .in('id', movingParticipantUuids);
     if (pUpdErr) console.error('Warning: failed to move participants:', pUpdErr.message);
 
