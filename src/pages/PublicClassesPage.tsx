@@ -58,9 +58,6 @@ const PublicClassesPage = () => {
   useEffect(() => {
     fetchClassesFromAirtable();
     fetchTestimonial();
-    if (Math.random() < 0.1) {
-      fetch('/api/cleanup-expired-bookings', { method: 'POST' }).catch(() => {});
-    }
   }, []);
 
   const fetchTestimonial = async () => {

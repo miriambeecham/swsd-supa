@@ -23,6 +23,10 @@
       "schedule": "0,15,30,45 * * * *"
     },
     {
+      "path": "/api/cleanup-expired-bookings",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/send-class-followup",
       "schedule": "0,30 * * * *"
     }
