@@ -105,7 +105,7 @@ const PrivacyPolicyPage = () => {
               <ul className="list-disc pl-6 mb-6 text-gray-700 space-y-2">
                 <li>Name, email address, and phone number (when you submit contact forms or register for a class)</li>
                 <li>Participant names and age groups (when you register for a class)</li>
-                <li>Liability waiver and emergency contact information (collected through WaiverSign, a third-party waiver service we link to from our class prep pages)</li>
+                <li>Liability waiver and emergency contact information, which you enter directly on WaiverSign, the third-party waiver service we link to from our class prep pages. We do not send your information to WaiverSign, and information you enter there is also subject to WaiverSign's own privacy policy.</li>
                 <li>Billing name and address (when you pay for a class). Card details are entered directly with our payment processor, Stripe; we never see or store your full card number.</li>
                 <li>Organization/company information (for workplace safety inquiries)</li>
                 <li>Training preferences and requirements</li>
@@ -148,7 +148,7 @@ const PrivacyPolicyPage = () => {
               <h2 className="text-2xl font-bold text-navy mb-4">4. Information Sharing and Disclosure</h2>
               <p className="text-gray-700 mb-4">We may share your information only in these limited circumstances:</p>
               <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-                <li><strong>Service Providers:</strong> With the essential service providers who help us operate our business, including Supabase (our database provider), Vercel (website hosting), Stripe (payment processing), Resend (email delivery), Twilio (text message delivery), and WaiverSign (liability waivers). Information you enter on WaiverSign is also subject to WaiverSign's own privacy policy.</li>
+                <li><strong>Service Providers:</strong> With the essential service providers who help us operate our business, including Supabase (our database provider), Vercel (website hosting), Stripe (payment processing), Resend (email delivery), and Twilio (text message delivery)</li>
                 <li><strong>Legal Requirements:</strong> If required by law, court order, or to protect our legal rights</li>
                 <li><strong>Business Transfer:</strong> In the unlikely event of a business sale or merger</li>
               </ul>
