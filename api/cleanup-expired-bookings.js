@@ -1,22 +1,23 @@
 // /api/cleanup-expired-bookings.js
+// Cron job to cancel abandoned checkouts so their seats are released.
 import { requireSupabase } from './_supabase.js';
+import { requireCronAuth } from './_cron-auth.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+  if (!requireCronAuth(req, res)) return;
   const supabase = requireSupabase(res);
   if (!supabase) return;
 
   try {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    // Stripe sessions expire 30 min after creation; the extra 5 min covers the
+    // gap between inserting the booking and creating the session.
+    const cutoff = new Date(Date.now() - 35 * 60 * 1000).toISOString();
 
     const { data, error } = await supabase
       .from('bookings')
       .update({ status: 'Cancelled', payment_status: 'Expired' })
       .eq('status', 'Pending Payment')
-      .lt('booking_date', thirtyMinutesAgo)
+      .lt('booking_date', cutoff)
       .select('id');
     if (error) throw error;
 

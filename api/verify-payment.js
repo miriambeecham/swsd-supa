@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       .update({
         status: 'Confirmed',
         payment_status: 'Completed',
-        stripe_payment_intent_id: session.id,
+        stripe_payment_intent_id: session.payment_intent,
         payment_date: new Date().toISOString(),
       })
       .eq('id', booking.id);

@@ -85,7 +85,7 @@ const PrivacyPolicyPage = () => {
             <div className="mb-8 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">
                 <strong>Effective Date:</strong> 07/29/25<br />
-                <strong>Last Updated:</strong> 07/29/25
+                <strong>Last Updated:</strong> 10/15/26
               </p>
             </div>
 
@@ -103,7 +103,10 @@ const PrivacyPolicyPage = () => {
 
               <h3 className="text-lg font-semibold text-navy mb-3">Information You Provide to Us:</h3>
               <ul className="list-disc pl-6 mb-6 text-gray-700 space-y-2">
-                <li>Name, email address, and phone number (when you submit contact forms)</li>
+                <li>Name, email address, and phone number (when you submit contact forms or register for a class)</li>
+                <li>Participant names and age groups (when you register for a class)</li>
+                <li>Liability waiver and emergency contact information, which you enter directly on WaiverSign, the third-party waiver service we link to from our class prep pages. We do not send your information to WaiverSign, and information you enter there is also subject to WaiverSign's own privacy policy.</li>
+                <li>Billing name and address (when you pay for a class). Card details are entered directly with our payment processor, Stripe; we never see or store your full card number.</li>
                 <li>Organization/company information (for workplace safety inquiries)</li>
                 <li>Training preferences and requirements</li>
                 <li>Any additional information you choose to provide in form submissions</li>
@@ -145,10 +148,13 @@ const PrivacyPolicyPage = () => {
               <h2 className="text-2xl font-bold text-navy mb-4">4. Information Sharing and Disclosure</h2>
               <p className="text-gray-700 mb-4">We may share your information only in these limited circumstances:</p>
               <ul className="list-disc pl-6 mb-4 text-gray-700 space-y-2">
-                <li><strong>Service Providers:</strong> With Airtable (our database provider), Zoho CRM (our customer relationship management system), and other essential service providers who help us operate our business</li>
+                <li><strong>Service Providers:</strong> With the essential service providers who help us operate our business, including Supabase (our database provider), Vercel (website hosting), Stripe (payment processing), Resend (email delivery), and Twilio (text message delivery)</li>
                 <li><strong>Legal Requirements:</strong> If required by law, court order, or to protect our legal rights</li>
                 <li><strong>Business Transfer:</strong> In the unlikely event of a business sale or merger</li>
               </ul>
+              <p className="text-gray-700 mb-4">
+                Mobile phone numbers and text messaging consent are never shared with third parties or affiliates for marketing or promotional purposes.
+              </p>
               <p className="text-gray-700 text-sm italic">
                 All service providers are required to maintain the confidentiality and security of your personal information and may only use it to provide services to us.
               </p>
@@ -159,7 +165,8 @@ const PrivacyPolicyPage = () => {
               <h2 className="text-2xl font-bold text-navy mb-4">5. Data Storage and Security</h2>
               <ul className="list-disc pl-6 text-gray-700 space-y-2">
                 <li>Your information is stored securely using industry-standard practices</li>
-                <li>We use Airtable and Zoho CRM as our primary data storage providers, both of which maintain SOC 2 compliance and enterprise-grade security</li>
+                <li>Your information is stored with Supabase, our database provider, and is encrypted in transit and at rest</li>
+                <li>Payments are processed by Stripe, a PCI DSS Level 1 certified payment processor; we do not store payment card numbers</li>
                 <li>We retain your information only as long as necessary to provide our services, maintain our customer relationships, or as required by law</li>
                 <li>You may request deletion of your information at any time, subject to any legal retention requirements</li>
               </ul>
