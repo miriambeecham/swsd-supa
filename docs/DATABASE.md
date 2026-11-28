@@ -63,8 +63,18 @@ migrations win; please update this file when you add a migration.
 - **`waiver_holding_table`** is a legacy import from WaiverSign that the app
   doesn't read. Waiver details are now entered directly on WaiverSign.
 - **`keepalive`** is a one-row table written every few days by a GitHub
-  workflow so the free-tier Supabase project doesn't pause for inactivity.
-  Ignore it.
+  workflow (`.github/workflows/supabase-keepalive.yml`) so the free-tier
+  Supabase project doesn't pause for inactivity. Ignore it.
+  - **Known issue (as of 2026-11-28):** the **staging** half of the
+    keep-alive job has failed on every run since 2026-05-14 with
+    `Could not resolve host` for the project in the `SUPABASE_URL_STAGING`
+    GitHub secret. The last successful staging ping was 2026-05-11. The
+    staging site still works, so it is probably using a different Supabase
+    project than the one the secret names. The staging backup workflow
+    (`supabase-backup-staging.yml`) uses the same secrets and hasn't
+    succeeded since 2026-05-06. **Prod is unaffected:** its keep-alive and
+    backups succeed. Because of this the workflow shows as failed on every
+    run, so check the prod job's own result rather than the overall status.
 
 ## Relationships
 
